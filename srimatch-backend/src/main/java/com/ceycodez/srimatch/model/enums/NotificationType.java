@@ -1,0 +1,18 @@
+package com.ceycodez.srimatch.model.enums;
+
+public enum NotificationType {
+    LIKE_RECEIVED,
+    STAR_LIKE_RECEIVED,
+    LIKE_ACCEPTED,
+    LIKE_REJECTED,
+    MATCH_CREATED,
+    NEW_MESSAGE,
+    PROFILE_VIEW,
+    PREMIUM_EXPIRING,
+    PREMIUM_ACTIVATED,
+    SYSTEM_ALERT,
+    PROMOTION,
+    REMINDER,
+    REPORT_RESOLVED,
+    ACCOUNT_VERIFIED
+}

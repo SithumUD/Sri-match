@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="springAppName" source="spring.application.name"/>
+    <springProperty scope="context" name="logPath" source="logging.file.path" defaultValue="./logs"/>
+
+    <!-- Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- File Appender - All Logs -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${logPath}/srimatch.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${logPath}/srimatch-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Error Log Appender -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${logPath}/srimatch-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${logPath}/srimatch-error-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Security Audit Log -->
+    <appender name="SECURITY_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${logPath}/security-audit.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${logPath}/security-audit-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>90</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- JSON Appender for Production -->
+    <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${logPath}/srimatch-json.log</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <includeCallerData>true</includeCallerData>
+            <customFields>{"app":"srimatch","env":"${springProfilesActive}"}</customFields>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${logPath}/srimatch-json-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Async Appenders -->
+    <appender name="ASYNC_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="CONSOLE"/>
+        <queueSize>500</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+    </appender>
+
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <queueSize>500</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+    </appender>
+
+    <appender name="ASYNC_JSON" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="JSON_FILE"/>
+        <queueSize>500</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+    </appender>
+
+    <!-- Logger Configurations -->
+    <logger name="com.srimatch" level="DEBUG" additivity="false">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="ASYNC_JSON"/>
+    </logger>
+
+    <logger name="com.srimatch.security" level="INFO" additivity="false">
+        <appender-ref ref="SECURITY_FILE"/>
+        <appender-ref ref="ASYNC_CONSOLE"/>
+    </logger>
+
+    <logger name="org.springframework.security" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </logger>
+
+    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+    </logger>
+
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE" additivity="false">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+    </logger>
+
+    <logger name="org.springframework.web" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </logger>
+
+    <logger name="org.springframework.boot.actuate" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+    </logger>
+
+    <!-- Production Profile -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_JSON"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+        <logger name="com.srimatch" level="INFO"/>
+        <logger name="org.hibernate.SQL" level="WARN"/>
+    </springProfile>
+
+    <!-- Development Profile -->
+    <springProfile name="dev">
+        <root level="DEBUG">
+            <appender-ref ref="ASYNC_CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+    </springProfile>
+
+    <!-- Test Profile -->
+    <springProfile name="test">
+        <root level="DEBUG">
+            <appender-ref ref="ASYNC_CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- Root Logger -->
+    <root level="INFO">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
+    </root>
+</configuration>

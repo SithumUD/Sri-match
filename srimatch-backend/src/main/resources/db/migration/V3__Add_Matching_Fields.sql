@@ -1,0 +1,3 @@
+ALTER TABLE profiles
+ADD COLUMN relocation_willingness VARCHAR(50) DEFAULT 'NOT_WILLING',
+ADD COLUMN family_type VARCHAR(50) DEFAULT 'NUCLEAR';

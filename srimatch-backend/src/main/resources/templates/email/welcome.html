@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to SriMatch</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #2d1810;
+            background-color: #fdf8f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #3d1f12 0%, #8b4e2e 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: #ffffff;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .logo span {
+            color: #e8c97a;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .welcome-title {
+            font-size: 28px;
+            color: #3d1f12;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #3d1f12, #8b4e2e);
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 50px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        .footer {
+            background-color: #fdf8f4;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #9a7060;
+            border-top: 1px solid #f0ddd5;
+        }
+        .social-links {
+            margin-top: 15px;
+        }
+        .social-links a {
+            margin: 0 10px;
+            color: #8b4e2e;
+            text-decoration: none;
+        }
+        @media only screen and (max-width: 600px) {
+            .content {
+                padding: 20px;
+            }
+            .welcome-title {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">
+            Sri<span>Match</span> ♥
+        </div>
+        <p>Where traditions meet forever</p>
+    </div>
+
+    <div class="content">
+        <h1 class="welcome-title">Welcome to SriMatch, {{name}}! 🎉</h1>
+
+        <p>Thank you for joining SriMatch - Sri Lanka's premier matrimonial platform where tradition meets modern matchmaking.</p>
+
+        <p>We're excited to help you find your perfect life partner. Here's what you can do next:</p>
+
+        <ul>
+            <li>✨ Complete your profile to get better matches</li>
+            <li>📸 Upload photos to increase your visibility</li>
+            <li>💝 Set your partner preferences</li>
+            <li>🔍 Start discovering compatible matches</li>
+        </ul>
+
+        <div style="text-align: center;">
+            <a href="{{profileUrl}}" class="button">Complete Your Profile →</a>
+        </div>
+
+        <p>Your journey to finding your soulmate starts here. Our intelligent matching algorithm will suggest profiles based on your preferences, values, and lifestyle choices.</p>
+
+        <p>Need help? Check out our <a href="{{helpUrl}}" style="color: #8b4e2e;">FAQ section</a> or contact our support team at support@srimatch.com</p>
+
+        <p>Best wishes,<br>
+            <strong>The SriMatch Team</strong></p>
+    </div>
+
+    <div class="footer">
+        <p>© 2026 SriMatch. All rights reserved.</p>
+        <p>This email was sent to {{email}}. You're receiving this because you signed up for SriMatch.</p>
+        <div class="social-links">
+            <a href="#">Facebook</a> |
+            <a href="#">Twitter</a> |
+            <a href="#">Instagram</a> |
+            <a href="#">LinkedIn</a>
+        </div>
+        <p>
+            <a href="{{unsubscribeUrl}}" style="color: #9a7060;">Unsubscribe</a> |
+            <a href="{{privacyUrl}}" style="color: #9a7060;">Privacy Policy</a>
+        </p>
+    </div>
+</div>
+</body>
+</html>
