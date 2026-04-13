@@ -1,47 +1,386 @@
-import React, { useEffect, useState } from "react";
+// HomePage.jsx - Redesigned to match SriMatch luxury aesthetic
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { dummyProfiles, profileOptions } from "../data/dummyData";
 import { useAuth } from "../context/AuthContext";
 import {
-  FilterIcon,
-  SearchIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  HeartIcon,
-  UserPlusIcon,
-  CheckIcon,
-  XIcon,
-  MapPinIcon,
-  BriefcaseIcon,
-  SlashIcon,
-  SlidersIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-  SortAscIcon,
-  BookIcon,
-  GraduationCapIcon,
-  UsersIcon,
-  HeartHandshakeIcon,
-  StarIcon,
-  VerifiedIcon,
-  CrownIcon,
-  ZapIcon,
+  Heart, UserPlus, Check, MapPin, Briefcase, GraduationCap,
+  BookOpen, Search, ChevronDown, ChevronRight,
+  Crown, Zap, Shield, ArrowUp, ArrowDown, Sparkles,
+  Filter, RefreshCw,
 } from "lucide-react";
 
+/* ─── Styles ─────────────────────────────────────────────────────────────── */
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+  .hp-root * { box-sizing: border-box; }
+
+  .hp-root {
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    background: #fdf8f4;
+    color: #2d1810;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* ── Page header ── */
+  .hp-page-header {
+    max-width: 1200px;
+    margin: 0 auto 2rem;
+  }
+  .hp-page-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: #2d1810;
+    line-height: 1.1;
+  }
+  .hp-page-title span {
+    background: linear-gradient(135deg, #8b4e2e, #c9856a);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hp-page-sub { font-size: 0.85rem; color: #9a7060; margin-top: 0.25rem; }
+
+  /* ── Search bar ── */
+  .hp-search-wrap {
+    max-width: 1200px;
+    margin: 0 auto 1.75rem;
+    position: relative;
+  }
+  .hp-search-icon {
+    position: absolute; left: 1.1rem; top: 50%; transform: translateY(-50%);
+    color: #c4a99a; pointer-events: none;
+  }
+  .hp-search {
+    width: 100%;
+    padding: 0.85rem 1.25rem 0.85rem 3rem;
+    border: 1.5px solid #e8ddd8; border-radius: 14px;
+    font-size: 0.9rem; color: #2d1810; background: #fff;
+    font-family: 'DM Sans', sans-serif;
+    box-shadow: 0 4px 16px rgba(120,60,30,0.06);
+    outline: none; transition: all 0.2s;
+  }
+  .hp-search:focus { border-color: #c9856a; box-shadow: 0 0 0 3px rgba(201,133,106,0.1); }
+  .hp-search::placeholder { color: #c4b0a5; }
+
+  /* ── Layout ── */
+  .hp-layout {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 272px 1fr;
+    gap: 1.75rem;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .hp-layout { grid-template-columns: 1fr; }
+    .hp-sidebar { position: static !important; }
+  }
+
+  /* ── Sidebar ── */
+  .hp-sidebar {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 12px 40px rgba(120,60,30,0.08), 0 2px 8px rgba(0,0,0,0.04);
+    overflow: hidden;
+    position: sticky;
+    top: 1.5rem;
+  }
+  .hp-sidebar-header {
+    background: linear-gradient(135deg, #3d1f12 0%, #6b3526 50%, #8b4e2e 100%);
+    padding: 1.25rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .hp-sidebar-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.15rem; font-weight: 600; color: #fff;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .hp-sidebar-reset {
+    background: rgba(255,255,255,0.15); border: none;
+    color: #fff; font-size: 0.72rem; padding: 0.3rem 0.65rem;
+    border-radius: 99px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background 0.2s; display: flex; align-items: center; gap: 4px;
+  }
+  .hp-sidebar-reset:hover { background: rgba(255,255,255,0.25); }
+
+  .hp-sidebar-body { padding: 1.25rem 1.5rem; max-height: calc(100vh - 120px); overflow-y: auto; }
+  .hp-sidebar-body::-webkit-scrollbar { width: 3px; }
+  .hp-sidebar-body::-webkit-scrollbar-thumb { background: #e8c9b8; border-radius: 99px; }
+
+  /* Premium banner */
+  .hp-premium-banner {
+    background: linear-gradient(135deg, #fdf5ee, #fdf0e8);
+    border: 1px solid #f0ddd5; border-radius: 12px;
+    padding: 1rem; margin-bottom: 1.25rem;
+  }
+  .hp-premium-banner h4 {
+    font-weight: 600; color: #4a3028; font-size: 0.82rem;
+    display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem;
+  }
+  .hp-premium-banner p { font-size: 0.73rem; color: #9a7060; line-height: 1.5; margin-bottom: 0.65rem; }
+  .hp-premium-cta {
+    display: inline-block;
+    padding: 0.4rem 1rem; border-radius: 99px;
+    background: linear-gradient(135deg, #3d1f12, #8b4e2e, #c9856a);
+    color: #fff; font-size: 0.75rem; font-weight: 500;
+    text-decoration: none; transition: opacity 0.2s;
+  }
+  .hp-premium-cta:hover { opacity: 0.88; }
+
+  /* Filter groups */
+  .hp-filter-group { margin-bottom: 1.1rem; }
+  .hp-filter-group-title {
+    font-size: 0.7rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.09em;
+    color: #8b4e2e; margin-bottom: 0.6rem;
+  }
+  .hp-filter-label {
+    display: block; font-size: 0.77rem; font-weight: 500;
+    color: #4a3028; margin-bottom: 0.28rem; margin-top: 0.5rem;
+  }
+  .hp-filter-select {
+    width: 100%; padding: 0.52rem 0.8rem;
+    border: 1.5px solid #e8ddd8; border-radius: 8px;
+    font-size: 0.81rem; color: #2d1810; background: #fdf8f5;
+    font-family: 'DM Sans', sans-serif;
+    appearance: none; outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath fill='%23c9856a' d='M0 0l5 7 5-7z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.75rem center;
+    padding-right: 2rem;
+    transition: border-color 0.2s;
+  }
+  .hp-filter-select:focus { border-color: #c9856a; }
+
+  .hp-range-label { font-size: 0.74rem; color: #9a7060; margin-top: 0.5rem; margin-bottom: 0.2rem; }
+  input[type=range] { width: 100%; accent-color: #8b4e2e; margin-bottom: 0.2rem; }
+
+  .hp-filter-divider { height: 1px; background: #f0ddd5; margin: 1rem 0; }
+
+  /* Advanced toggle */
+  .hp-advanced-toggle {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    background: none; border: none; cursor: pointer;
+    font-size: 0.8rem; font-weight: 500; color: #8b4e2e;
+    padding: 0.4rem 0; font-family: 'DM Sans', sans-serif;
+  }
+  .hp-advanced-toggle:disabled { color: #b09080; cursor: not-allowed; }
+
+  /* Verified checkbox */
+  .hp-verify-row {
+    display: flex; align-items: center; gap: 0.5rem;
+    margin: 0.5rem 0;
+  }
+  .hp-verify-row input { accent-color: #8b4e2e; width: 15px; height: 15px; cursor: pointer; }
+  .hp-verify-row label { font-size: 0.79rem; color: #6b4a3a; cursor: pointer; }
+
+  /* Likes meter */
+  .hp-likes-meter {
+    background: #fdf5ee; border: 1px solid #f0ddd5;
+    border-radius: 10px; padding: 0.85rem;
+    margin-top: 1rem;
+  }
+  .hp-likes-meter-top {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 0.45rem;
+  }
+  .hp-likes-label { font-size: 0.78rem; font-weight: 500; color: #4a3028; display: flex; align-items: center; gap: 0.35rem; }
+  .hp-likes-count { font-size: 0.78rem; font-weight: 600; color: #8b4e2e; }
+  .hp-likes-track { height: 4px; background: #ede5e0; border-radius: 99px; overflow: hidden; }
+  .hp-likes-fill { height: 100%; background: linear-gradient(90deg, #8b4e2e, #c9856a); border-radius: 99px; transition: width 0.4s; }
+  .hp-likes-note { font-size: 0.69rem; color: #9a7060; margin-top: 0.4rem; }
+
+  /* Interests chip filter */
+  .hp-interests-filter { display: flex; flex-wrap: wrap; gap: 0.35rem; max-height: 110px; overflow-y: auto; border: 1.5px solid #e8ddd8; border-radius: 10px; padding: 0.55rem; background: #fdf8f5; margin-top: 0.25rem; }
+  .hp-interests-filter::-webkit-scrollbar { width: 3px; }
+  .hp-interests-filter::-webkit-scrollbar-thumb { background: #e8c9b8; border-radius: 99px; }
+  .hp-chip-filter {
+    padding: 0.22rem 0.6rem; border-radius: 99px; font-size: 0.71rem;
+    border: 1.5px solid #e8ddd8; color: #6b4a3a; background: #fff;
+    cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+  }
+  .hp-chip-filter:hover { border-color: #c9856a; }
+  .hp-chip-filter.sel { background: linear-gradient(135deg, #3d1f12, #8b4e2e); color: #fff; border-color: transparent; }
+
+  /* ── Sort row ── */
+  .hp-sort-row {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 0.65rem; margin-bottom: 1.4rem;
+  }
+  .hp-result-count { font-size: 0.85rem; color: #9a7060; }
+  .hp-result-count strong { color: #2d1810; }
+  .hp-sort-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .hp-sort-btn {
+    padding: 0.38rem 0.8rem; border-radius: 99px;
+    font-size: 0.74rem; font-weight: 500; cursor: pointer;
+    border: 1.5px solid #e8ddd8; background: #fdf8f5;
+    color: #6b4a3a; font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s; display: flex; align-items: center; gap: 3px;
+  }
+  .hp-sort-btn:hover { border-color: #c9856a; }
+  .hp-sort-btn.active {
+    background: linear-gradient(135deg, #3d1f12, #8b4e2e);
+    color: #fff; border-color: transparent;
+    box-shadow: 0 4px 10px rgba(139,78,46,0.22);
+  }
+
+  /* ── Profile cards grid ── */
+  .hp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.2rem;
+  }
+
+  /* ── Profile card ── */
+  .hp-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 28px rgba(120,60,30,0.07), 0 2px 6px rgba(0,0,0,0.03);
+    overflow: hidden;
+    transition: transform 0.25s, box-shadow 0.25s;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+  .hp-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 44px rgba(120,60,30,0.13), 0 4px 10px rgba(0,0,0,0.05);
+  }
+  .hp-card.boosted { box-shadow: 0 0 0 2px #e07a30, 0 12px 36px rgba(120,60,30,0.1); }
+
+  /* Card image */
+  .hp-card-img-wrap { position: relative; height: 190px; overflow: hidden; flex-shrink: 0; }
+  .hp-card-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s; }
+  .hp-card:hover .hp-card-img { transform: scale(1.05); }
+  .hp-card-img-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(30,10,5,0.58) 0%, transparent 55%);
+    pointer-events: none;
+  }
+
+  /* Badges */
+  .hp-badge {
+    position: absolute; top: 0.65rem; left: 0.65rem;
+    padding: 0.22rem 0.6rem; border-radius: 99px;
+    font-size: 0.67rem; font-weight: 600;
+    display: flex; align-items: center; gap: 3px;
+    backdrop-filter: blur(6px);
+  }
+  .hp-badge.verified { background: rgba(61,31,18,0.85); color: #e8c97a; }
+  .hp-badge.boosted {
+    top: 0.65rem; left: auto; right: 0.65rem;
+    background: linear-gradient(135deg, #e07a30, #c93a1a);
+    color: #fff;
+  }
+
+  /* Action buttons on card */
+  .hp-card-actions {
+    position: absolute; bottom: 0.7rem; right: 0.7rem;
+    display: flex; gap: 0.4rem;
+  }
+  .hp-action-btn {
+    width: 33px; height: 33px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    border: none; cursor: pointer; transition: all 0.2s;
+    backdrop-filter: blur(6px);
+  }
+  .hp-action-btn.like { background: rgba(255,255,255,0.9); color: #b09080; }
+  .hp-action-btn.like.active { background: #f4c9d0; color: #c03060; }
+  .hp-action-btn.like:hover { background: #fff; color: #c9856a; }
+  .hp-action-btn.connect { background: rgba(255,255,255,0.9); color: #b09080; }
+  .hp-action-btn.connect.active { background: #e0eaf5; color: #3a6ea8; }
+  .hp-action-btn.connect:hover { background: #fff; color: #4a6ea0; }
+
+  /* Card body */
+  .hp-card-body { padding: 1rem 1.2rem 1.15rem; flex: 1; display: flex; flex-direction: column; }
+
+  .hp-card-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem; font-weight: 600; color: #2d1810;
+    text-decoration: none; transition: color 0.2s; line-height: 1.1;
+    display: block; margin-bottom: 0.2rem;
+  }
+  .hp-card-name:hover { color: #8b4e2e; }
+
+  .hp-card-location { font-size: 0.74rem; color: #9a7060; display: flex; align-items: center; gap: 3px; margin-bottom: 0.6rem; }
+
+  .hp-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.65rem; }
+  .hp-tag {
+    padding: 0.22rem 0.6rem; border-radius: 99px;
+    font-size: 0.69rem; font-weight: 500;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .hp-tag.profession { background: #fdf0e8; color: #8b4e2e; }
+  .hp-tag.education { background: #edf5fd; color: #3a6ea8; }
+  .hp-tag.religion { background: #f5f0fa; color: #6a40a8; }
+
+  .hp-card-about {
+    font-size: 0.79rem; color: #6b4a3a; line-height: 1.55;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; margin-bottom: 0.65rem;
+    flex: 1;
+  }
+
+  .hp-interests { display: flex; flex-wrap: wrap; gap: 0.28rem; margin-bottom: 0.8rem; }
+  .hp-interest {
+    background: #f5ede8; color: #8b5e4a;
+    font-size: 0.67rem; padding: 0.18rem 0.5rem; border-radius: 99px;
+  }
+
+  .hp-card-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-top: 0.7rem; border-top: 1px solid #f5ede8;
+  }
+  .hp-view-link {
+    font-size: 0.77rem; font-weight: 500; color: #8b4e2e;
+    text-decoration: none; display: flex; align-items: center; gap: 3px;
+    transition: gap 0.2s;
+  }
+  .hp-view-link:hover { gap: 6px; }
+  .hp-match-score {
+    font-size: 0.71rem; font-weight: 600;
+    background: linear-gradient(135deg, #8b4e2e, #c9856a);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Empty state ── */
+  .hp-empty {
+    text-align: center; padding: 4rem 2rem;
+    background: #fff; border-radius: 20px;
+    box-shadow: 0 8px 28px rgba(120,60,30,0.06);
+  }
+  .hp-empty-icon {
+    width: 68px; height: 68px; border-radius: 50%;
+    background: linear-gradient(135deg, #fdf0e8, #f5ddd0);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  .hp-empty h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 600; color: #2d1810; margin-bottom: 0.4rem; }
+  .hp-empty p { font-size: 0.85rem; color: #9a7060; }
+
+  @media (max-width: 600px) {
+    .hp-root { padding: 1.25rem 1rem 3rem; }
+    .hp-page-title { font-size: 1.6rem; }
+    .hp-grid { grid-template-columns: 1fr; }
+  }
+`;
+
+/* ─── Component ──────────────────────────────────────────────────────────── */
 const HomePage = () => {
   const {
-    likedProfiles,
-    sentRequests,
+    likedProfiles = [],
+    sentRequests = [],
     toggleLike,
     toggleFriendRequest,
-    subscription,
-    likesRemaining,
+    subscription = {},
+    likesRemaining = 5,
   } = useAuth();
 
-  const [profiles, setProfiles] = useState(dummyProfiles);
+  const [profiles] = useState(dummyProfiles);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [sortOrder, setSortOrder] = useState("newest");
   const [filters, setFilters] = useState({
     ageRange: [18, 60],
@@ -66,1059 +405,438 @@ const HomePage = () => {
     interests: [],
   });
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-  };
+  const isPremium = subscription?.plan === "premium";
 
   const handleFilterChange = (e) => {
-    const { name, value, type } = e.target;
-    const checked = type === "checkbox" ? e.target.checked : undefined;
-
-    if (type === "checkbox") {
-      setFilters((prev) => ({
-        ...prev,
-        [name]: checked,
-      }));
-    } else {
-      setFilters((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    const { name, value, type, checked } = e.target;
+    setFilters(p => ({ ...p, [name]: type === "checkbox" ? checked : value }));
   };
 
-  const handleRangeChange = (name, value, index) => {
-    setFilters((prev) => ({
-      ...prev,
-      [name]: index === 0 ? [value, prev[name][1]] : [prev[name][0], value],
-    }));
+  const handleRange = (name, val, idx) => {
+    setFilters(p => ({ ...p, [name]: idx === 0 ? [val, p[name][1]] : [p[name][0], val] }));
   };
 
-  const handleInterestChange = (interest) => {
-    setFilters((prev) => {
-      const currentInterests = prev.interests || [];
-      if (currentInterests.includes(interest)) {
-        return {
-          ...prev,
-          interests: currentInterests.filter((i) => i !== interest),
-        };
-      } else {
-        return {
-          ...prev,
-          interests: [...currentInterests, interest],
-        };
-      }
+  const toggleInterest = (interest) => {
+    setFilters(p => {
+      const cur = p.interests || [];
+      return { ...p, interests: cur.includes(interest) ? cur.filter(i => i !== interest) : [...cur, interest] };
     });
-  };
-
-  const handleSortChange = (order) => {
-    setSortOrder(order);
   };
 
   const resetFilters = () => {
     setFilters({
-      ageRange: [18, 60],
-      gender: "",
-      maritalStatus: "",
-      hasChildren: "",
-      city: "",
-      district: "",
-      ethnicity: "",
-      religion: "",
-      education: "",
-      profession: "",
-      industry: "",
-      income: "",
-      height: [140, 200],
-      bodyType: "",
-      smoking: "",
-      drinking: "",
-      dietaryPreference: "",
-      verified: false,
-      horoscopeSign: "",
-      interests: [],
+      ageRange: [18, 60], gender: "", maritalStatus: "", hasChildren: "",
+      city: "", district: "", ethnicity: "", religion: "", education: "",
+      profession: "", industry: "", income: "", height: [140, 200],
+      bodyType: "", smoking: "", drinking: "", dietaryPreference: "",
+      verified: false, horoscopeSign: "", interests: [],
     });
+    setSearchTerm("");
   };
 
-  // Sort and boost profiles
-  const sortAndBoostProfiles = (filteredProfiles) => {
-    // First, separate boosted profiles if user is premium and has active boost
-    const boostedProfiles = [];
-    const regularProfiles = [];
+  const cities = [...new Set(dummyProfiles.map(p => p.city))];
+  const professions = [...new Set(dummyProfiles.map(p => p.profession))];
 
-    if (
-      subscription.plan === "premium" &&
-      subscription.features.boostExpiresAt &&
-      new Date(subscription.features.boostExpiresAt) > new Date()
-    ) {
-      // Simulate boosted profiles - in a real app, this would be the user's own profile
-      // For demo, let's boost a random profile
-      const randomIndex = Math.floor(Math.random() * filteredProfiles.length);
-      if (filteredProfiles[randomIndex]) {
-        boostedProfiles.push({
-          ...filteredProfiles[randomIndex],
-          isBoosted: true,
-        });
-        regularProfiles.push(
-          ...filteredProfiles.filter((_, i) => i !== randomIndex)
-        );
-      } else {
-        regularProfiles.push(...filteredProfiles);
-      }
-    } else {
-      regularProfiles.push(...filteredProfiles);
-    }
-
-    // Sort regular profiles
-    regularProfiles.sort((a, b) => {
-      if (sortOrder === "newest") {
-        return (
-          parseInt(b.id.replace("profile", "")) -
-          parseInt(a.id.replace("profile", ""))
-        );
-      } else if (sortOrder === "age_asc") {
-        return a.age - b.age;
-      } else if (sortOrder === "age_desc") {
-        return b.age - a.age;
-      } else if (sortOrder === "height_asc") {
-        return a.height - b.height;
-      } else if (sortOrder === "height_desc") {
-        return b.height - a.height;
-      }
+  const filtered = [...profiles]
+    .filter(p => {
+      const name = `${p.firstName} ${p.lastName}`.toLowerCase();
+      if (searchTerm && !name.includes(searchTerm.toLowerCase()) && !p.profession?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (filters.gender && p.gender !== filters.gender) return false;
+      if (filters.maritalStatus && p.maritalStatus !== filters.maritalStatus) return false;
+      if (filters.hasChildren !== "" && p.hasChildren !== (filters.hasChildren === "true")) return false;
+      if (filters.city && p.city !== filters.city) return false;
+      if (filters.district && p.district !== filters.district) return false;
+      if (filters.ethnicity && p.ethnicity !== filters.ethnicity) return false;
+      if (filters.religion && p.religion !== filters.religion) return false;
+      if (filters.education && p.education !== filters.education) return false;
+      if (filters.profession && !p.profession?.toLowerCase().includes(filters.profession.toLowerCase())) return false;
+      if (filters.industry && p.industry !== filters.industry) return false;
+      if (filters.income && p.income !== filters.income) return false;
+      if (p.height < filters.height[0] || p.height > filters.height[1]) return false;
+      if (filters.bodyType && p.bodyType !== filters.bodyType) return false;
+      if (filters.smoking && p.smoking !== filters.smoking) return false;
+      if (filters.drinking && p.drinking !== filters.drinking) return false;
+      if (filters.dietaryPreference && p.dietaryPreferences !== filters.dietaryPreference) return false;
+      if (p.age < filters.ageRange[0] || p.age > filters.ageRange[1]) return false;
+      if (filters.horoscopeSign && p.horoscope?.sign !== filters.horoscopeSign) return false;
+      if (filters.interests.length > 0 && !filters.interests.some(i => p.interests?.includes(i))) return false;
+      if (filters.verified && !p.isVerified) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortOrder === "newest") return parseInt(b.id?.replace(/\D/g, "") || 0) - parseInt(a.id?.replace(/\D/g, "") || 0);
+      if (sortOrder === "age_asc") return (a.age || 0) - (b.age || 0);
+      if (sortOrder === "age_desc") return (b.age || 0) - (a.age || 0);
+      if (sortOrder === "height_asc") return (a.height || 0) - (b.height || 0);
+      if (sortOrder === "height_desc") return (b.height || 0) - (a.height || 0);
       return 0;
     });
 
-    // Return boosted profiles first, then sorted regular profiles
-    return [...boostedProfiles, ...regularProfiles];
-  };
-
-  const filteredProfiles = sortAndBoostProfiles(
-    profiles.filter((profile) => {
-      // Search term filter
-      if (
-        searchTerm &&
-        !`${profile.firstName} ${profile.lastName}`
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) &&
-        !profile.profession.toLowerCase().includes(searchTerm.toLowerCase())
-      ) {
-        return false;
-      }
-
-      // Basic filters
-      if (filters.gender && profile.gender !== filters.gender) {
-        return false;
-      }
-
-      if (
-        filters.maritalStatus &&
-        profile.maritalStatus !== filters.maritalStatus
-      ) {
-        return false;
-      }
-
-      if (filters.hasChildren !== "") {
-        const hasChildrenBool = filters.hasChildren === "true";
-        if (profile.hasChildren !== hasChildrenBool) {
-          return false;
-        }
-      }
-
-      // Location & background filters
-      if (filters.city && profile.city !== filters.city) {
-        return false;
-      }
-
-      if (filters.district && profile.district !== filters.district) {
-        return false;
-      }
-
-      if (filters.ethnicity && profile.ethnicity !== filters.ethnicity) {
-        return false;
-      }
-
-      if (filters.religion && profile.religion !== filters.religion) {
-        return false;
-      }
-
-      // Education & career filters
-      if (filters.education && profile.education !== filters.education) {
-        return false;
-      }
-
-      if (
-        filters.profession &&
-        !profile.profession
-          .toLowerCase()
-          .includes(filters.profession.toLowerCase())
-      ) {
-        return false;
-      }
-
-      if (filters.industry && profile.industry !== filters.industry) {
-        return false;
-      }
-
-      if (filters.income && profile.income !== filters.income) {
-        return false;
-      }
-
-      // Physical & lifestyle filters
-      if (
-        profile.height < filters.height[0] ||
-        profile.height > filters.height[1]
-      ) {
-        return false;
-      }
-
-      if (filters.bodyType && profile.bodyType !== filters.bodyType) {
-        return false;
-      }
-
-      if (filters.smoking && profile.smoking !== filters.smoking) {
-        return false;
-      }
-
-      if (filters.drinking && profile.drinking !== filters.drinking) {
-        return false;
-      }
-
-      if (
-        filters.dietaryPreference &&
-        profile.dietaryPreferences !== filters.dietaryPreference
-      ) {
-        return false;
-      }
-
-      // Age range filter
-      if (
-        profile.age < filters.ageRange[0] ||
-        profile.age > filters.ageRange[1]
-      ) {
-        return false;
-      }
-
-      // Horoscope filter
-      if (
-        filters.horoscopeSign &&
-        profile.horoscope.sign !== filters.horoscopeSign
-      ) {
-        return false;
-      }
-
-      // Interests filter
-      if (filters.interests.length > 0) {
-        const hasMatchingInterest = filters.interests.some((interest) =>
-          profile.interests.includes(interest)
-        );
-        if (!hasMatchingInterest) {
-          return false;
-        }
-      }
-
-      // Verified filter
-      if (filters.verified && !profile.isVerified) {
-        return false;
-      }
-
-      return true;
-    })
-  );
-
-  // Extract unique values for filters
-  const cities = Array.from(
-    new Set(dummyProfiles.map((profile) => profile.city))
-  );
-  const professions = Array.from(
-    new Set(dummyProfiles.map((profile) => profile.profession))
-  );
-
-  // Determine which filters are available based on subscription
-  const isPremium = subscription.plan === "premium";
+  const SORT_OPTIONS = [
+    { key: "newest", label: "Newest" },
+    { key: "age_asc", label: "Age ↑" },
+    { key: "age_desc", label: "Age ↓" },
+    { key: "height_asc", label: "Height ↑" },
+    { key: "height_desc", label: "Height ↓" },
+  ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-        {/* Sidebar / Filters */}
-        <div className="w-full md:w-72 bg-white rounded-xl shadow-md p-6 sticky top-20 self-start">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-              <FilterIcon className="h-5 w-5 mr-2 text-purple-600" />
-              Filters
-            </h2>
-            <button
-              className="md:hidden text-purple-600"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              {showFilters ? "Hide" : "Show"}
-            </button>
-          </div>
-          <div
-            className={`${showFilters ? "block" : "hidden"} md:block space-y-6`}
-          >
-            {/* Premium Filter Banner */}
-            {!isPremium && (
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-100 mb-4">
-                <div className="flex items-center mb-2">
-                  <CrownIcon className="h-5 w-5 text-yellow-500 mr-2" />
-                  <h3 className="text-sm font-medium text-gray-800">
-                    Premium Filters
-                  </h3>
-                </div>
-                <p className="text-xs text-gray-600 mb-2">
-                  Upgrade to Premium to access advanced filters and find your
-                  perfect match faster!
-                </p>
-                <Link
-                  to="/subscription"
-                  className="text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full inline-block"
-                >
-                  Upgrade Now
-                </Link>
-              </div>
-            )}
-            {/* Basic Filters */}
-            <div>
-              <h3 className="text-md font-medium text-gray-700 mb-3">
-                Basic Filters
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Looking for
-                  </label>
-                  <select
-                    name="gender"
-                    value={filters.gender}
-                    onChange={handleFilterChange}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  >
-                    <option value="">Any Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Age Range: {filters.ageRange[0]} - {filters.ageRange[1]}
-                  </label>
-                  <div className="space-y-4">
-                    <input
-                      type="range"
-                      min="18"
-                      max="60"
-                      value={filters.ageRange[0]}
-                      onChange={(e) =>
-                        handleRangeChange(
-                          "ageRange",
-                          parseInt(e.target.value),
-                          0
-                        )
-                      }
-                      className="w-full accent-purple-600"
-                    />
-                    <input
-                      type="range"
-                      min="18"
-                      max="60"
-                      value={filters.ageRange[1]}
-                      onChange={(e) =>
-                        handleRangeChange(
-                          "ageRange",
-                          parseInt(e.target.value),
-                          1
-                        )
-                      }
-                      className="w-full accent-purple-600"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Marital Status
-                  </label>
-                  <select
-                    name="maritalStatus"
-                    value={filters.maritalStatus}
-                    onChange={handleFilterChange}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  >
-                    <option value="">Any Status</option>
-                    {profileOptions.maritalStatus.map((status) => (
-                      <option key={status} value={status.toLowerCase()}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Has Children
-                  </label>
-                  <select
-                    name="hasChildren"
-                    value={filters.hasChildren}
-                    onChange={handleFilterChange}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  >
-                    <option value="">Any</option>
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            {/* Location & Background */}
-            <div>
-              <h3 className="text-md font-medium text-gray-700 mb-3">
-                Location & Background
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    District
-                  </label>
-                  <select
-                    name="district"
-                    value={filters.district}
-                    onChange={handleFilterChange}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  >
-                    <option value="">Any District</option>
-                    {profileOptions.districts.map((district) => (
-                      <option key={district} value={district}>
-                        {district}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City
-                  </label>
-                  <select
-                    name="city"
-                    value={filters.city}
-                    onChange={handleFilterChange}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  >
-                    <option value="">Any City</option>
-                    {cities.map((city, index) => (
-                      <option key={index} value={city}>
-                        {city}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Religion
-                  </label>
-                  <select
-                    name="religion"
-                    value={filters.religion}
-                    onChange={handleFilterChange}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  >
-                    <option value="">Any Religion</option>
-                    {profileOptions.religions.map((religion) => (
-                      <option key={religion} value={religion}>
-                        {religion}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ethnicity
-                  </label>
-                  <select
-                    name="ethnicity"
-                    value={filters.ethnicity}
-                    onChange={handleFilterChange}
-                    className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  >
-                    <option value="">Any Ethnicity</option>
-                    {profileOptions.ethnicities.map((ethnicity) => (
-                      <option key={ethnicity} value={ethnicity}>
-                        {ethnicity}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-            {/* Advanced Filters Toggle */}
-            <div>
-              <button
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className={`w-full flex items-center justify-between text-purple-600 text-sm font-medium py-2 border-t border-gray-200 ${
-                  !isPremium && "opacity-50"
-                }`}
-                disabled={!isPremium}
-              >
-                <span className="flex items-center">
-                  <span>Advanced Filters</span>
-                  {!isPremium && (
-                    <CrownIcon className="h-4 w-4 text-yellow-500 ml-2" />
-                  )}
-                </span>
-                <ChevronDownIcon
-                  className={`h-5 w-5 transition-transform ${
-                    showAdvancedFilters ? "transform rotate-180" : ""
-                  }`}
-                />
+    <>
+      <style>{styles}</style>
+      <div className="hp-root">
+
+        {/* Page Header */}
+        <div className="hp-page-header">
+          <h1 className="hp-page-title">Find Your <span>Forever</span></h1>
+          <p className="hp-page-sub">Discover compatible matches across Sri Lanka</p>
+        </div>
+
+        {/* Search */}
+        <div className="hp-search-wrap">
+          <Search className="hp-search-icon" size={17} />
+          <input
+            type="text"
+            className="hp-search"
+            placeholder="Search by name, profession, city…"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="hp-layout">
+
+          {/* ── Sidebar ── */}
+          <aside className="hp-sidebar">
+            <div className="hp-sidebar-header">
+              <span className="hp-sidebar-title">
+                <Filter size={15} /> Filters
+              </span>
+              <button className="hp-sidebar-reset" onClick={resetFilters}>
+                <RefreshCw size={10} /> Reset
               </button>
             </div>
-            {/* Advanced Filters */}
-            {showAdvancedFilters && isPremium && (
-              <>
-                {/* Education & Career */}
-                <div>
-                  <h3 className="text-md font-medium text-gray-700 mb-3">
-                    Education & Career
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Education Level
-                      </label>
-                      <select
-                        name="education"
-                        value={filters.education}
-                        onChange={handleFilterChange}
-                        className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      >
-                        <option value="">Any Education</option>
-                        {profileOptions.educationLevels.map((level) => (
-                          <option key={level} value={level}>
-                            {level}
-                          </option>
-                        ))}
-                      </select>
+
+            <div className="hp-sidebar-body">
+
+              {/* Premium upsell */}
+              {!isPremium && (
+                <div className="hp-premium-banner">
+                  <h4><Crown size={13} style={{ color: "#d4a017" }} /> Premium Filters</h4>
+                  <p>Unlock education, income, lifestyle & horoscope filters to find your ideal match faster.</p>
+                  <Link to="/subscription" className="hp-premium-cta">Upgrade Now ✦</Link>
+                </div>
+              )}
+
+              {/* Basic */}
+              <div className="hp-filter-group">
+                <div className="hp-filter-group-title">Basic</div>
+
+                <label className="hp-filter-label">Looking for</label>
+                <select name="gender" value={filters.gender} onChange={handleFilterChange} className="hp-filter-select">
+                  <option value="">Any Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+
+                <label className="hp-filter-label">Marital Status</label>
+                <select name="maritalStatus" value={filters.maritalStatus} onChange={handleFilterChange} className="hp-filter-select">
+                  <option value="">Any Status</option>
+                  {(profileOptions.maritalStatus || []).map(s => <option key={s} value={s.toLowerCase()}>{s}</option>)}
+                </select>
+
+                <label className="hp-filter-label">Has Children</label>
+                <select name="hasChildren" value={filters.hasChildren} onChange={handleFilterChange} className="hp-filter-select">
+                  <option value="">Any</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+
+                <p className="hp-range-label">Age: {filters.ageRange[0]} – {filters.ageRange[1]} yrs</p>
+                <input type="range" min="18" max="60" value={filters.ageRange[0]} onChange={e => handleRange("ageRange", +e.target.value, 0)} />
+                <input type="range" min="18" max="60" value={filters.ageRange[1]} onChange={e => handleRange("ageRange", +e.target.value, 1)} />
+              </div>
+
+              <div className="hp-filter-divider" />
+
+              {/* Location & Background */}
+              <div className="hp-filter-group">
+                <div className="hp-filter-group-title">Location & Background</div>
+
+                <label className="hp-filter-label">District</label>
+                <select name="district" value={filters.district} onChange={handleFilterChange} className="hp-filter-select">
+                  <option value="">Any District</option>
+                  {(profileOptions.districts || []).map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+
+                <label className="hp-filter-label">City</label>
+                <select name="city" value={filters.city} onChange={handleFilterChange} className="hp-filter-select">
+                  <option value="">Any City</option>
+                  {cities.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                </select>
+
+                <label className="hp-filter-label">Religion</label>
+                <select name="religion" value={filters.religion} onChange={handleFilterChange} className="hp-filter-select">
+                  <option value="">Any Religion</option>
+                  {(profileOptions.religions || []).map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+
+                <label className="hp-filter-label">Ethnicity</label>
+                <select name="ethnicity" value={filters.ethnicity} onChange={handleFilterChange} className="hp-filter-select">
+                  <option value="">Any Ethnicity</option>
+                  {(profileOptions.ethnicities || []).map(e => <option key={e} value={e}>{e}</option>)}
+                </select>
+              </div>
+
+              <div className="hp-filter-divider" />
+
+              {/* Verified */}
+              <div className="hp-verify-row">
+                <input type="checkbox" id="hp-verified" name="verified" checked={filters.verified} onChange={handleFilterChange} />
+                <label htmlFor="hp-verified">Verified Profiles Only <Shield size={11} style={{ color: "#5d9e6a", display: "inline", verticalAlign: "middle" }} /></label>
+              </div>
+
+              <div className="hp-filter-divider" />
+
+              {/* Advanced toggle */}
+              <button
+                className="hp-advanced-toggle"
+                onClick={() => isPremium && setShowAdvanced(v => !v)}
+                disabled={!isPremium}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  Advanced Filters
+                  {!isPremium && <Crown size={12} style={{ color: "#d4a017" }} />}
+                </span>
+                <ChevronDown size={14} style={{ transform: showAdvanced ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+              </button>
+
+              {/* Advanced filters — premium only */}
+              {showAdvanced && isPremium && (
+                <div style={{ marginTop: "1rem" }}>
+                  <div className="hp-filter-group">
+                    <div className="hp-filter-group-title">Education & Career</div>
+                    <label className="hp-filter-label">Education Level</label>
+                    <select name="education" value={filters.education} onChange={handleFilterChange} className="hp-filter-select">
+                      <option value="">Any Education</option>
+                      {(profileOptions.educationLevels || []).map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                    <label className="hp-filter-label">Profession</label>
+                    <select name="profession" value={filters.profession} onChange={handleFilterChange} className="hp-filter-select">
+                      <option value="">Any Profession</option>
+                      {professions.map((p, i) => <option key={i} value={p}>{p}</option>)}
+                    </select>
+                    <label className="hp-filter-label">Industry</label>
+                    <select name="industry" value={filters.industry} onChange={handleFilterChange} className="hp-filter-select">
+                      <option value="">Any Industry</option>
+                      {(profileOptions.industries || []).map(i => <option key={i} value={i}>{i}</option>)}
+                    </select>
+                    <label className="hp-filter-label">Income Range</label>
+                    <select name="income" value={filters.income} onChange={handleFilterChange} className="hp-filter-select">
+                      <option value="">Any Income</option>
+                      {(profileOptions.incomeRanges || []).map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="hp-filter-divider" />
+
+                  <div className="hp-filter-group">
+                    <div className="hp-filter-group-title">Physical & Lifestyle</div>
+                    <p className="hp-range-label">Height: {filters.height[0]} – {filters.height[1]} cm</p>
+                    <input type="range" min="140" max="200" value={filters.height[0]} onChange={e => handleRange("height", +e.target.value, 0)} />
+                    <input type="range" min="140" max="200" value={filters.height[1]} onChange={e => handleRange("height", +e.target.value, 1)} />
+                    <label className="hp-filter-label">Body Type</label>
+                    <select name="bodyType" value={filters.bodyType} onChange={handleFilterChange} className="hp-filter-select">
+                      <option value="">Any</option>
+                      {(profileOptions.bodyTypes || []).map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <label className="hp-filter-label">Smoking</label>
+                    <select name="smoking" value={filters.smoking} onChange={handleFilterChange} className="hp-filter-select">
+                      <option value="">Any</option>
+                      {(profileOptions.smokingHabits || []).map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                    <label className="hp-filter-label">Drinking</label>
+                    <select name="drinking" value={filters.drinking} onChange={handleFilterChange} className="hp-filter-select">
+                      <option value="">Any</option>
+                      {(profileOptions.drinkingHabits || []).map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                    <label className="hp-filter-label">Dietary Preference</label>
+                    <select name="dietaryPreference" value={filters.dietaryPreference} onChange={handleFilterChange} className="hp-filter-select">
+                      <option value="">Any</option>
+                      {(profileOptions.dietaryPreferences || []).map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="hp-filter-divider" />
+
+                  <div className="hp-filter-group">
+                    <div className="hp-filter-group-title">Horoscope & Interests</div>
+                    <label className="hp-filter-label">Horoscope Sign</label>
+                    <select name="horoscopeSign" value={filters.horoscopeSign} onChange={handleFilterChange} className="hp-filter-select">
+                      <option value="">Any Sign</option>
+                      {(profileOptions.horoscopeSigns || []).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <label className="hp-filter-label" style={{ marginTop: "0.5rem" }}>Interests</label>
+                    <div className="hp-interests-filter">
+                      {(profileOptions.interests || []).slice(0, 15).map(interest => (
+                        <button key={interest} type="button"
+                          className={`hp-chip-filter${filters.interests.includes(interest) ? " sel" : ""}`}
+                          onClick={() => toggleInterest(interest)}>{interest}</button>
+                      ))}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Profession
-                      </label>
-                      <select
-                        name="profession"
-                        value={filters.profession}
-                        onChange={handleFilterChange}
-                        className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      >
-                        <option value="">Any Profession</option>
-                        {professions.map((profession, index) => (
-                          <option key={index} value={profession}>
-                            {profession}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Industry
-                      </label>
-                      <select
-                        name="industry"
-                        value={filters.industry}
-                        onChange={handleFilterChange}
-                        className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      >
-                        <option value="">Any Industry</option>
-                        {profileOptions.industries.map((industry) => (
-                          <option key={industry} value={industry}>
-                            {industry}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Income Range
-                      </label>
-                      <select
-                        name="income"
-                        value={filters.income}
-                        onChange={handleFilterChange}
-                        className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      >
-                        <option value="">Any Income</option>
-                        {profileOptions.incomeRanges.map((range) => (
-                          <option key={range} value={range}>
-                            {range}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <p style={{ fontSize: "0.69rem", color: "#b09080", marginTop: "0.3rem" }}>Tap to filter by interests</p>
                   </div>
                 </div>
-                {/* Physical & Lifestyle */}
-                <div>
-                  <h3 className="text-md font-medium text-gray-700 mb-3">
-                    Physical & Lifestyle
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Height Range (cm): {filters.height[0]} -{" "}
-                        {filters.height[1]}
-                      </label>
-                      <div className="space-y-4">
-                        <input
-                          type="range"
-                          min="140"
-                          max="200"
-                          value={filters.height[0]}
-                          onChange={(e) =>
-                            handleRangeChange(
-                              "height",
-                              parseInt(e.target.value),
-                              0
-                            )
-                          }
-                          className="w-full accent-purple-600"
-                        />
-                        <input
-                          type="range"
-                          min="140"
-                          max="200"
-                          value={filters.height[1]}
-                          onChange={(e) =>
-                            handleRangeChange(
-                              "height",
-                              parseInt(e.target.value),
-                              1
-                            )
-                          }
-                          className="w-full accent-purple-600"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Body Type
-                      </label>
-                      <select
-                        name="bodyType"
-                        value={filters.bodyType}
-                        onChange={handleFilterChange}
-                        className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      >
-                        <option value="">Any Body Type</option>
-                        {profileOptions.bodyTypes.map((type) => (
-                          <option key={type} value={type}>
-                            {type}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Smoking Habits
-                      </label>
-                      <select
-                        name="smoking"
-                        value={filters.smoking}
-                        onChange={handleFilterChange}
-                        className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      >
-                        <option value="">Any</option>
-                        {profileOptions.smokingHabits.map((habit) => (
-                          <option key={habit} value={habit}>
-                            {habit}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Drinking Habits
-                      </label>
-                      <select
-                        name="drinking"
-                        value={filters.drinking}
-                        onChange={handleFilterChange}
-                        className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      >
-                        <option value="">Any</option>
-                        {profileOptions.drinkingHabits.map((habit) => (
-                          <option key={habit} value={habit}>
-                            {habit}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Dietary Preference
-                      </label>
-                      <select
-                        name="dietaryPreference"
-                        value={filters.dietaryPreference}
-                        onChange={handleFilterChange}
-                        className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      >
-                        <option value="">Any</option>
-                        {profileOptions.dietaryPreferences.map((pref) => (
-                          <option key={pref} value={pref}>
-                            {pref}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                {/* Horoscope & Interests */}
-                <div>
-                  <h3 className="text-md font-medium text-gray-700 mb-3">
-                    Horoscope & Interests
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Horoscope Sign
-                      </label>
-                      <select
-                        name="horoscopeSign"
-                        value={filters.horoscopeSign}
-                        onChange={handleFilterChange}
-                        className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      >
-                        <option value="">Any Sign</option>
-                        {profileOptions.horoscopeSigns.map((sign) => (
-                          <option key={sign} value={sign}>
-                            {sign}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Interests
-                      </label>
-                      <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
-                        {profileOptions.interests
-                          .slice(0, 15)
-                          .map((interest) => (
-                            <div
-                              key={interest}
-                              onClick={() => handleInterestChange(interest)}
-                              className={`
-                              px-2 py-1 rounded-full text-xs cursor-pointer transition-colors
-                              ${
-                                filters.interests.includes(interest)
-                                  ? "bg-purple-100 text-purple-800 border border-purple-300"
-                                  : "bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200"
-                              }
-                            `}
-                            >
-                              {interest}
-                            </div>
-                          ))}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Click to select interests
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="verified"
-                name="verified"
-                checked={filters.verified}
-                onChange={handleFilterChange}
-                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-              />
-              <label htmlFor="verified" className="ml-2 text-sm text-gray-700">
-                Verified Profiles Only
-              </label>
-            </div>
-            <button
-              onClick={resetFilters}
-              className="w-full py-2 px-4 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition duration-200"
-            >
-              Reset All Filters
-            </button>
-            {/* Like Counter for Free Users */}
-            {subscription.plan !== "premium" && (
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center">
-                    <HeartIcon className="h-5 w-5 text-pink-500 mr-2" />
-                    <span className="text-sm font-medium text-gray-700">
-                      Daily Likes
+              )}
+
+              {/* Daily likes meter */}
+              {!isPremium && (
+                <div className="hp-likes-meter">
+                  <div className="hp-likes-meter-top">
+                    <span className="hp-likes-label">
+                      <Heart size={13} style={{ color: "#c9856a" }} /> Daily Likes
                     </span>
+                    <span className="hp-likes-count">{likesRemaining} / 5</span>
                   </div>
-                  <span className="text-sm font-medium text-gray-700">
-                    {likesRemaining} / 5
-                  </span>
+                  <div className="hp-likes-track">
+                    <div className="hp-likes-fill" style={{ width: `${(likesRemaining / 5) * 100}%` }} />
+                  </div>
+                  <p className="hp-likes-note">Upgrade to Premium for unlimited likes ✦</p>
                 </div>
-                <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
-                  <div
-                    className="bg-pink-500 h-1.5 rounded-full"
-                    style={{
-                      width: `${(likesRemaining / 5) * 100}%`,
-                    }}
-                  ></div>
+              )}
+            </div>
+          </aside>
+
+          {/* ── Main content ── */}
+          <main>
+            {/* Sort row */}
+            <div className="hp-sort-row">
+              <p className="hp-result-count">
+                <strong>{filtered.length}</strong> {filtered.length === 1 ? "profile" : "profiles"} found
+              </p>
+              <div className="hp-sort-btns">
+                {SORT_OPTIONS.map(s => (
+                  <button key={s.key} className={`hp-sort-btn${sortOrder === s.key ? " active" : ""}`}
+                    onClick={() => setSortOrder(s.key)}>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Cards */}
+            {filtered.length > 0 ? (
+              <div className="hp-grid">
+                {filtered.map(profile => (
+                  <div key={profile.id} className={`hp-card${profile.isBoosted ? " boosted" : ""}`}>
+
+                    {/* Image section */}
+                    <div className="hp-card-img-wrap">
+                      <Link to={`/profile/${profile.id}`}>
+                        <img
+                          src={profile.profileImage}
+                          alt={`${profile.firstName}`}
+                          className="hp-card-img"
+                        />
+                      </Link>
+                      <div className="hp-card-img-overlay" />
+
+                      {profile.isVerified && (
+                        <div className="hp-badge verified">
+                          <Check size={9} /> Verified
+                        </div>
+                      )}
+                      {profile.isBoosted && (
+                        <div className="hp-badge boosted">
+                          <Zap size={9} /> Boosted
+                        </div>
+                      )}
+
+                      <div className="hp-card-actions">
+                        <button
+                          type="button"
+                          className={`hp-action-btn like${likedProfiles.includes(profile.id) ? " active" : ""}`}
+                          onClick={() => toggleLike(profile.id)}
+                          title={likedProfiles.includes(profile.id) ? "Unlike" : "Like"}
+                        >
+                          <Heart size={14} fill={likedProfiles.includes(profile.id) ? "currentColor" : "none"} />
+                        </button>
+                        <button
+                          type="button"
+                          className={`hp-action-btn connect${sentRequests.includes(profile.id) ? " active" : ""}`}
+                          onClick={() => toggleFriendRequest(profile.id)}
+                          title={sentRequests.includes(profile.id) ? "Request Sent" : "Send Request"}
+                        >
+                          <UserPlus size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Card body */}
+                    <div className="hp-card-body">
+                      <Link to={`/profile/${profile.id}`} className="hp-card-name">
+                        {profile.firstName}, {profile.age}
+                      </Link>
+
+                      <div className="hp-card-location">
+                        <MapPin size={10} /> {profile.city}, {profile.district}
+                      </div>
+
+                      <div className="hp-tags">
+                        {profile.profession && (
+                          <span className="hp-tag profession">
+                            <Briefcase size={9} /> {profile.profession}
+                          </span>
+                        )}
+                        {profile.education && (
+                          <span className="hp-tag education">
+                            <GraduationCap size={9} /> {profile.education}
+                          </span>
+                        )}
+                        {profile.religion && (
+                          <span className="hp-tag religion">
+                            <BookOpen size={9} /> {profile.religion}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="hp-card-about">{profile.about}</p>
+
+                      {(profile.interests || []).length > 0 && (
+                        <div className="hp-interests">
+                          {(profile.interests || []).slice(0, 3).map((it, i) => (
+                            <span key={i} className="hp-interest">{it}</span>
+                          ))}
+                          {(profile.interests || []).length > 3 && (
+                            <span className="hp-interest">+{profile.interests.length - 3}</span>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="hp-card-footer">
+                        <Link to={`/profile/${profile.id}`} className="hp-view-link">
+                          View Profile <ChevronRight size={12} />
+                        </Link>
+                        {profile.matchScore && (
+                          <span className="hp-match-score">{profile.matchScore}% match</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="hp-empty">
+                <div className="hp-empty-icon">
+                  <Search size={26} style={{ color: "#c9856a" }} />
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Upgrade to Premium for unlimited likes!
-                </p>
+                <h3>No profiles found</h3>
+                <p>Try adjusting your filters or search term</p>
               </div>
             )}
-          </div>
-        </div>
-        {/* Main Content */}
-        <div className="flex-1">
-          {/* Search Bar */}
-          <div className="mb-6">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <SearchIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search by name or profession..."
-                value={searchTerm}
-                onChange={handleSearch}
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-              />
-            </div>
-          </div>
-          {/* Results Count and Sort */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-            <p className="text-gray-600 mb-3 sm:mb-0">
-              {filteredProfiles.length}{" "}
-              {filteredProfiles.length === 1 ? "profile" : "profiles"} found
-            </p>
-            <div className="flex items-center">
-              <span className="text-sm text-gray-700 mr-2">Sort by:</span>
-              <div className="relative inline-block text-left">
-                <div className="flex flex-wrap gap-1">
-                  <button
-                    onClick={() => handleSortChange("newest")}
-                    className={`px-3 py-1 text-sm rounded-md ${
-                      sortOrder === "newest"
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    Newest
-                  </button>
-                  <button
-                    onClick={() => handleSortChange("age_asc")}
-                    className={`px-3 py-1 text-sm rounded-md flex items-center ${
-                      sortOrder === "age_asc"
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    Age <ArrowUpIcon className="h-3 w-3 ml-1" />
-                  </button>
-                  <button
-                    onClick={() => handleSortChange("age_desc")}
-                    className={`px-3 py-1 text-sm rounded-md flex items-center ${
-                      sortOrder === "age_desc"
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    Age <ArrowDownIcon className="h-3 w-3 ml-1" />
-                  </button>
-                  <button
-                    onClick={() => handleSortChange("height_asc")}
-                    className={`px-3 py-1 text-sm rounded-md flex items-center ${
-                      sortOrder === "height_asc"
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    Height <ArrowUpIcon className="h-3 w-3 ml-1" />
-                  </button>
-                  <button
-                    onClick={() => handleSortChange("height_desc")}
-                    className={`px-3 py-1 text-sm rounded-md flex items-center ${
-                      sortOrder === "height_desc"
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    Height <ArrowDownIcon className="h-3 w-3 ml-1" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* Profiles Grid */}
-          {filteredProfiles.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-              {filteredProfiles.map((profile) => (
-                <div
-                  key={profile.id}
-                  className={`bg-white rounded-xl shadow-md overflow-hidden transform transition duration-300 hover:shadow-lg hover:translate-y-[-4px] ${
-                    profile.isBoosted ? "ring-2 ring-orange-500" : ""
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row h-full">
-                    {/* Profile Image */}
-                    <div className="sm:w-1/3 relative">
-                      <Link
-                        to={`/profile/${profile.id}`}
-                        className="block h-full"
-                      >
-                        <div className="h-60 sm:h-full relative">
-                          <img
-                            src={profile.profileImage}
-                            alt={`${profile.firstName} ${profile.lastName}`}
-                            className="w-full h-full object-cover"
-                          />
-                          {profile.isVerified && (
-                            <div className="absolute top-3 left-3 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center">
-                              <CheckIcon className="h-3 w-3 mr-1" />
-                              Verified
-                            </div>
-                          )}
-                          {/* Boosted badge */}
-                          {profile.isBoosted && (
-                            <div className="absolute top-3 right-3 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center">
-                              <ZapIcon className="h-3 w-3 mr-1" />
-                              Boosted
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent sm:hidden"></div>
-                        </div>
-                      </Link>
-                    </div>
-                    {/* Profile Info */}
-                    <div className="sm:w-2/3 p-5 flex flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <Link
-                              to={`/profile/${profile.id}`}
-                              className="block"
-                            >
-                              <h3 className="text-xl font-semibold text-gray-800 hover:text-purple-600 transition-colors">
-                                {profile.firstName}, {profile.age}
-                              </h3>
-                            </Link>
-                            <div className="flex items-center text-gray-600 text-sm">
-                              <MapPinIcon className="h-3.5 w-3.5 mr-1 text-gray-500" />
-                              {profile.city}, {profile.district}
-                            </div>
-                          </div>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => toggleLike(profile.id)}
-                              className={`p-1.5 rounded-full ${
-                                likedProfiles.includes(profile.id)
-                                  ? "bg-pink-100 text-pink-600"
-                                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                              }`}
-                              aria-label={
-                                likedProfiles.includes(profile.id)
-                                  ? "Unlike"
-                                  : "Like"
-                              }
-                              title={
-                                subscription.plan !== "premium" &&
-                                likesRemaining <= 0 &&
-                                !likedProfiles.includes(profile.id)
-                                  ? "No likes remaining. Upgrade to Premium!"
-                                  : likedProfiles.includes(profile.id)
-                                  ? "Unlike"
-                                  : "Like"
-                              }
-                            >
-                              <HeartIcon className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() => toggleFriendRequest(profile.id)}
-                              className={`p-1.5 rounded-full ${
-                                sentRequests.includes(profile.id)
-                                  ? "bg-purple-100 text-purple-600"
-                                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                              }`}
-                              aria-label={
-                                sentRequests.includes(profile.id)
-                                  ? "Cancel Request"
-                                  : "Send Request"
-                              }
-                            >
-                              <UserPlusIcon className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full flex items-center">
-                            <BriefcaseIcon className="h-3 w-3 mr-1" />
-                            {profile.profession}
-                          </span>
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full flex items-center">
-                            <GraduationCapIcon className="h-3 w-3 mr-1" />
-                            {profile.education}
-                          </span>
-                          <span className="bg-pink-100 text-pink-800 text-xs px-2 py-0.5 rounded-full flex items-center">
-                            <BookIcon className="h-3 w-3 mr-1" />
-                            {profile.religion}
-                          </span>
-                        </div>
-                        <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-                          {profile.about}
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {profile.interests
-                            .slice(0, 3)
-                            .map((interest, idx) => (
-                              <span
-                                key={idx}
-                                className="bg-gray-100 text-gray-800 text-xs px-2 py-0.5 rounded-full"
-                              >
-                                {interest}
-                              </span>
-                            ))}
-                          {profile.interests.length > 3 && (
-                            <span className="bg-gray-100 text-gray-800 text-xs px-2 py-0.5 rounded-full">
-                              +{profile.interests.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-4">
-                        <Link
-                          to={`/profile/${profile.id}`}
-                          className="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center"
-                        >
-                          View Full Profile
-                          <ChevronRightIcon className="h-4 w-4 ml-1" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <div className="mx-auto h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <SearchIcon className="h-8 w-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900">
-                No profiles found
-              </h3>
-              <p className="mt-1 text-gray-500">
-                Try adjusting your search or filter criteria
-              </p>
-            </div>
-          )}
+          </main>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
