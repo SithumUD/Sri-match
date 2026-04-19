@@ -28,6 +28,17 @@ import CookiePolicyPage from "./pages/CookiePolicyPage";
 import SafetyGuidelinesPage from "./pages/SafetyGuidelinesPage";
 import SuccessStoriesPage from "./pages/SuccessStoriesPage";
 
+// Admin
+import AdminLoginPage from "./pages/Admin/AdminLoginPage";
+import AdminLayout from "./components/AdminLayout";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
+import AdminPanel from "./pages/Admin/AdminPanel";
+import AdminUsers from "./pages/AdminUsers";
+import AdminSettings from "./pages/AdminSettings";
+import AdminPayments from "./pages/AdminPayments";
+import AdminReports from "./pages/AdminReports";
+import AdminSupport from "./pages/AdminSupport";
+
 export function App() {
   return (
     <AuthProvider>
@@ -57,6 +68,17 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          
+          <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
+            <Route index element={<AdminPanel />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="payments" element={<AdminPayments />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route path="support" element={<AdminSupport />} />
+          </Route>
 
           <Route element={<Layout />}>
             <Route

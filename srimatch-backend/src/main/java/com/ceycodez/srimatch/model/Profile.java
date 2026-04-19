@@ -11,6 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +49,9 @@ public class Profile {
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
+    @Column(name = "time_of_birth")
+    private LocalTime timeOfBirth;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "marital_status")
     private MaritalStatus maritalStatus;
@@ -67,6 +71,9 @@ public class Profile {
 
     @Column(name = "place_of_birth", length = 100)
     private String placeOfBirth;
+
+    private Double latitude;
+    private Double longitude;
 
     // Cultural & Religious Information
     @Enumerated(EnumType.STRING)

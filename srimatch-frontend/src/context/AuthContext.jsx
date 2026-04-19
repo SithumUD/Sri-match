@@ -5,6 +5,8 @@ const AuthContext = createContext(undefined);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminUser, setAdminUser] = useState(null);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [likedProfiles, setLikedProfiles] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
   const [receivedRequests, setReceivedRequests] = useState([]);
@@ -43,6 +45,11 @@ export const AuthProvider = ({ children }) => {
         if (storedUser) {
           setUser(JSON.parse(storedUser));
           setIsAuthenticated(true);
+        }
+        const storedAdmin = localStorage.getItem("adminUser");
+        if (storedAdmin) {
+          setAdminUser(JSON.parse(storedAdmin));
+          setIsAdminAuthenticated(true);
         }
       } catch (error) {
         console.error("Error fetching user session:", error);
@@ -249,6 +256,34 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Logout error:", error);
     }
+  };
+
+  const adminLogin = async (email, password) => {
+    try {
+      // Dummy admin login
+      if (email === "admin@admin.com" && password === "admin") {
+        const adminData = {
+          id: "admin-1",
+          email: email,
+          name: "System Admin",
+          role: "admin"
+        };
+        setAdminUser(adminData);
+        setIsAdminAuthenticated(true);
+        localStorage.setItem("adminUser", JSON.stringify(adminData));
+        return { success: true, user: adminData };
+      }
+      return { success: false, message: "Invalid admin credentials" };
+    } catch (error) {
+      console.error("Admin login error:", error);
+      return { success: false, message: "An error occurred during admin login" };
+    }
+  };
+
+  const adminLogout = () => {
+    setAdminUser(null);
+    setIsAdminAuthenticated(false);
+    localStorage.removeItem("adminUser");
   };
 
   const updateUserProfile = async (data) => {
@@ -654,9 +689,13 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         isAuthenticated,
+        adminUser,
+        isAdminAuthenticated,
         login,
         register,
         logout,
+        adminLogin,
+        adminLogout,
         updateUserProfile,
         likedProfiles,
         sentRequests,

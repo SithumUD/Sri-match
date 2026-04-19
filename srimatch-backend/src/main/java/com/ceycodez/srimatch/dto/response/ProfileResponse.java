@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,7 @@ public class ProfileResponse {
     
     private Gender gender;
     private LocalDate dateOfBirth;
+    private LocalTime timeOfBirth;
     private Integer age;
     private MaritalStatus maritalStatus;
     private Boolean hasChildren;
@@ -28,6 +30,8 @@ public class ProfileResponse {
     private String district;
     private String city;
     private String placeOfBirth;
+    private Double latitude;
+    private Double longitude;
 
     private Religion religion;
     private String religiousPractices;

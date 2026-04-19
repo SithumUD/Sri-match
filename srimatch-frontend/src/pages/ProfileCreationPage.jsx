@@ -594,8 +594,43 @@ const ProfileCreationPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      await updateUserProfile({ ...profileCreationData, profileCompleted: true, quizAnswers, verifications, completionScore });
+      // Transformation logic to match backend Enums and DTO structure
+      const formattedData = {
+        ...profileCreationData,
+        // Enums (Frontend values to Backend Enum strings)
+        gender: profileCreationData.gender?.toUpperCase(),
+        maritalStatus: profileCreationData.maritalStatus === "single" ? "NEVER_MARRIED" : profileCreationData.maritalStatus?.toUpperCase().replace(" ", "_"),
+        religion: profileCreationData.religion?.toUpperCase(),
+        education: profileCreationData.education?.toUpperCase().replace(" ", "_"),
+        ethnicity: profileCreationData.ethnicity?.toUpperCase(),
+        bodyType: profileCreationData.bodyType?.toUpperCase().replace(" ", "_"),
+        complexion: profileCreationData.complexion?.toUpperCase(),
+        horoscopeSign: profileCreationData.horoscopeSign?.toUpperCase(),
+        
+        // Complex mappings for lifestyle habits
+        smoking: profileCreationData.smoking === "non-smoker" ? "NEVER" : 
+                 profileCreationData.smoking === "occasional" ? "OCCASIONALLY" : 
+                 profileCreationData.smoking === "regular" ? "REGULARLY" : profileCreationData.smoking?.toUpperCase(),
+        
+        drinking: profileCreationData.drinking === "non-drinker" ? "NEVER" : 
+                  profileCreationData.drinking === "social drinker" ? "SOCIALLY" : 
+                  profileCreationData.drinking === "regular" ? "REGULARLY" : profileCreationData.drinking?.toUpperCase(),
+        
+        dietaryPreferences: profileCreationData.dietaryPreferences?.toUpperCase().replace(" ", "_"),
+        
+        // Metadata fields
+        profileCompleted: true,
+        quizAnswers,
+        verificationStatus: verifications, // Backend uses verificationStatus
+        completionScore
+      };
+
+      // Clean up fields that might cause mapping issues in strict backends if needed
+      // (Optional: remove profileImage/profileImages if backend DTO doesn't support them in main POST)
+      
+      await updateUserProfile(formattedData);
       localStorage.removeItem("profileDraft");
       navigate("/home");
     } catch (err) {

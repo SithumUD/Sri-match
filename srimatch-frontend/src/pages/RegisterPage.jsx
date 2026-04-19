@@ -1,9 +1,9 @@
-// RegisterPage.jsx - Enhanced Single-Step Version
+// RegisterPage.jsx - Enhanced Single-Step Version (Phone Number Removed)
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
-  Eye, EyeOff, Heart, Mail, Lock, User, Phone, Gift,
+  Eye, EyeOff, Heart, Mail, Lock, User, Gift,
   Shield, CheckCircle, XCircle, AlertCircle, ArrowRight,
 } from "lucide-react";
 
@@ -168,38 +168,6 @@ const globalStyles = `
   .pw-strength-bar.active-3 { background: #6daa7a; }
   .pw-strength-text { font-size: 0.72rem; color: #9a7060; margin-top: 0.3rem; }
 
-  /* OTP block */
-  .reg-otp-block {
-    margin-top: 0.5rem; padding: 0.9rem;
-    background: #fdf5f0; border: 1px solid #f0ddd5; border-radius: 10px;
-  }
-  .reg-otp-row { display: flex; gap: 0.5rem; }
-  .reg-otp-input {
-    flex: 1; padding: 0.55rem 0.75rem;
-    border: 1.5px solid #e8ddd8; border-radius: 8px;
-    font-size: 1rem; letter-spacing: 0.2em; font-family: 'DM Sans', sans-serif;
-    text-align: center; color: #2d1810;
-    outline: none;
-  }
-  .reg-otp-input:focus { border-color: #c9856a; }
-
-  /* Verify/send button inline */
-  .reg-verify-btn {
-    position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
-    padding: 0.35rem 0.75rem; font-size: 0.72rem; font-weight: 500;
-    background: linear-gradient(135deg, #8b4e2e, #c9856a);
-    color: #fff; border: none; border-radius: 6px; cursor: pointer;
-    transition: opacity 0.2s;
-  }
-  .reg-verify-btn:hover { opacity: 0.88; }
-
-  .reg-otp-btn {
-    padding: 0.55rem 1rem; font-size: 0.82rem; font-weight: 500;
-    background: linear-gradient(135deg, #8b4e2e, #c9856a);
-    color: #fff; border: none; border-radius: 8px; cursor: pointer;
-    white-space: nowrap;
-  }
-
   /* CAPTCHA */
   .reg-captcha-box {
     padding: 1rem; background: #fdf5f0; border: 1px solid #f0ddd5; border-radius: 10px;
@@ -301,10 +269,6 @@ const RegisterPage = () => {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [emailAvailable, setEmailAvailable] = useState(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
-  const [showOTP, setShowOTP] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [sentOTP, setSentOTP] = useState("");
-  const [otpVerified, setOtpVerified] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaInput, setCaptchaInput] = useState("");
@@ -320,7 +284,6 @@ const RegisterPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    phone: "",
     referralCode: "",
     agreeTerms: false,
   });
@@ -365,28 +328,6 @@ const RegisterPage = () => {
 
   const handleBlur = (f) => setTouched(p => ({ ...p, [f]: true }));
 
-  const sendOTP = () => {
-    if (!formData.phone || formData.phone.length < 9) {
-      setErrors(p => ({ ...p, phone: "Enter a valid phone number first" }));
-      return;
-    }
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    setSentOTP(otp);
-    alert(`Demo OTP: ${otp}`);
-    setShowOTP(true);
-    setErrors(p => ({ ...p, phone: "" }));
-  };
-
-  const verifyOTP = () => {
-    if (otpCode === sentOTP) {
-      setOtpVerified(true);
-      setShowOTP(false);
-      setErrors(p => ({ ...p, otp: "" }));
-    } else {
-      setErrors(p => ({ ...p, otp: "Invalid code. Please try again." }));
-    }
-  };
-
   const pwStrengthLabels = ["Very Weak", "Weak", "Fair", "Good", "Strong"];
   const pwStrengthActiveClass = ["active-0", "active-1", "active-2", "active-3", "active-3"];
 
@@ -401,8 +342,6 @@ const RegisterPage = () => {
     else if (formData.password.length < 8) e.password = "Minimum 8 characters";
     else if (passwordStrength < 2) e.password = "Password is too weak";
     if (formData.password !== formData.confirmPassword) e.confirmPassword = "Passwords do not match";
-    if (!formData.phone) e.phone = "Phone number is required";
-    if (!otpVerified) e.phone = "Please verify your phone number";
     if (!formData.agreeTerms) e.agreeTerms = "Please accept the terms to continue";
     if (showCaptcha && captchaInput !== captchaCode) e.captcha = "Incorrect code — try again";
     setErrors(e);
@@ -571,43 +510,6 @@ const RegisterPage = () => {
                 </div>
                 {errors.confirmPassword && touched.confirmPassword && <p className="reg-error"><XCircle size={11} />{errors.confirmPassword}</p>}
                 {formData.confirmPassword && formData.password === formData.confirmPassword && <p className="reg-success-note"><CheckCircle size={11} />Passwords match</p>}
-              </div>
-
-              {/* Phone with OTP */}
-              <div className="reg-field">
-                <label className="reg-label">Phone Number <span className="req">*</span></label>
-                <div className="reg-input-wrap">
-                  <Phone className="reg-input-icon" size={15} />
-                  <input
-                    name="phone" type="tel" value={formData.phone}
-                    onChange={handleChange} onBlur={() => handleBlur("phone")}
-                    className={`reg-input${errors.phone && touched.phone ? " error" : ""}${otpVerified ? " success" : ""}`}
-                    style={{ paddingRight: otpVerified ? "2.5rem" : "5.5rem" }}
-                    placeholder="+94 77 123 4567"
-                    disabled={otpVerified}
-                  />
-                  {!otpVerified && !showOTP && (
-                    <button type="button" className="reg-verify-btn" onClick={sendOTP}>Send OTP</button>
-                  )}
-                  {otpVerified && <CheckCircle className="reg-input-icon-right" size={15} style={{ color: "#5d9e6a" }} />}
-                </div>
-                {errors.phone && touched.phone && <p className="reg-error"><XCircle size={11} />{errors.phone}</p>}
-                {otpVerified && <p className="reg-success-note"><Shield size={11} />Phone number verified</p>}
-
-                {showOTP && !otpVerified && (
-                  <div className="reg-otp-block">
-                    <p style={{ fontSize: "0.75rem", color: "#6b4a3a", marginBottom: "0.5rem" }}>Enter the 6-digit code sent to your phone</p>
-                    <div className="reg-otp-row">
-                      <input
-                        type="text" placeholder="123456" value={otpCode}
-                        onChange={e => setOtpCode(e.target.value)} maxLength={6}
-                        className="reg-otp-input"
-                      />
-                      <button type="button" className="reg-otp-btn" onClick={verifyOTP}>Verify</button>
-                    </div>
-                    {errors.otp && <p className="reg-error" style={{ marginTop: "0.4rem" }}><XCircle size={11} />{errors.otp}</p>}
-                  </div>
-                )}
               </div>
 
               {/* Referral */}

@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +33,8 @@ public class ProfileRequest {
     @NotNull(message = "Date of birth is required")
     private LocalDate dateOfBirth;
 
+    private LocalTime timeOfBirth;
+
     @NotNull(message = "Marital status is required")
     private MaritalStatus maritalStatus;
 
@@ -41,6 +44,8 @@ public class ProfileRequest {
     private String district;
     private String city;
     private String placeOfBirth;
+    private Double latitude;
+    private Double longitude;
 
     private Religion religion;
     private String religiousPractices;

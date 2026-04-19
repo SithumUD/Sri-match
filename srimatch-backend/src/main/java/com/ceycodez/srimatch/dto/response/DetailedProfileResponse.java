@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +20,11 @@ public class DetailedProfileResponse {
     private Integer age;
     private String city;
     private String district;
+    private String placeOfBirth;
+    private LocalDate dateOfBirth;
+    private LocalTime timeOfBirth;
+    private Double latitude;
+    private Double longitude;
     private String profession;
     private String education;
     private String religion;
