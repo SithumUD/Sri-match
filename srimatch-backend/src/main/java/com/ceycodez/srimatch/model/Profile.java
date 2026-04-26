@@ -235,7 +235,7 @@ public class Profile {
     @Builder.Default
     private boolean idVerified = false;
 
-    @Column(name = "profile_views")
+    @Column(name = "profile_views", columnDefinition = "integer default 0")
     @Builder.Default
     private Integer profileViews = 0;
 

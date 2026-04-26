@@ -16,8 +16,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ceycodez.srimatch.model.Profile;
+import com.ceycodez.srimatch.repository.ProfileRepository;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,13 +31,17 @@ public class LikeService {
 
     private final LikeRepository likeRepository;
     private final UserRepository userRepository;
+    private final ProfileRepository profileRepository;
     private final NotificationService notificationService;
     private final MatchingService matchingService;
 
     @Transactional
     public void sendLike(User sender, SendLikeRequest request) {
-        User receiver = userRepository.findById(request.getReceiverId())
-                .orElseThrow(() -> new RuntimeException("Receiver not found"));
+        // Find the profile first, then get the user owning that profile
+        Profile targetProfile = profileRepository.findById(request.getReceiverId())
+                .orElseThrow(() -> new RuntimeException("Target profile not found"));
+        
+        User receiver = targetProfile.getUser();
 
         if (sender.getId().equals(receiver.getId())) {
             throw new RuntimeException("You cannot like yourself");
@@ -93,9 +102,19 @@ public class LikeService {
         }
     }
 
-    public ReceivedLikesPageResponse getReceivedLikes(User user, Pageable pageable) {
-        Page<Like> likesPage = likeRepository.findByReceiverIdAndStatus(user.getId(), LikeStatus.PENDING, pageable);
-        long totalCount = likeRepository.countByReceiverIdAndStatus(user.getId(), LikeStatus.PENDING);
+    public ReceivedLikesPageResponse getReceivedLikes(User user, String type, Pageable pageable) {
+        Page<Like> likesPage;
+        long totalCount;
+
+        if (type != null && !type.isEmpty()) {
+            LikeType likeType = LikeType.valueOf(type.toUpperCase());
+            likesPage = likeRepository.findByReceiverIdAndStatusAndType(user.getId(), LikeStatus.PENDING, likeType, pageable);
+            totalCount = likeRepository.countByReceiverIdAndStatusAndType(user.getId(), LikeStatus.PENDING, likeType);
+        } else {
+            likesPage = likeRepository.findByReceiverIdAndStatus(user.getId(), LikeStatus.PENDING, pageable);
+            totalCount = likeRepository.countByReceiverIdAndStatus(user.getId(), LikeStatus.PENDING);
+        }
+
         boolean isPremium = user.isPremiumActive();
 
         List<ReceivedLikeResponse> likes = likesPage.getContent().stream()
@@ -110,28 +129,73 @@ public class LikeService {
                 .build();
     }
 
+    public Page<Like> getSentLikes(User sender, Pageable pageable) {
+        return likeRepository.findBySenderId(sender.getId(), pageable);
+    }
+
+    /**
+     * Check if the sender has liked the user who owns the given profileId.
+     * Uses a direct JPQL query joining via receiver's profile ID to avoid user/profile ID mismatches.
+     * Returns a map with only: liked (boolean) and type (NORMAL/STAR or null).
+     */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Map<String, Object> checkInteractionByProfileId(User sender, Long targetProfileId) {
+        System.out.println("DEBUG: Checking like from Sender ID: " + sender.getId() + " to Profile ID: " + targetProfileId);
+        
+        Optional<Like> like = likeRepository.findBySenderIdAndReceiverProfileId(sender.getId(), targetProfileId);
+
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        if (like.isPresent()) {
+            System.out.println("DEBUG: Like FOUND! Like ID: " + like.get().getId());
+            result.put("liked", true);
+            result.put("type", like.get().getType().name());
+        } else {
+            System.out.println("DEBUG: No like found.");
+            result.put("liked", false);
+            result.put("type", null);
+        }
+        return result;
+    }
+
     private ReceivedLikeResponse mapToReceivedLikeResponse(Like like, boolean isPremium) {
         User sender = like.getSender();
+        Profile senderProfile = sender.getProfile();
+        Profile receiverProfile = like.getReceiver().getProfile();
         ReceivedLikeResponse.SenderDetails senderDetails;
 
         if (isPremium) {
             senderDetails = ReceivedLikeResponse.SenderDetails.builder()
                     .id(sender.getId())
-                    .name(sender.getFullName())
-                    .profileImageUrl(sender.getProfile() != null ? sender.getProfile().getPrimaryImageUrl() : null)
-                    .age(sender.getProfile() != null ? sender.getProfile().getAge() : null)
-                    .profession(sender.getProfile() != null ? sender.getProfile().getProfession() : null)
-                    .district(sender.getProfile() != null ? sender.getProfile().getDistrict() : null)
+                    .firstName(sender.getFirstName())
+                    .age(senderProfile != null ? senderProfile.getAge() : null)
+                    .city(senderProfile != null ? senderProfile.getCity() : null)
+                    .district(senderProfile != null ? senderProfile.getDistrict() : null)
+                    .profession(senderProfile != null ? senderProfile.getProfession() : null)
+                    .education(senderProfile != null && senderProfile.getEducation() != null ? senderProfile.getEducation().name() : null)
+                    .religion(senderProfile != null && senderProfile.getReligion() != null ? senderProfile.getReligion().name() : null)
+                    .about(senderProfile != null ? senderProfile.getAbout() : null)
+                    .interests(senderProfile != null ? senderProfile.getInterests() : null)
+                    .profileImage(senderProfile != null ? senderProfile.getPrimaryImageUrl() : null)
+                    .compatibilityScore(receiverProfile != null && senderProfile != null ? (int) matchingService.calculateCompatibility(receiverProfile, senderProfile) : 0)
+                    .interactionType(like.getType())
+                    .interactionStatus(like.getStatus())
+                    .verified(senderProfile != null && senderProfile.isIdVerified())
+                    .boosted(senderProfile != null && senderProfile.isBoosted())
                     .build();
         } else {
             // Blurred details for free users
             senderDetails = ReceivedLikeResponse.SenderDetails.builder()
                     .id(null)
-                    .name("Hidden Name")
-                    .profileImageUrl(null) // Should return a blurred placeholder or handle on frontend
+                    .firstName("Hidden")
+                    .profileImage(senderProfile != null ? senderProfile.getPrimaryImageUrl() : null) // Frontend handle blurring
                     .age(null)
-                    .profession(null)
+                    .city(null)
                     .district(null)
+                    .profession(null)
+                    .interactionType(like.getType())
+                    .interactionStatus(like.getStatus())
+                    .verified(false)
+                    .boosted(false)
                     .build();
         }
 

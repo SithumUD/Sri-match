@@ -1,21 +1,19 @@
 package com.ceycodez.srimatch.controller;
 
-import com.ceycodez.srimatch.dto.request.LoginRequest;
-import com.ceycodez.srimatch.dto.request.ForgotPasswordRequest;
-import com.ceycodez.srimatch.dto.request.PhoneVerificationRequest;
-import com.ceycodez.srimatch.dto.request.RefreshTokenRequest;
-import com.ceycodez.srimatch.dto.request.RegisterRequest;
-import com.ceycodez.srimatch.dto.request.ResetPasswordRequest;
-import com.ceycodez.srimatch.dto.request.UpdatePasswordRequest;
-import com.ceycodez.srimatch.dto.request.VerifyOtpRequest;
+import com.ceycodez.srimatch.dto.request.*;
 import com.ceycodez.srimatch.dto.response.ApiResponse;
 import com.ceycodez.srimatch.dto.response.AuthResponse;
 import com.ceycodez.srimatch.service.AuthenticationService;
+import com.ceycodez.srimatch.service.CaptchaVerificationService;
+import com.ceycodez.srimatch.service.TotpService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/v1/auth")
@@ -23,35 +21,83 @@ import org.springframework.web.bind.annotation.*;
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
+    private final CaptchaVerificationService captchaVerificationService;
+
+    // ── Standard Register & Login ──────────────────────────────────────────────
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<String>> register(@RequestBody @Valid RegisterRequest request) {
+    public ResponseEntity<ApiResponse<String>> register(
+            @RequestBody @Valid RegisterRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        captchaVerificationService.verify(request.getCaptchaToken(), httpRequest.getRemoteAddr());
         authenticationService.register(request);
-        return ResponseEntity.ok(ApiResponse.<String>builder()
-                .success(true)
-                .message("Registration successful. Please check your email for OTP.")
-                .data(null)
-                .build());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful. Please check your email for OTP.", null));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(@RequestBody @Valid LoginRequest request) {
+    public ResponseEntity<ApiResponse<AuthResponse>> login(
+            @RequestBody @Valid LoginRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        captchaVerificationService.verify(request.getCaptchaToken(), httpRequest.getRemoteAddr());
         AuthResponse response = authenticationService.login(request);
-        return ResponseEntity.ok(ApiResponse.<AuthResponse>builder()
-                .success(true)
-                .message("Login successful")
-                .data(response)
-                .build());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", response));
     }
+
+    // ── Social Login ──────────────────────────────────────────────────────────
+
+    @PostMapping("/social-login")
+    public ResponseEntity<ApiResponse<AuthResponse>> socialLogin(
+            @RequestBody @Valid SocialLoginRequest request
+    ) {
+        AuthResponse response = authenticationService.socialLogin(request);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Social login successful", response));
+    }
+
+    // ── Logout (JWT Blacklist) ─────────────────────────────────────────────────
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(
+            HttpServletRequest httpRequest,
+            Authentication authentication
+    ) {
+        authenticationService.logout(httpRequest.getHeader("Authorization"), authentication.getName());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Logged out successfully. Token has been invalidated.", null));
+    }
+
+    // ── Admin 2FA Setup ───────────────────────────────────────────────────────
+
+    @PostMapping("/2fa/setup")
+    public ResponseEntity<ApiResponse<Map<String, String>>> setup2FA(Authentication authentication) {
+        TotpService.TotpSetupResult result = authenticationService.setup2FA(authentication.getName());
+        Map<String, String> data = Map.of(
+                "secret", result.secret(),
+                "otpauthUrl", result.otpauthUrl(),
+                "instructions", "Scan the QR code at 'otpauthUrl' with Google Authenticator, then call /2fa/confirm to activate."
+        );
+        return ResponseEntity.ok(new ApiResponse<>(true, "2FA setup initiated", data));
+    }
+
+    @PostMapping("/2fa/confirm")
+    public ResponseEntity<ApiResponse<String>> confirm2FA(
+            @RequestBody Map<String, Integer> body,
+            Authentication authentication
+    ) {
+        Integer totpCode = body.get("totpCode");
+        if (totpCode == null) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "totpCode is required", null));
+        }
+        authenticationService.confirm2FA(authentication.getName(), totpCode);
+        return ResponseEntity.ok(new ApiResponse<>(true, "2FA has been enabled successfully for your account.", null));
+    }
+
+    // ── Email / Phone Verification ─────────────────────────────────────────────
 
     @PostMapping("/verify-email")
     public ResponseEntity<ApiResponse<String>> verifyEmail(@RequestBody @Valid VerifyOtpRequest request) {
         authenticationService.verifyEmail(request);
-        return ResponseEntity.ok(ApiResponse.<String>builder()
-                .success(true)
-                .message("Email verified successfully")
-                .data(null)
-                .build());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Email verified successfully", null));
     }
 
     @PostMapping("/verify-phone")
@@ -59,63 +105,46 @@ public class AuthenticationController {
             @RequestBody @Valid PhoneVerificationRequest request,
             Authentication authentication
     ) {
-        // authentication represents the currently logged in user (via JWT)
         if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(401).body(ApiResponse.<String>builder()
-                    .success(false)
-                    .message("Unauthorized")
-                    .data(null)
-                    .build());
+            return ResponseEntity.status(401).body(new ApiResponse<>(false, "Unauthorized", null));
         }
-
-        String email = authentication.getName(); // JWT subject is email
-        authenticationService.updatePhoneNumberAndVerify(email, request);
-        
-        return ResponseEntity.ok(ApiResponse.<String>builder()
-                .success(true)
-                .message("Phone number verified successfully")
-                .data(null)
-                .build());
+        authenticationService.updatePhoneNumberAndVerify(authentication.getName(), request);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Phone number verified successfully", null));
     }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<ApiResponse<String>> resendVerification(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(new ApiResponse<>(false, "Unauthorized - You must be logged in", null));
+        }
+        authenticationService.resendVerificationEmail(authentication.getName());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Verification email resent successfully.", null));
+    }
+
+    // ── Password Management ────────────────────────────────────────────────────
 
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@RequestBody @Valid RefreshTokenRequest request) {
         AuthResponse response = authenticationService.refreshToken(request);
-        return ResponseEntity.ok(ApiResponse.<AuthResponse>builder()
-                .success(true)
-                .message("Token refreshed successfully")
-                .data(response)
-                .build());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Token refreshed successfully", response));
     }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<String>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
         authenticationService.initiateForgotPassword(request);
-        return ResponseEntity.ok(ApiResponse.<String>builder()
-                .success(true)
-                .message("Password reset OTP sent to your email")
-                .data(null)
-                .build());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Password reset OTP sent to your email", null));
     }
 
     @PostMapping("/verify-reset-otp")
     public ResponseEntity<ApiResponse<String>> verifyResetOtp(@RequestBody @Valid VerifyOtpRequest request) {
         authenticationService.verifyPasswordResetOtp(request);
-        return ResponseEntity.ok(ApiResponse.<String>builder()
-                .success(true)
-                .message("OTP verified successfully. You can now reset your password.")
-                .data(null)
-                .build());
+        return ResponseEntity.ok(new ApiResponse<>(true, "OTP verified successfully. You can now reset your password.", null));
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse<String>> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
         authenticationService.resetPassword(request);
-        return ResponseEntity.ok(ApiResponse.<String>builder()
-                .success(true)
-                .message("Password reset successful")
-                .data(null)
-                .build());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Password reset successful", null));
     }
 
     @PostMapping("/update-password")
@@ -124,40 +153,9 @@ public class AuthenticationController {
             Authentication authentication
     ) {
         if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(401).body(ApiResponse.<String>builder()
-                    .success(false)
-                    .message("Unauthorized - You must be logged in to update your password")
-                    .data(null)
-                    .build());
+            return ResponseEntity.status(401).body(new ApiResponse<>(false, "Unauthorized - You must be logged in", null));
         }
-
-        String email = authentication.getName();
-        authenticationService.updatePassword(email, request);
-        
-        return ResponseEntity.ok(ApiResponse.<String>builder()
-                .success(true)
-                .message("Password updated successfully")
-                .data(null)
-                .build());
-    }
-
-    @PostMapping("/resend-verification")
-    public ResponseEntity<ApiResponse<String>> resendVerification(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(401).body(ApiResponse.<String>builder()
-                    .success(false)
-                    .message("Unauthorized - You must be logged in to resend verification email")
-                    .data(null)
-                    .build());
-        }
-
-        String email = authentication.getName();
-        authenticationService.resendVerificationEmail(email);
-
-        return ResponseEntity.ok(ApiResponse.<String>builder()
-                .success(true)
-                .message("Verification email resent successfully. Please check your inbox.")
-                .data(null)
-                .build());
+        authenticationService.updatePassword(authentication.getName(), request);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Password updated successfully", null));
     }
 }

@@ -54,4 +54,18 @@ public class PaymentController {
                 .data(response)
                 .build());
     }
+
+    @GetMapping("/check-pending")
+    public ResponseEntity<ApiResponse<Boolean>> checkPendingPayment(Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        
+        boolean hasPending = paymentService.hasPendingPayment(user.getId());
+        
+        return ResponseEntity.ok(ApiResponse.<Boolean>builder()
+                .success(true)
+                .message(hasPending ? "User has a pending payment" : "No pending payment found")
+                .data(hasPending)
+                .build());
+    }
 }

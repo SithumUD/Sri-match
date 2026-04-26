@@ -22,4 +22,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     Optional<Match> findByUsers(@Param("user1") User user1, @Param("user2") User user2);
 
     boolean existsByUser1AndUser2(User user1, User user2);
+
+    long countByCreatedAtAfter(java.time.LocalDateTime since);
 }

@@ -7,7 +7,25 @@ import {
   ChevronDown, ChevronUp, Check, Image as ImageIcon, Plus, ArrowLeft,
   Shield, Eye, EyeOff, Lock, Sparkles, Crown, Target, Home,
 } from "lucide-react";
-import { profileOptions } from "../data/dummyData";
+/* ─── Options Data ──────────────────────────────────────────────────────── */
+const PROFILE_OPTIONS = {
+  maritalStatus: ["Never Married", "Divorced", "Widowed", "Separated", "Annulled"],
+  religion: ["Buddhist", "Hindu", "Muslim", "Christian", "Catholic", "No Religion", "Other"],
+  ethnicity: ["Sinhalese", "Tamil", "Moor", "Burgher", "Malay", "Other"],
+  education: ["High School", "Diploma", "Bachelors", "Masters", "Doctorate", "Professional Certification", "Other"],
+  bodyType: ["Slim", "Athletic", "Average", "Overweight", "Plus Size", "Muscular"],
+  complexion: ["Fair", "Wheatish", "Medium", "Dusky", "Dark"],
+  smoking: ["Never", "Occasionally", "Regularly", "Trying to Quit"],
+  drinking: ["Never", "Socially", "Occasionally", "Regularly"],
+  dietary: ["Vegetarian", "Vegan", "Non Vegetarian", "Pescatarian", "No Preference"],
+  horoscope: ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"],
+  districts: ["Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", "Mannar", "Matale", "Matara", "Moneragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"],
+  interests: ["Music", "Travel", "Photography", "Reading", "Movies", "Gaming", "Cooking", "Sports", "Yoga", "Dancing"],
+  industries: ["Technology", "Healthcare", "Finance", "Education", "Engineering", "Arts", "Government", "Other"],
+  incomeRanges: ["Less than 50k", "50k - 100k", "100k - 200k", "200k - 500k", "Above 500k"]
+};
+
+import ProfileService from "../services/profile.service";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -22,6 +40,8 @@ const styles = `
     color: #2d1810;
     padding: 2rem 1.5rem 5rem;
   }
+  @keyframes spin { 100% { transform:rotate(360deg); } }
+  .spinning { animation: spin 1s linear infinite; }
 
   .mp-inner { max-width: 900px; margin: 0 auto; }
 
@@ -46,13 +66,84 @@ const styles = `
 
   /* Cover */
   .mp-cover {
-    position: relative; height: 200px; overflow: hidden;
+    position: relative; height: 240px; overflow: hidden;
     background: linear-gradient(135deg, #3d1f12 0%, #6b3526 50%, #8b4e2e 100%);
   }
-  .mp-cover-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Shimmer lines for empty state */
+  .mp-cover-shimmer {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      90deg, transparent, transparent 60px,
+      rgba(255,255,255,0.03) 60px, rgba(255,255,255,0.03) 61px
+    );
+    pointer-events: none;
+  }
+
+  /* Collage grid */
+  .mp-cover-collage {
+    position: absolute; inset: 0;
+    display: grid; gap: 2px;
+    background: #1a0a05;
+  }
+
+  /* 1 image */
+  .mp-cover-collage[data-count="1"] {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+  /* 2 images — side by side */
+  .mp-cover-collage[data-count="2"] {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+  }
+  /* 3 images — big left, two stacked right */
+  .mp-cover-collage[data-count="3"] {
+    grid-template-columns: 1.6fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .mp-cover-collage[data-count="3"] .mp-col-item:first-child {
+    grid-row: 1 / 3;
+  }
+  /* 4 images — 2x2 */
+  .mp-cover-collage[data-count="4"] {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  /* 5 images — big left, 2x2 right */
+  .mp-cover-collage[data-count="5"] {
+    grid-template-columns: 1.5fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .mp-cover-collage[data-count="5"] .mp-col-item:first-child {
+    grid-row: 1 / 3;
+  }
+  /* 6+ images — 3x2 */
+  .mp-cover-collage[data-count="6"] {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  .mp-col-item { overflow: hidden; position: relative; }
+  .mp-col-item img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform 0.4s ease; filter: brightness(0.88);
+  }
+  .mp-col-item:hover img { transform: scale(1.06); filter: brightness(0.96); }
+
+  /* "+N more" badge */
+  .mp-col-more-badge {
+    position: absolute; inset: 0;
+    background: rgba(20, 6, 2, 0.55);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 1.6rem; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; pointer-events: none;
+  }
+
   .mp-cover-overlay {
     position: absolute; inset: 0;
-    background: linear-gradient(to top, rgba(20,6,2,0.55) 0%, transparent 60%);
+    background: linear-gradient(to top, rgba(15,4,1,0.65) 0%, rgba(40,12,4,0.2) 45%, transparent 75%);
+    pointer-events: none; z-index: 2;
   }
   .mp-cover-cam {
     position: absolute; top: 1rem; right: 1rem;
@@ -60,7 +151,7 @@ const styles = `
     background: rgba(255,255,255,0.18); backdrop-filter: blur(6px);
     border: none; color: #fff; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transition: background 0.2s;
+    transition: background 0.2s; z-index: 3;
   }
   .mp-cover-cam:hover { background: rgba(255,255,255,0.3); }
 
@@ -505,7 +596,7 @@ const styles = `
 `;
 
 const MyProfilePage = () => {
-  const { user, updateUserProfile } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("about");
@@ -514,8 +605,29 @@ const MyProfilePage = () => {
   const [expandedSections, setExpandedSections] = useState(["basic"]);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  if (!user) return <div style={{ padding: "2rem", fontFamily: "'DM Sans', sans-serif" }}>Loading…</div>;
+  React.useEffect(() => {
+    if (user) setFormData({ ...user });
+  }, [user]);
+
+  React.useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await ProfileService.getMyProfile();
+        if (res.success) setUser(res.data);
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+      }
+    };
+    loadProfile();
+  }, [setUser]);
+
+  if (!user) return (
+    <div style={{ padding: "4rem", textAlign: "center", fontFamily: "'DM Sans', sans-serif", color: "#8b4e2e" }}>
+      <Sparkles className="spinning" /> Loading your story...
+    </div>
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -534,9 +646,32 @@ const MyProfilePage = () => {
     }));
   };
 
-  const handleSave = () => {
-    updateUserProfile({ ...formData });
-    setEditMode(null);
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const mappedData = { ...formData };
+      const mapEnum = (val) => val ? val.toUpperCase().replace(/\s+/g, '_') : null;
+      if (mappedData.maritalStatus) mappedData.maritalStatus = mapEnum(mappedData.maritalStatus);
+      if (mappedData.religion) mappedData.religion = mapEnum(mappedData.religion);
+      if (mappedData.ethnicity) mappedData.ethnicity = mapEnum(mappedData.ethnicity);
+      if (mappedData.education) mappedData.education = mapEnum(mappedData.education);
+      if (mappedData.gender) mappedData.gender = mapEnum(mappedData.gender);
+      if (mappedData.bodyType) mappedData.bodyType = mapEnum(mappedData.bodyType);
+      if (mappedData.complexion) mappedData.complexion = mapEnum(mappedData.complexion);
+      if (mappedData.smoking) mappedData.smoking = mapEnum(mappedData.smoking);
+      if (mappedData.drinking) mappedData.drinking = mapEnum(mappedData.drinking);
+      if (mappedData.dietaryPreferences) mappedData.dietaryPreferences = mapEnum(mappedData.dietaryPreferences);
+      const res = await ProfileService.updateProfile(mappedData);
+      if (res.success) {
+        setUser(res.data);
+        setEditMode(null);
+      }
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+      alert("Failed to save changes. Please check your internet connection.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -550,24 +685,34 @@ const MyProfilePage = () => {
     );
   };
 
+  const [currentFile, setCurrentFile] = useState(null);
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      setCurrentFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPreviewImage(reader.result);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleImageUpload = () => {
-    if (previewImage) {
-      updateUserProfile({
-        ...user,
-        profileImage: previewImage,
-        profileImages: [...(user.profileImages || []), previewImage],
-      });
-      setShowImageUpload(false);
-      setPreviewImage(null);
+  const handleImageUpload = async () => {
+    if (previewImage && currentFile) {
+      setIsSaving(true);
+      try {
+        const res = await ProfileService.uploadProfileImage(currentFile, (user.profileImages || []).length === 0);
+        if (res.success) {
+          setUser(res.data);
+          setShowImageUpload(false);
+          setPreviewImage(null);
+          setCurrentFile(null);
+        }
+      } catch (err) {
+        console.error("Upload failed:", err);
+        alert("Image upload failed.");
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -579,6 +724,39 @@ const MyProfilePage = () => {
     const m = today.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
     return age;
+  };
+
+  /* ── Cover render — adaptive collage ── */
+  const renderCover = () => {
+    const images = user.profileImages || [];
+    const MAX_VISIBLE = 6;
+
+    if (images.length === 0) {
+      return <div className="mp-cover-shimmer" />;
+    }
+
+    const visibleCount = Math.min(images.length, MAX_VISIBLE);
+    const extraCount = images.length > MAX_VISIBLE ? images.length - MAX_VISIBLE + 1 : 0;
+    const showCount = extraCount > 0 ? MAX_VISIBLE - 1 : visibleCount;
+
+    return (
+      <div
+        className="mp-cover-collage"
+        data-count={Math.min(visibleCount, 6)}
+      >
+        {images.slice(0, showCount).map((img, idx) => (
+          <div key={idx} className="mp-col-item">
+            <img src={img} alt="" />
+          </div>
+        ))}
+        {extraCount > 0 && (
+          <div className="mp-col-item">
+            <img src={images[showCount]} alt="" />
+            <div className="mp-col-more-badge">+{extraCount}</div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   /* ── Edit button group ── */
@@ -628,22 +806,23 @@ const MyProfilePage = () => {
 
           {/* ── Hero Card ── */}
           <div className="mp-hero-card">
+
+            {/* Cover */}
             <div className="mp-cover">
-              {user.profileImage
-                ? <img src={user.profileImage} alt="Cover" className="mp-cover-img" />
-                : null}
+              {renderCover()}
               <div className="mp-cover-overlay" />
-              <button className="mp-cover-cam" onClick={() => setShowImageUpload(true)}>
+              <button className="mp-cover-cam" onClick={() => setActiveTab("photos")}>
                 <Camera size={15} />
               </button>
             </div>
 
+            {/* Avatar row */}
             <div className="mp-avatar-row">
               <div className="mp-avatar-wrap">
-                {user.profileImage
-                  ? <img src={user.profileImage} alt="Profile" className="mp-avatar" />
+                {user.primaryImageUrl || (user.profileImages || [])[0]
+                  ? <img src={user.primaryImageUrl || user.profileImages[0]} alt="Profile" className="mp-avatar" />
                   : <div className="mp-avatar-ph"><User size={36} style={{ color: "#9a7060" }} /></div>}
-                <button className="mp-avatar-cam" onClick={() => setShowImageUpload(true)}>
+                <button className="mp-avatar-cam" onClick={() => setActiveTab("photos")}>
                   <Camera size={13} />
                 </button>
               </div>
@@ -726,7 +905,7 @@ const MyProfilePage = () => {
                               <label className="mp-form-label">Marital Status</label>
                               <select className="mp-select" name="maritalStatus" value={formData.maritalStatus || ""} onChange={handleChange}>
                                 <option value="">Select status</option>
-                                {(profileOptions.maritalStatus || []).map(s => <option key={s} value={s.toLowerCase()}>{s}</option>)}
+                                {(PROFILE_OPTIONS.maritalStatus || []).map(s => <option key={s} value={s}>{s}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
@@ -776,7 +955,7 @@ const MyProfilePage = () => {
                               <label className="mp-form-label">District</label>
                               <select className="mp-select" name="district" value={formData.district || ""} onChange={handleChange}>
                                 <option value="">Select district</option>
-                                {(profileOptions.districts || []).map(d => <option key={d} value={d}>{d}</option>)}
+                                {(PROFILE_OPTIONS.districts || []).map(d => <option key={d} value={d}>{d}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
@@ -791,14 +970,14 @@ const MyProfilePage = () => {
                               <label className="mp-form-label">Ethnicity</label>
                               <select className="mp-select" name="ethnicity" value={formData.ethnicity || ""} onChange={handleChange}>
                                 <option value="">Select ethnicity</option>
-                                {(profileOptions.ethnicities || []).map(e => <option key={e} value={e}>{e}</option>)}
+                                {(PROFILE_OPTIONS.ethnicity || []).map(e => <option key={e} value={e}>{e}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Religion</label>
                               <select className="mp-select" name="religion" value={formData.religion || ""} onChange={handleChange}>
                                 <option value="">Select religion</option>
-                                {(profileOptions.religions || []).map(r => <option key={r} value={r}>{r}</option>)}
+                                {(PROFILE_OPTIONS.religion || []).map(r => <option key={r} value={r}>{r}</option>)}
                               </select>
                             </div>
                           </div>
@@ -809,7 +988,7 @@ const MyProfilePage = () => {
                           <div className="mp-form-group">
                             <label className="mp-form-label">Languages Spoken</label>
                             <div className="mp-chip-picker">
-                              {(profileOptions.languages || []).map(l => (
+                              {(PROFILE_OPTIONS.languages || []).map(l => (
                                 <button key={l} type="button" className={`mp-chip-option${(formData.languages || []).includes(l) ? " sel" : ""}`} onClick={() => handleArrayChange("languages", l)}>{l}</button>
                               ))}
                             </div>
@@ -859,7 +1038,7 @@ const MyProfilePage = () => {
                               <label className="mp-form-label">Education Level</label>
                               <select className="mp-select" name="education" value={formData.education || ""} onChange={handleChange}>
                                 <option value="">Select level</option>
-                                {(profileOptions.educationLevels || []).map(l => <option key={l} value={l}>{l}</option>)}
+                                {(PROFILE_OPTIONS.education || []).map(l => <option key={l} value={l}>{l}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
@@ -874,7 +1053,7 @@ const MyProfilePage = () => {
                               <label className="mp-form-label">Industry</label>
                               <select className="mp-select" name="industry" value={formData.industry || ""} onChange={handleChange}>
                                 <option value="">Select industry</option>
-                                {(profileOptions.industries || []).map(i => <option key={i} value={i}>{i}</option>)}
+                                {(PROFILE_OPTIONS.industries || []).map(i => <option key={i} value={i}>{i}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
@@ -890,7 +1069,7 @@ const MyProfilePage = () => {
                             <label className="mp-form-label">Monthly Income (LKR)</label>
                             <select className="mp-select" name="income" value={formData.income || ""} onChange={handleChange}>
                               <option value="">Select income range</option>
-                              {(profileOptions.incomeRanges || []).map(r => <option key={r} value={r}>{r}</option>)}
+                              {(PROFILE_OPTIONS.incomeRanges || []).map(r => <option key={r} value={r}>{r}</option>)}
                             </select>
                             <p className="mp-field-note">Income information is kept private and used only for matching.</p>
                           </div>
@@ -937,14 +1116,14 @@ const MyProfilePage = () => {
                               <label className="mp-form-label">Body Type</label>
                               <select className="mp-select" name="bodyType" value={formData.bodyType || ""} onChange={handleChange}>
                                 <option value="">Select</option>
-                                {(profileOptions.bodyTypes || []).map(t => <option key={t} value={t}>{t}</option>)}
+                                {(PROFILE_OPTIONS.bodyType || []).map(t => <option key={t} value={t}>{t}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Complexion</label>
                               <select className="mp-select" name="complexion" value={formData.complexion || ""} onChange={handleChange}>
                                 <option value="">Select</option>
-                                {(profileOptions.complexions || []).map(c => <option key={c} value={c}>{c}</option>)}
+                                {(PROFILE_OPTIONS.complexion || []).map(c => <option key={c} value={c}>{c}</option>)}
                               </select>
                             </div>
                           </div>
@@ -953,21 +1132,21 @@ const MyProfilePage = () => {
                               <label className="mp-form-label">Smoking</label>
                               <select className="mp-select" name="smoking" value={formData.smoking || ""} onChange={handleChange}>
                                 <option value="">Select</option>
-                                {(profileOptions.smokingHabits || []).map(h => <option key={h} value={h}>{h}</option>)}
+                                {(PROFILE_OPTIONS.smoking || []).map(h => <option key={h} value={h}>{h}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Drinking</label>
                               <select className="mp-select" name="drinking" value={formData.drinking || ""} onChange={handleChange}>
                                 <option value="">Select</option>
-                                {(profileOptions.drinkingHabits || []).map(h => <option key={h} value={h}>{h}</option>)}
+                                {(PROFILE_OPTIONS.drinking || []).map(h => <option key={h} value={h}>{h}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Dietary Preferences</label>
                               <select className="mp-select" name="dietaryPreferences" value={formData.dietaryPreferences || ""} onChange={handleChange}>
                                 <option value="">Select</option>
-                                {(profileOptions.dietaryPreferences || []).map(p => <option key={p} value={p}>{p}</option>)}
+                                {(PROFILE_OPTIONS.dietary || []).map(p => <option key={p} value={p}>{p}</option>)}
                               </select>
                             </div>
                           </div>
@@ -1035,7 +1214,7 @@ const MyProfilePage = () => {
                               <label className="mp-form-label">Horoscope Sign</label>
                               <select className="mp-select" name="horoscopeSign" value={formData.horoscopeSign || ""} onChange={handleChange}>
                                 <option value="">Select sign</option>
-                                {(profileOptions.horoscopeSigns || []).map(s => <option key={s} value={s}>{s}</option>)}
+                                {(PROFILE_OPTIONS.horoscope || []).map(s => <option key={s} value={s}>{s}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
@@ -1082,7 +1261,7 @@ const MyProfilePage = () => {
                           <div className="mp-form-group">
                             <label className="mp-form-label">Interests & Hobbies</label>
                             <div className="mp-chip-picker">
-                              {(profileOptions.interests || []).map(interest => (
+                              {(PROFILE_OPTIONS.interests || []).map(interest => (
                                 <button key={interest} type="button" className={`mp-chip-option${(formData.interests || []).includes(interest) ? " sel" : ""}`} onClick={() => handleArrayChange("interests", interest)}>{interest}</button>
                               ))}
                             </div>
@@ -1161,22 +1340,39 @@ const MyProfilePage = () => {
                       <div key={i} className="mp-photo-item">
                         <img src={img} alt={`Photo ${i + 1}`} className="mp-photo-img" />
                         <div className="mp-photo-overlay">
-                          <button className="mp-photo-btn primary" title="Set as primary" onClick={() => updateUserProfile({ ...user, profileImage: img })}>
+                          <button
+                            className="mp-photo-btn primary"
+                            title="Set as primary"
+                            disabled={isSaving}
+                            onClick={async () => {
+                              setIsSaving(true);
+                              try {
+                                const res = await ProfileService.setPrimaryImage(img);
+                                if (res.success) setUser(res.data);
+                              } catch (err) { console.error(err); }
+                              finally { setIsSaving(false); }
+                            }}
+                          >
                             <Star size={14} />
                           </button>
-                          <button className="mp-photo-btn remove" title="Remove" onClick={() => {
-                            const updated = [...(user.profileImages || [])];
-                            updated.splice(i, 1);
-                            updateUserProfile({
-                              ...user,
-                              profileImages: updated,
-                              profileImage: img === user.profileImage && updated.length > 0 ? updated[0] : user.profileImage,
-                            });
-                          }}>
+                          <button
+                            className="mp-photo-btn remove"
+                            title="Remove"
+                            disabled={isSaving}
+                            onClick={async () => {
+                              if (!window.confirm("Remove this photo?")) return;
+                              setIsSaving(true);
+                              try {
+                                const res = await ProfileService.deleteImage(img);
+                                if (res.success) setUser(res.data);
+                              } catch (err) { console.error(err); }
+                              finally { setIsSaving(false); }
+                            }}
+                          >
                             <X size={14} />
                           </button>
                         </div>
-                        {user.profileImage === img && <div className="mp-photo-primary-badge">Primary</div>}
+                        {user.primaryImageUrl === img && <div className="mp-photo-primary-badge">Primary</div>}
                       </div>
                     ))
                   )}
@@ -1407,7 +1603,6 @@ const MyProfilePage = () => {
   );
 };
 
-// Alias for the MessageCircleIcon import used inline
 const MessageCircleIcon = ({ size, style }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />

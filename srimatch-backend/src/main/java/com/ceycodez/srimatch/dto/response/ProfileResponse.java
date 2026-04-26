@@ -18,6 +18,8 @@ import java.util.Map;
 public class ProfileResponse {
     private Long id;
     private Long userId;
+    private String firstName;
+    private String lastName;
     
     private Gender gender;
     private LocalDate dateOfBirth;
@@ -81,4 +83,8 @@ public class ProfileResponse {
 
     private Integer completionScore;
     private boolean visible;
+
+    // Premium Status
+    private boolean premium;
+    private java.time.LocalDateTime premiumExpiryDate;
 }

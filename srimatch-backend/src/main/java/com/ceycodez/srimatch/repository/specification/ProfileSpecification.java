@@ -23,43 +23,13 @@ public class ProfileSpecification {
             predicates.add(criteriaBuilder.isTrue(root.get("visible")));
             predicates.add(criteriaBuilder.isFalse(root.get("isDeleted")));
 
-            // Essential Filters (Layer 1) - Based on searcher's partner preferences
+            // Exclude the searcher's own profile
             if (searcher != null) {
-                Map<String, Object> prefs = searcher.getPartnerPreferences();
-                
-                // 1. Gender Matching
-                if (prefs.containsKey("genderPreference")) {
-                    predicates.add(criteriaBuilder.equal(root.get("gender"), Gender.valueOf(prefs.get("genderPreference").toString())));
-                } else {
-                    // Default: if searcher is Male, show Female (common case)
-                    if (searcher.getGender() == Gender.MALE) {
-                        predicates.add(criteriaBuilder.equal(root.get("gender"), Gender.FEMALE));
-                    } else if (searcher.getGender() == Gender.FEMALE) {
-                        predicates.add(criteriaBuilder.equal(root.get("gender"), Gender.MALE));
-                    }
-                }
-
-                // 2. Age Range
-                LocalDate now = LocalDate.now();
-                if (prefs.containsKey("minAge")) {
-                    int minAge = Integer.parseInt(prefs.get("minAge").toString());
-                    predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("dateOfBirth"), now.minusYears(minAge)));
-                }
-                if (prefs.containsKey("maxAge")) {
-                    int maxAge = Integer.parseInt(prefs.get("maxAge").toString());
-                    predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("dateOfBirth"), now.minusYears(maxAge + 1)));
-                }
-
-                // 3. Religion (if strict)
-                if (Boolean.TRUE.equals(prefs.get("religionStrict")) && prefs.containsKey("religion")) {
-                    predicates.add(criteriaBuilder.equal(root.get("religion"), Religion.valueOf(prefs.get("religion").toString())));
-                }
-
-                // 4. Marital Status
-                if (prefs.containsKey("maritalStatusPreference")) {
-                     predicates.add(criteriaBuilder.equal(root.get("maritalStatus"), MaritalStatus.valueOf(prefs.get("maritalStatusPreference").toString())));
-                }
+                predicates.add(criteriaBuilder.notEqual(root.get("id"), searcher.getId()));
             }
+
+            // Essential Filters (Removed strict filtering to allow all profiles to be displayed)
+            // Users can still use search filters manually to narrow down results.
 
             if (shuffle) {
                 query.orderBy(criteriaBuilder.asc(criteriaBuilder.function("RAND", Double.class)));

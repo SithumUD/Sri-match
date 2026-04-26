@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/v1/admin/locations/cities")
 @RequiredArgsConstructor
@@ -15,6 +17,16 @@ import org.springframework.web.bind.annotation.*;
 public class AdminLocationController {
 
     private final CityRepository cityRepository;
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<City>>> getAllCities() {
+        List<City> cities = cityRepository.findAllByOrderByNameEnAsc();
+        return ResponseEntity.ok(ApiResponse.<List<City>>builder()
+                .success(true)
+                .message("All cities fetched successfully")
+                .data(cities)
+                .build());
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<City>> addCity(@RequestBody City city) {

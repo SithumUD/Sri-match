@@ -20,8 +20,23 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
     @Query("SELECT l FROM Like l WHERE l.receiver.id = :receiverId AND l.status = :status")
     Page<Like> findByReceiverIdAndStatus(@Param("receiverId") Long receiverId, @Param("status") LikeStatus status, Pageable pageable);
 
+    @Query("SELECT l FROM Like l WHERE l.receiver.id = :receiverId AND l.status = :status AND l.type = :type")
+    Page<Like> findByReceiverIdAndStatusAndType(@Param("receiverId") Long receiverId, @Param("status") LikeStatus status, @Param("type") com.ceycodez.srimatch.model.enums.LikeType type, Pageable pageable);
+
     @Query("SELECT COUNT(l) FROM Like l WHERE l.receiver.id = :receiverId AND l.status = :status")
     long countByReceiverIdAndStatus(@Param("receiverId") Long receiverId, @Param("status") LikeStatus status);
 
+    @Query("SELECT COUNT(l) FROM Like l WHERE l.receiver.id = :receiverId AND l.status = :status AND l.type = :type")
+    long countByReceiverIdAndStatusAndType(@Param("receiverId") Long receiverId, @Param("status") LikeStatus status, @Param("type") com.ceycodez.srimatch.model.enums.LikeType type);
+
+    @Query("SELECT l FROM Like l WHERE l.sender.id = :senderId")
+    Page<Like> findBySenderId(@Param("senderId") Long senderId, Pageable pageable);
+
     boolean existsBySenderAndReceiverAndStatus(User sender, User receiver, LikeStatus status);
+
+    // Find a like by the sender's user ID and the receiver's PROFILE ID
+    @Query("SELECT l FROM Like l WHERE l.sender.id = :senderId AND l.receiver.id = (SELECT p.user.id FROM Profile p WHERE p.id = :targetProfileId)")
+    Optional<Like> findBySenderIdAndReceiverProfileId(@Param("senderId") Long senderId, @Param("targetProfileId") Long targetProfileId);
+
+    java.util.List<Like> findBySenderIdAndReceiverIdIn(Long senderId, java.util.Collection<Long> receiverIds);
 }

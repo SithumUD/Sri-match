@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   Camera, BookOpen, Briefcase, Heart, Star, CheckCircle, User,
-  FileText, Image, MapPin, Home, Globe, GraduationCap, Building,
+  FileText, Image as ImageIcon, MapPin, Home, Globe, GraduationCap, Building,
   Clock, DollarSign, Ruler, Activity, Coffee, Wine, Users, Languages,
   Cake, UserCheck, MessageCircle, AlertTriangle, Award, PlusCircle, X,
   Shield, Zap, TrendingUp, Smile, Music,
@@ -12,7 +12,26 @@ import {
   Sparkles, Gift, Bell, Lock, Upload, Save, RefreshCw, Eye,
   Target, Check, XCircle, Info, AlertCircle, Calendar,
 } from "lucide-react";
-import { profileOptions } from "../data/dummyData";
+/* ─── Options Data ──────────────────────────────────────────────────────── */
+const PROFILE_OPTIONS = {
+  maritalStatus: ["Never Married", "Divorced", "Widowed", "Separated", "Annulled"],
+  religion: ["Buddhist", "Hindu", "Muslim", "Christian", "Catholic", "No Religion", "Other"],
+  ethnicity: ["Sinhalese", "Tamil", "Moor", "Burgher", "Malay", "Other"],
+  education: ["High School", "Diploma", "Bachelors", "Masters", "Doctorate", "Professional Certification", "Other"],
+  bodyType: ["Slim", "Athletic", "Average", "Overweight", "Plus Size", "Muscular"],
+  complexion: ["Fair", "Wheatish", "Medium", "Dusky", "Dark"],
+  smoking: ["Never", "Occasionally", "Regularly", "Trying to Quit"],
+  drinking: ["Never", "Socially", "Occasionally", "Regularly"],
+  dietary: ["Vegetarian", "Vegan", "Non Vegetarian", "Pescatarian", "No Preference"],
+  horoscope: ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"],
+  districts: ["Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", "Mannar", "Matale", "Matara", "Moneragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"],
+  languages: ["Sinhala", "Tamil", "English", "French", "German", "Japanese", "Arabic"],
+  industries: ["Technology", "Healthcare", "Finance", "Education", "Engineering", "Arts", "Government", "Other"],
+  incomeRanges: ["Less than 50k", "50k - 100k", "100k - 200k", "200k - 500k", "Above 500k"],
+  interests: ["Music", "Travel", "Photography", "Reading", "Movies", "Gaming", "Cooking", "Sports", "Yoga", "Dancing"]
+};
+
+import ProfileService from "../services/profile.service";
 
 /* ─── Global styles ──────────────────────────────────────────────────────── */
 const styles = `
@@ -142,9 +161,13 @@ const styles = `
     transition: all 0.2s; outline: none;
     appearance: none;
   }
-  .pc-input:focus, .pc-select:focus, .pc-textarea:focus {
-    border-color: #c9856a; background: #fff;
     box-shadow: 0 0 0 3px rgba(201,133,106,0.12);
+  }
+  .pc-input-readonly {
+    background: #f0f0f0 !important;
+    cursor: not-allowed;
+    color: #888;
+    border-color: #ddd !important;
   }
   .pc-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23c9856a' d='M0 0l6 8 6-8z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.9rem center; padding-right: 2.25rem; }
   .pc-textarea { resize: vertical; min-height: 80px; }
@@ -402,6 +425,7 @@ const ProfileCreationPage = () => {
   const [savingDraft, setSavingDraft] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [photoValidationIssues, setPhotoValidationIssues] = useState([]);
+  const [pendingImages, setPendingImages] = useState([]); // Array of { file, previewUrl }
   const fileInputRef = useRef(null);
 
   const compatibilityQuestions = [
@@ -510,6 +534,15 @@ const ProfileCreationPage = () => {
 
   useEffect(() => {
     if (user?.profileCompleted) navigate("/home");
+    
+    // Auto-fill names from user context if they are not already set
+    if (user && !profileCreationData.firstName && !profileCreationData.lastName) {
+      updateProfileCreationData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || ""
+      });
+    }
+
     if (!profileCreationData.profileImages) updateProfileCreationData({ profileImages: [] });
   }, [user, navigate]);
 
@@ -557,35 +590,87 @@ const ProfileCreationPage = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Preliminary validation
     const issues = await validatePhoto(file);
-    setPhotoValidationIssues(issues);
-    setCurrentImage(file);
-    setShowImageModal(true);
+    if (issues.length > 0) {
+      setPhotoValidationIssues(issues);
+      setCurrentImage(file);
+      setShowImageModal(true);
+      return;
+    }
+
+    addPendingImage(file);
+  };
+
+  const addPendingImage = (file) => {
+    const previewUrl = URL.createObjectURL(file);
+    setPendingImages(prev => [...prev, { file, previewUrl }]);
+  };
+
+  const performUpload = async (file) => {
+    setLoading(true);
+    try {
+      const isPrimary = (profileCreationData.profileImages || []).length === 0;
+      const response = await ProfileService.uploadProfileImage(file, isPrimary);
+      
+      if (response.success && response.data) {
+        // The backend returns the updated list of images in response.data.profileImages
+        const updatedImages = response.data.profileImages || [];
+        const primaryImg = response.data.primaryImageUrl;
+        
+        updateProfileCreationData({ 
+          profileImages: updatedImages, 
+          profileImage: primaryImg || updatedImages[0]
+        });
+      }
+    } catch (err) {
+      console.error("Image upload failed:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const confirmImageUpload = () => {
     if (!currentImage) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const url = reader.result;
-      const imgs = [...(profileCreationData.profileImages || []), url];
-      updateProfileCreationData({ profileImages: imgs, ...(imgs.length === 1 ? { profileImage: url } : {}) });
-      setShowImageModal(false);
-      setCurrentImage(null);
-      setPhotoValidationIssues([]);
-    };
-    reader.readAsDataURL(currentImage);
+    setShowImageModal(false);
+    addPendingImage(currentImage);
+    setCurrentImage(null);
+    setPhotoValidationIssues([]);
   };
 
   const removeImage = (idx) => {
-    const imgs = [...(profileCreationData.profileImages || [])];
-    imgs.splice(idx, 1);
-    updateProfileCreationData({ profileImages: imgs, ...(idx === 0 && imgs.length > 0 ? { profileImage: imgs[0] } : {}) });
+    const remoteImgsCount = (profileCreationData.profileImages || []).length;
+    
+    if (idx < remoteImgsCount) {
+      // Remove remote image
+      const imgs = [...(profileCreationData.profileImages || [])];
+      imgs.splice(idx, 1);
+      updateProfileCreationData({ 
+        profileImages: imgs, 
+        profileImage: (idx === 0 && imgs.length > 0) ? imgs[0] : profileCreationData.profileImage 
+      });
+    } else {
+      // Remove local pending image
+      const localIdx = idx - remoteImgsCount;
+      const item = pendingImages[localIdx];
+      if (item) URL.revokeObjectURL(item.previewUrl);
+      
+      const newPending = [...pendingImages];
+      newPending.splice(localIdx, 1);
+      setPendingImages(newPending);
+    }
   };
 
   const setPrimaryImage = (idx) => {
-    const imgs = profileCreationData.profileImages || [];
-    if (idx >= 0 && idx < imgs.length) updateProfileCreationData({ profileImage: imgs[idx] });
+    // Currently only supported for remote/already uploaded images in this UI logic,
+    // but we can set the local preview as 'desired primary' if needed.
+    const remoteImgs = profileCreationData.profileImages || [];
+    const remoteCount = remoteImgs.length;
+    
+    if (idx < remoteCount) {
+      updateProfileCreationData({ profileImage: remoteImgs[idx] });
+    }
   };
 
   const nextStep = () => { setProfileCreationStep(s => s + 1); window.scrollTo(0, 0); };
@@ -596,43 +681,99 @@ const ProfileCreationPage = () => {
     setLoading(true);
 
     try {
-      // Transformation logic to match backend Enums and DTO structure
-      const formattedData = {
-        ...profileCreationData,
-        // Enums (Frontend values to Backend Enum strings)
-        gender: profileCreationData.gender?.toUpperCase(),
-        maritalStatus: profileCreationData.maritalStatus === "single" ? "NEVER_MARRIED" : profileCreationData.maritalStatus?.toUpperCase().replace(" ", "_"),
-        religion: profileCreationData.religion?.toUpperCase(),
-        education: profileCreationData.education?.toUpperCase().replace(" ", "_"),
-        ethnicity: profileCreationData.ethnicity?.toUpperCase(),
-        bodyType: profileCreationData.bodyType?.toUpperCase().replace(" ", "_"),
-        complexion: profileCreationData.complexion?.toUpperCase(),
-        horoscopeSign: profileCreationData.horoscopeSign?.toUpperCase(),
+      // Helper to map and transform options to Enums
+      const mapEnum = (val, type) => {
+        if (!val) return null;
+        const normalized = val.toLowerCase().trim();
         
-        // Complex mappings for lifestyle habits
-        smoking: profileCreationData.smoking === "non-smoker" ? "NEVER" : 
-                 profileCreationData.smoking === "occasional" ? "OCCASIONALLY" : 
-                 profileCreationData.smoking === "regular" ? "REGULARLY" : profileCreationData.smoking?.toUpperCase(),
-        
-        drinking: profileCreationData.drinking === "non-drinker" ? "NEVER" : 
-                  profileCreationData.drinking === "social drinker" ? "SOCIALLY" : 
-                  profileCreationData.drinking === "regular" ? "REGULARLY" : profileCreationData.drinking?.toUpperCase(),
-        
-        dietaryPreferences: profileCreationData.dietaryPreferences?.toUpperCase().replace(" ", "_"),
-        
-        // Metadata fields
-        profileCompleted: true,
-        quizAnswers,
-        verificationStatus: verifications, // Backend uses verificationStatus
-        completionScore
+        switch (type) {
+          case 'maritalStatus':
+            if (normalized.includes('never married') || normalized === 'single') return 'NEVER_MARRIED';
+            if (normalized === 'widowed') return 'WIDOWED';
+            if (normalized === 'divorced') return 'DIVORCED';
+            if (normalized === 'separated') return 'SEPARATED';
+            return normalized.toUpperCase().replace(/['\s]+/g, '_');
+          case 'education':
+            if (normalized.includes('bachelor')) return 'BACHELORS';
+            if (normalized.includes('master')) return 'MASTERS';
+            if (normalized.includes('doctor')) return 'DOCTORATE';
+            if (normalized.includes('certificate')) return 'PROFESSIONAL_CERTIFICATION';
+            if (normalized.includes('high school')) return 'HIGH_SCHOOL';
+            if (normalized.includes('diploma')) return 'DIPLOMA';
+            return 'OTHER';
+          case 'smoking':
+          case 'drinking':
+            if (normalized.includes('never') || normalized.includes('non-')) return 'NEVER';
+            if (normalized.includes('occasional')) return 'OCCASIONALLY';
+            if (normalized.includes('regular')) return 'REGULARLY';
+            if (normalized.includes('quit')) return 'TRYING_TO_QUIT';
+            if (normalized.includes('social')) return 'SOCIALLY';
+            return normalized.toUpperCase().replace(/['\s]+/g, '_');
+          default:
+            return normalized.toUpperCase().replace(/['\s]+/g, '_');
+        }
       };
 
-      // Clean up fields that might cause mapping issues in strict backends if needed
-      // (Optional: remove profileImage/profileImages if backend DTO doesn't support them in main POST)
+      const formattedData = {
+        firstName: profileCreationData.firstName,
+        lastName: profileCreationData.lastName,
+        gender: profileCreationData.gender?.toUpperCase(),
+        dateOfBirth: profileCreationData.dateOfBirth,
+        maritalStatus: mapEnum(profileCreationData.maritalStatus, 'maritalStatus'),
+        hasChildren: profileCreationData.hasChildren,
+        numberOfChildren: profileCreationData.numberOfChildren || 0,
+        
+        district: profileCreationData.district,
+        city: profileCreationData.city,
+        placeOfBirth: profileCreationData.placeOfBirth,
+        
+        religion: mapEnum(profileCreationData.religion, 'religion'),
+        ethnicity: mapEnum(profileCreationData.ethnicity, 'ethnicity'),
+        languages: profileCreationData.languages || [],
+        
+        education: mapEnum(profileCreationData.education, 'education'),
+        profession: profileCreationData.profession,
+        industry: profileCreationData.industry,
+        income: profileCreationData.income,
+        
+        height: parseInt(profileCreationData.height) || null,
+        bodyType: mapEnum(profileCreationData.bodyType, 'bodyType'),
+        complexion: mapEnum(profileCreationData.complexion, 'complexion'),
+        
+        smoking: mapEnum(profileCreationData.smoking, 'smoking'),
+        drinking: mapEnum(profileCreationData.drinking, 'drinking'),
+        dietaryPreferences: mapEnum(profileCreationData.dietaryPreferences, 'dietary'),
+        
+        about: profileCreationData.about,
+        interests: profileCreationData.interests || [],
+        partnerPreferences: profileCreationData.partnerPreferences || {},
+        quizAnswers: quizAnswers || {},
+        
+        horoscopeSign: mapEnum(profileCreationData.horoscopeSign, 'horoscope'),
+        birthStar: profileCreationData.birthStar,
+      };
+
+      const result = await updateUserProfile(formattedData);
       
-      await updateUserProfile(formattedData);
-      localStorage.removeItem("profileDraft");
-      navigate("/home");
+      if (result.success) {
+        // Now upload images since profile exists
+        if (pendingImages.length > 0) {
+          for (let i = 0; i < pendingImages.length; i++) {
+            try {
+              // Mark the first ever image as primary
+              const isPrimary = i === 0 && (profileCreationData.profileImages || []).length === 0;
+              await ProfileService.uploadProfileImage(pendingImages[i].file, isPrimary);
+            } catch (imgErr) {
+              console.error("Delayed image upload failed for file:", i, imgErr);
+            }
+          }
+        }
+        
+        localStorage.removeItem("profileDraft");
+        navigate("/home");
+      } else {
+        alert(result.message || "Failed to save profile. Please check your info.");
+      }
     } catch (err) {
       console.error("Profile update error:", err);
     } finally {
@@ -697,8 +838,9 @@ const ProfileCreationPage = () => {
             <div className="pc-field">
               <label className="pc-label">Profile Photos <span className="hint">(3–6 recommended)</span></label>
               <div className="pc-photo-grid">
+                {/* Remote Images */}
                 {(profileCreationData.profileImages || []).map((img, i) => (
-                  <div key={i} className={`pc-photo-item${profileCreationData.profileImage === img ? " pc-photo-ring" : ""}`}>
+                  <div key={`remote-${i}`} className={`pc-photo-item${profileCreationData.profileImage === img ? " pc-photo-ring" : ""}`}>
                     <img src={img} alt={`Photo ${i + 1}`} className="pc-photo-img" />
                     <div className="pc-photo-overlay">
                       <button type="button" className="pc-photo-action" style={{ background: "#8b4e2e" }} onClick={() => setPrimaryImage(i)} title="Set as primary">
@@ -711,7 +853,21 @@ const ProfileCreationPage = () => {
                     {profileCreationData.profileImage === img && <div className="pc-photo-badge">Primary</div>}
                   </div>
                 ))}
-                {(profileCreationData.profileImages || []).length < 6 && (
+                
+                {/* Pending Local Images */}
+                {pendingImages.map((item, i) => (
+                  <div key={`local-${i}`} className="pc-photo-item pc-pending-photo">
+                    <img src={item.previewUrl} alt="Pending" className="pc-photo-img" style={{ opacity: 0.7 }} />
+                    <div className="pc-photo-overlay visible">
+                      <button type="button" className="pc-photo-action" style={{ background: "#c0392b" }} onClick={() => removeImage((profileCreationData.profileImages || []).length + i)} title="Remove">
+                        <X size={13} color="#fff" />
+                      </button>
+                    </div>
+                    <div className="pc-photo-badge" style={{ background: "#9a7060" }}>Pending</div>
+                  </div>
+                ))}
+
+                {( (profileCreationData.profileImages || []).length + pendingImages.length ) < 6 && (
                   <label className="pc-upload-slot">
                     <Upload size={20} style={{ color: "#c9856a" }} />
                     <span>Upload Photo<br />JPG/PNG · max 5 MB</span>
@@ -719,18 +875,18 @@ const ProfileCreationPage = () => {
                   </label>
                 )}
               </div>
-              <p className="pc-note">{6 - (profileCreationData.profileImages || []).length} photo slots remaining</p>
+              <p className="pc-note">{6 - ( (profileCreationData.profileImages || []).length + pendingImages.length )} photo slots remaining</p>
             </div>
 
             {/* Name */}
             <div className="pc-grid-2">
               <div className="pc-field">
-                <label className="pc-label">First Name <span className="req">*</span></label>
-                <input name="firstName" type="text" value={profileCreationData.firstName || ""} onChange={handleChange} className="pc-input" placeholder="Amara" />
+                <label className="pc-label">First Name <span className="req">*</span> <span className="hint">(from account)</span></label>
+                <input name="firstName" type="text" value={profileCreationData.firstName || ""} readOnly className="pc-input pc-input-readonly" placeholder="First Name" />
               </div>
               <div className="pc-field">
-                <label className="pc-label">Last Name <span className="req">*</span></label>
-                <input name="lastName" type="text" value={profileCreationData.lastName || ""} onChange={handleChange} className="pc-input" placeholder="Perera" />
+                <label className="pc-label">Last Name <span className="req">*</span> <span className="hint">(from account)</span></label>
+                <input name="lastName" type="text" value={profileCreationData.lastName || ""} readOnly className="pc-input pc-input-readonly" placeholder="Last Name" />
               </div>
             </div>
 
@@ -760,7 +916,7 @@ const ProfileCreationPage = () => {
                 <label className="pc-label">Marital Status <span className="req">*</span></label>
                 <select name="maritalStatus" value={profileCreationData.maritalStatus || ""} onChange={handleChange} className="pc-select">
                   <option value="">Select status</option>
-                  {(profileOptions.maritalStatus || []).map(s => <option key={s} value={s.toLowerCase()}>{s}</option>)}
+                  {(PROFILE_OPTIONS.maritalStatus || []).map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
@@ -785,7 +941,7 @@ const ProfileCreationPage = () => {
                 <label className="pc-label">District <span className="req">*</span></label>
                 <select name="district" value={profileCreationData.district || ""} onChange={handleChange} className="pc-select">
                   <option value="">Select district</option>
-                  {(profileOptions.districts || []).map(d => <option key={d} value={d}>{d}</option>)}
+                  {(PROFILE_OPTIONS.districts || []).map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div className="pc-field">
@@ -802,14 +958,14 @@ const ProfileCreationPage = () => {
                 <label className="pc-label">Ethnicity</label>
                 <select name="ethnicity" value={profileCreationData.ethnicity || ""} onChange={handleChange} className="pc-select">
                   <option value="">Select</option>
-                  {(profileOptions.ethnicities || []).map(e => <option key={e} value={e}>{e}</option>)}
+                  {(PROFILE_OPTIONS.ethnicity || []).map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
               </div>
               <div className="pc-field">
                 <label className="pc-label">Religion <span className="req">*</span></label>
                 <select name="religion" value={profileCreationData.religion || ""} onChange={handleChange} className="pc-select">
                   <option value="">Select</option>
-                  {(profileOptions.religions || []).map(r => <option key={r} value={r}>{r}</option>)}
+                  {(PROFILE_OPTIONS.religion || []).map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
             </div>
@@ -820,7 +976,7 @@ const ProfileCreationPage = () => {
             <div className="pc-field">
               <label className="pc-label">Languages Spoken <span className="hint">(select up to 5)</span></label>
               <div className="pc-chips-grid">
-                {(profileOptions.languages || []).map(lang => (
+                {(PROFILE_OPTIONS.languages || []).map(lang => (
                   <button key={lang} type="button"
                     className={`pc-chip${(profileCreationData.languages || []).includes(lang) ? " selected" : ""}`}
                     onClick={() => {
@@ -842,7 +998,7 @@ const ProfileCreationPage = () => {
                 <label className="pc-label">Education Level <span className="req">*</span></label>
                 <select name="education" value={profileCreationData.education || ""} onChange={handleChange} className="pc-select">
                   <option value="">Select</option>
-                  {(profileOptions.educationLevels || []).map(l => <option key={l} value={l}>{l}</option>)}
+                  {(PROFILE_OPTIONS.education || []).map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
               <div className="pc-field">
@@ -859,7 +1015,7 @@ const ProfileCreationPage = () => {
                 <label className="pc-label">Industry</label>
                 <select name="industry" value={profileCreationData.industry || ""} onChange={handleChange} className="pc-select">
                   <option value="">Select</option>
-                  {(profileOptions.industries || []).map(i => <option key={i} value={i}>{i}</option>)}
+                  {(PROFILE_OPTIONS.industries || []).map(i => <option key={i} value={i}>{i}</option>)}
                 </select>
               </div>
             </div>
@@ -877,7 +1033,7 @@ const ProfileCreationPage = () => {
               <label className="pc-label">Monthly Income Range (LKR)</label>
               <select name="income" value={profileCreationData.income || ""} onChange={handleChange} className="pc-select">
                 <option value="">Select range</option>
-                {(profileOptions.incomeRanges || []).map(r => <option key={r} value={r}>{r}</option>)}
+                {(PROFILE_OPTIONS.incomeRanges || []).map(r => <option key={r} value={r}>{r}</option>)}
               </select>
               <p className="pc-note"><Shield size={11} />Used for matching only — never shown publicly</p>
             </div>
@@ -896,7 +1052,7 @@ const ProfileCreationPage = () => {
                 <label className="pc-label">Body Type</label>
                 <select name="bodyType" value={profileCreationData.bodyType || ""} onChange={handleChange} className="pc-select">
                   <option value="">Select</option>
-                  {(profileOptions.bodyTypes || []).map(t => <option key={t} value={t}>{t}</option>)}
+                  {(PROFILE_OPTIONS.bodyType || []).map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
             </div>
@@ -904,7 +1060,7 @@ const ProfileCreationPage = () => {
               <label className="pc-label">Complexion</label>
               <select name="complexion" value={profileCreationData.complexion || ""} onChange={handleChange} className="pc-select">
                 <option value="">Select</option>
-                {(profileOptions.complexions || []).map(c => <option key={c} value={c}>{c}</option>)}
+                {(PROFILE_OPTIONS.complexion || []).map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="pc-grid-2">
@@ -912,14 +1068,14 @@ const ProfileCreationPage = () => {
                 <label className="pc-label">Smoking Habits</label>
                 <select name="smoking" value={profileCreationData.smoking || ""} onChange={handleChange} className="pc-select">
                   <option value="">Select</option>
-                  {(profileOptions.smokingHabits || []).map(h => <option key={h} value={h}>{h}</option>)}
+                  {(PROFILE_OPTIONS.smoking || []).map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
               <div className="pc-field">
                 <label className="pc-label">Drinking Habits</label>
                 <select name="drinking" value={profileCreationData.drinking || ""} onChange={handleChange} className="pc-select">
                   <option value="">Select</option>
-                  {(profileOptions.drinkingHabits || []).map(h => <option key={h} value={h}>{h}</option>)}
+                  {(PROFILE_OPTIONS.drinking || []).map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
             </div>
@@ -927,7 +1083,7 @@ const ProfileCreationPage = () => {
               <label className="pc-label">Dietary Preferences</label>
               <select name="dietaryPreferences" value={profileCreationData.dietaryPreferences || ""} onChange={handleChange} className="pc-select">
                 <option value="">Select</option>
-                {(profileOptions.dietaryPreferences || []).map(p => <option key={p} value={p}>{p}</option>)}
+                {(PROFILE_OPTIONS.dietary || []).map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             <div className="pc-field">
@@ -965,7 +1121,7 @@ const ProfileCreationPage = () => {
                 <label className="pc-label">Horoscope / Zodiac Sign</label>
                 <select name="horoscopeSign" value={profileCreationData.horoscopeSign || ""} onChange={handleChange} className="pc-select">
                   <option value="">Select</option>
-                  {(profileOptions.horoscopeSigns || []).map(s => <option key={s} value={s}>{s}</option>)}
+                  {(PROFILE_OPTIONS.horoscope || []).map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div className="pc-field">
@@ -1033,7 +1189,7 @@ const ProfileCreationPage = () => {
               <label className="pc-label">Interests & Hobbies <span className="req">*</span> <span className="hint">(min 3, max 10)</span></label>
               <div className="pc-chips-scrollbox">
                 <div className="pc-chips-grid">
-                  {(profileOptions.interests || []).map(interest => {
+                  {(PROFILE_OPTIONS.interests || []).map(interest => {
                     const IconComp = INTEREST_ICONS[interest] || Sparkles;
                     return (
                       <button key={interest} type="button"
@@ -1147,7 +1303,7 @@ const ProfileCreationPage = () => {
                 <select value={(profileCreationData.partnerPreferences || {}).educationLevel || ""}
                   onChange={e => updateProfileCreationData({ partnerPreferences: { ...(profileCreationData.partnerPreferences || {}), educationLevel: e.target.value } })} className="pc-select">
                   <option value="">No preference</option>
-                  {(profileOptions.educationLevels || []).map(l => <option key={l} value={l}>{l}</option>)}
+                  {(PROFILE_OPTIONS.education || []).map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
               <div className="pc-field">
@@ -1155,7 +1311,7 @@ const ProfileCreationPage = () => {
                 <select value={(profileCreationData.partnerPreferences || {}).religionPreference || ""}
                   onChange={e => updateProfileCreationData({ partnerPreferences: { ...(profileCreationData.partnerPreferences || {}), religionPreference: e.target.value } })} className="pc-select">
                   <option value="">No preference</option>
-                  {(profileOptions.religions || []).map(r => <option key={r} value={r}>{r}</option>)}
+                  {(PROFILE_OPTIONS.religion || []).map(r => <option key={r} value={r}>{r}</option>)}
                   <option value="Open to all">Open to all religions</option>
                 </select>
               </div>
@@ -1166,7 +1322,7 @@ const ProfileCreationPage = () => {
               <select value={(profileCreationData.partnerPreferences || {}).maritalStatusPreference || ""}
                 onChange={e => updateProfileCreationData({ partnerPreferences: { ...(profileCreationData.partnerPreferences || {}), maritalStatusPreference: e.target.value } })} className="pc-select">
                 <option value="">No preference</option>
-                {(profileOptions.maritalStatus || []).map(s => <option key={s} value={s.toLowerCase()}>{s}</option>)}
+                {(PROFILE_OPTIONS.maritalStatus || []).map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 

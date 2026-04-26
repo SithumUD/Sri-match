@@ -392,9 +392,9 @@ const Navbar = () => {
                 </Link>
 
                 {/* Connection Requests */}
-                <div className="nb-connection-wrapper">
+                {/*<div className="nb-connection-wrapper">
                   <ConnectionRequests />
-                </div>
+                </div>*/}
 
                 {/* Notifications */}
                 <div className="nb-notifications-wrapper" ref={notificationsRef}>

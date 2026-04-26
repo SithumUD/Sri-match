@@ -32,4 +32,7 @@ public class RegisterRequest {
     private boolean agreeToTerms;
 
     private boolean agreeToMarketing;
+
+    /** Cloudflare Turnstile token - required in production */
+    private String captchaToken;
 }

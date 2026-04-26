@@ -1,271 +1,710 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
+import {
+  SearchIcon, UserPlusIcon, Trash2Icon, ShieldIcon,
+  LockIcon, UnlockIcon, EyeIcon, XIcon, ChevronDownIcon,
+  UsersIcon, AlertCircleIcon, CrownIcon, SparklesIcon,
+  CheckIcon, Loader2Icon,
+} from "lucide-react";
+import AdminService from "../services/admin.service";
 
-// Dummy data matching the backend UserResponse schema
-const initialDummyUsers = [
-  { id: 1, firstName: 'Sithum', lastName: 'Piumika', email: 'sithum@example.com', role: 'SUPER_ADMIN', locked: false, createdAt: '2026-03-10' },
-  { id: 2, firstName: 'Kasun', lastName: 'Kalhara', email: 'kasun@example.com', role: 'USER', locked: false, createdAt: '2026-04-12' },
-  { id: 3, firstName: 'Amali', lastName: 'Perera', email: 'amali.p@example.com', role: 'USER', locked: true, createdAt: '2026-04-15' },
-  { id: 4, firstName: 'Nimal', lastName: 'Silva', email: 'nimal@admin.com', role: 'ADMIN', locked: false, createdAt: '2026-02-05' },
-];
+/* ─── Styles ─────────────────────────────────────────────────────────────── */
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
 
+  .au2-root * { box-sizing: border-box; margin: 0; padding: 0; }
+  .au2-root {
+    font-family: 'DM Sans', sans-serif;
+    color: #2d1810;
+    background: transparent;
+  }
+
+  /* ── PAGE HEADER ── */
+  .au2-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem; }
+  .au2-header-left {}
+  .au2-eyebrow {
+    font-size: 0.68rem; font-weight: 500; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #8b4e2e; margin-bottom: 0.3rem;
+    display: flex; align-items: center; gap: 0.35rem;
+  }
+  .au2-page-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.9rem; font-weight: 600; color: #2d1810; line-height: 1.15; margin-bottom: 0.25rem;
+  }
+  .au2-page-title span {
+    background: linear-gradient(135deg, #8b4e2e, #c9856a);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .au2-page-sub { font-size: 0.83rem; color: #9a7060; }
+  .au2-header-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+  /* Buttons */
+  .au2-btn-primary {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.6rem 1.25rem; border-radius: 99px;
+    font-size: 0.82rem; font-weight: 500;
+    background: linear-gradient(135deg, #e8c97a, #c9a050);
+    color: #3d1f12; border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    box-shadow: 0 4px 14px rgba(200,160,80,0.3);
+    transition: all 0.2s;
+  }
+  .au2-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(200,160,80,0.42); }
+
+  .au2-btn-danger {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.6rem 1.25rem; border-radius: 99px;
+    font-size: 0.82rem; font-weight: 500;
+    background: #fef2f2; color: #b91c1c;
+    border: 1px solid #fecaca; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .au2-btn-danger:hover { background: #fee2e2; border-color: #fca5a5; }
+
+  .au2-btn-ghost {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.5rem 1rem; border-radius: 99px;
+    font-size: 0.8rem; font-weight: 500;
+    background: transparent; color: #9a7060;
+    border: 1px solid #f0ddd5; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .au2-btn-ghost:hover { background: #fdf5ee; color: #4a3028; border-color: #e8c9b8; }
+
+  /* ── STATS + SEARCH ROW ── */
+  .au2-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem; }
+  .au2-stats { display: flex; gap: 0.85rem; }
+
+  .au2-stat-chip {
+    background: #fff; border: 1px solid #f0ddd5;
+    border-radius: 12px; padding: 0.65rem 1.1rem;
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .au2-stat-chip-label { font-size: 0.68rem; color: #9a7060; }
+  .au2-stat-chip-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.3rem; font-weight: 600; color: #2d1810; line-height: 1;
+  }
+  .au2-stat-chip-value.red { color: #dc2626; }
+
+  .au2-search-field { position: relative; }
+  .au2-search-field svg { position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); color: #c9856a; pointer-events: none; }
+  .au2-search-input {
+    padding: 0.6rem 1rem 0.6rem 2.4rem;
+    border-radius: 99px; border: 1.5px solid #f0ddd5;
+    background: #fff; font-size: 0.82rem;
+    font-family: 'DM Sans', sans-serif; color: #2d1810;
+    width: 280px; outline: none; transition: all 0.2s;
+  }
+  .au2-search-input::placeholder { color: #c4a898; }
+  .au2-search-input:focus { border-color: #c9856a; box-shadow: 0 0 0 3px rgba(201,133,106,0.1); }
+
+  /* ── TABLE CARD ── */
+  .au2-table-card {
+    background: #fff; border: 1px solid #f0ddd5;
+    border-radius: 16px; overflow: hidden;
+  }
+
+  .au2-table { width: 100%; border-collapse: collapse; text-align: left; }
+  .au2-table th {
+    padding: 0.7rem 1.25rem; font-size: 0.66rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.08em; color: #9a7060;
+    background: #fdf8f4; border-bottom: 1px solid #f5ede5;
+  }
+  .au2-table td {
+    padding: 0.85rem 1.25rem; font-size: 0.81rem; color: #4a3028;
+    border-bottom: 1px solid #fdf5ee; vertical-align: middle;
+  }
+  .au2-table tr:last-child td { border-bottom: none; }
+  .au2-table tbody tr { transition: background 0.15s; }
+  .au2-table tbody tr:hover td { background: #fdf8f4; }
+
+  .au2-avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #3d1f12, #c9856a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.74rem; font-weight: 600; color: #e8c97a; letter-spacing: 0.03em;
+  }
+  .au2-user-name { font-weight: 500; font-size: 0.83rem; color: #2d1810; margin-bottom: 1px; }
+  .au2-user-date { font-size: 0.68rem; color: #c4a898; }
+
+  /* Status / Role badges */
+  .au2-badge {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.18rem 0.65rem; border-radius: 99px;
+    font-size: 0.69rem; font-weight: 600; white-space: nowrap;
+  }
+  .au2-badge.green  { background: #f0fdf4; color: #16a34a; }
+  .au2-badge.red    { background: #fef2f2; color: #dc2626; }
+  .au2-badge.brown  { background: #fdf5ee; color: #8b4e2e; }
+  .au2-badge.purple { background: #faf5ff; color: #7c3aed; }
+  .au2-badge.dark   { background: linear-gradient(135deg, #3d1f12, #8b4e2e); color: #e8c97a; }
+
+  /* Row action buttons */
+  .au2-actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
+  .au2-action-btn {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.32rem 0.7rem; border-radius: 99px;
+    font-size: 0.71rem; font-weight: 500;
+    border: 1px solid #f0ddd5; background: #fdf8f4;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    color: #6b4a3a; transition: all 0.18s;
+  }
+  .au2-action-btn:hover { background: #fff; border-color: #e8c9b8; color: #2d1810; }
+  .au2-action-btn.lock   { color: #d97706; border-color: #fde68a; background: #fffbeb; }
+  .au2-action-btn.lock:hover   { background: #fef3c7; border-color: #fbbf24; }
+  .au2-action-btn.unlock { color: #16a34a; border-color: #bbf7d0; background: #f0fdf4; }
+  .au2-action-btn.unlock:hover { background: #dcfce7; border-color: #86efac; }
+  .au2-action-btn.del    { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+  .au2-action-btn.del:hover    { background: #fee2e2; border-color: #fca5a5; }
+
+  /* Empty state */
+  .au2-empty {
+    text-align: center; padding: 3rem 1.5rem;
+  }
+  .au2-empty-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, #fdf5ee, #faf0e8);
+    border: 1px solid #f0ddd5;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.85rem;
+  }
+  .au2-empty-title { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; font-weight: 600; color: #2d1810; margin-bottom: 0.35rem; }
+  .au2-empty-sub { font-size: 0.8rem; color: #9a7060; }
+
+  /* ── MODAL OVERLAY ── */
+  .au2-overlay {
+    position: fixed; inset: 0; background: rgba(30,8,2,0.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 1.5rem;
+  }
+
+  .au2-modal {
+    background: #fff; border-radius: 20px; width: 100%; max-width: 460px;
+    overflow: hidden; box-shadow: 0 24px 64px rgba(61,31,18,0.25);
+    border: 1px solid #f0ddd5;
+  }
+
+  .au2-modal-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 1.4rem 1.6rem; border-bottom: 1px solid #f5ede5;
+    background: linear-gradient(135deg, #fdf5ee, #faf0e8);
+  }
+  .au2-modal-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem; font-weight: 600; color: #2d1810; margin-bottom: 0.15rem;
+  }
+  .au2-modal-sub { font-size: 0.75rem; color: #9a7060; }
+  .au2-modal-close {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid #f0ddd5; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: #9a7060; transition: all 0.2s;
+  }
+  .au2-modal-close:hover { background: #fdf0e8; color: #4a3028; border-color: #e8c9b8; }
+
+  .au2-modal-body { padding: 1.5rem 1.6rem; display: flex; flex-direction: column; gap: 1rem; }
+
+  .au2-form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+  .au2-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+  .au2-form-label { font-size: 0.75rem; font-weight: 500; color: #6b4a3a; letter-spacing: 0.02em; }
+  .au2-form-input,
+  .au2-form-select {
+    width: 100%; padding: 0.6rem 0.9rem;
+    border: 1.5px solid #f0ddd5; border-radius: 10px;
+    font-size: 0.83rem; font-family: 'DM Sans', sans-serif;
+    color: #2d1810; background: #fdf8f4;
+    outline: none; transition: all 0.2s;
+    -webkit-appearance: none; appearance: none;
+  }
+  .au2-form-input::placeholder { color: #c4a898; }
+  .au2-form-input:focus,
+  .au2-form-select:focus { border-color: #c9856a; background: #fff; box-shadow: 0 0 0 3px rgba(201,133,106,0.1); }
+  .au2-select-wrap { position: relative; }
+  .au2-select-wrap svg { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: #9a7060; pointer-events: none; }
+  .au2-form-select { padding-right: 2.25rem; cursor: pointer; }
+
+  .au2-modal-footer {
+    display: flex; justify-content: flex-end; gap: 0.65rem;
+    padding: 1rem 1.6rem; border-top: 1px solid #f5ede5;
+    background: #fdf8f4;
+  }
+
+  /* View modal grid */
+  .au2-view-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .au2-view-field-label { font-size: 0.67rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #c4a898; margin-bottom: 0.25rem; }
+  .au2-view-field-value { font-size: 0.84rem; color: #2d1810; font-weight: 500; }
+
+  .au2-view-avatar-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+  .au2-view-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, #3d1f12, #c9856a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; font-weight: 600; color: #e8c97a;
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  /* Confirm dialog */
+  .au2-confirm-modal {
+    background: #fff; border-radius: 20px; width: 100%; max-width: 380px;
+    overflow: hidden; box-shadow: 0 24px 64px rgba(61,31,18,0.25);
+    border: 1px solid #f0ddd5;
+    text-align: center; padding: 2rem 1.75rem;
+  }
+  .au2-confirm-icon {
+    width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 1rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .au2-confirm-title { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600; color: #2d1810; margin-bottom: 0.5rem; }
+  .au2-confirm-sub { font-size: 0.82rem; color: #9a7060; line-height: 1.6; margin-bottom: 1.5rem; }
+  .au2-confirm-btns { display: flex; gap: 0.65rem; justify-content: center; }
+
+  .au2-ornament { color: #e8c9b8; font-size: 0.6rem; letter-spacing: 0.2em; }
+`;
+
+const roleBadgeClass = (role) =>
+  role === "SUPER_ADMIN" ? "dark" : role === "ADMIN" ? "purple" : "brown";
+
+/* ─── Component ───────────────────────────────────────────────────────────── */
 const AdminUsers = () => {
-  const [users, setUsers] = useState(initialDummyUsers);
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Modal states
-  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
-  const [viewingUser, setViewingUser] = useState(null); // null means closed
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch]     = useState("");
+  const [viewUser, setViewUser] = useState(null);
+  const [showAdd, setShowAdd]   = useState(false);
+  const [confirm, setConfirm]   = useState(null); // { type, user }
+  const [newUser, setNewUser]   = useState({ firstName: "", lastName: "", email: "", password: "", role: "USER" });
 
-  // Add User Form State
-  const [newUser, setNewUser] = useState({ firstName: '', lastName: '', email: '', role: 'USER' });
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
-  // Simulated API Actions
-  const handleLockToggle = (email, isCurrentlyLocked) => {
-    if (window.confirm(`Are you sure you want to ${isCurrentlyLocked ? 'unlock' : 'lock'} this account?`)) {
-      setUsers(users.map(u => u.email === email ? { ...u, locked: !isCurrentlyLocked } : u));
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await AdminService.getAllUsers();
+      setUsers(response.data || []);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      setError("Failed to fetch users. Please check your connection.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRoleChange = (email, currentRole) => {
-    const newRole = currentRole === 'USER' ? 'ADMIN' : 'USER';
-    if (window.confirm(`Change role to ${newRole}?`)) {
-      setUsers(users.map(u => u.email === email ? { ...u, role: newRole } : u));
+  /* actions */
+  const doLockToggle = async (user) => {
+    try {
+      // If lockedUntil is present, it's locked. If null and we want to lock, send null for permanent lock.
+      // If currently locked, we want to unlock (send a date in the past or handle via backend logic).
+      // Backend adminLockAccount takes LocalDateTime lockUntil.
+      const isCurrentlyLocked = user.accountLockedUntil && new Date(user.accountLockedUntil) > new Date();
+      const lockUntil = isCurrentlyLocked ? new Date(0).toISOString() : null; // null for permanent lock in backend
+      
+      await AdminService.adminLockAccount(user.email, lockUntil);
+      fetchUsers();
+    } catch (err) {
+      alert(err.message || "Failed to toggle account lock");
+    } finally {
+      setConfirm(null);
     }
   };
 
-  const handleDelete = (email, type) => {
-    if (window.confirm(`Are you sure you want to ${type} delete this user? This action cannot be undone.`)) {
-      setUsers(users.filter(u => u.email !== email));
+  const doDelete = async (user) => {
+    try {
+      await AdminService.adminSoftDeleteUser(user.email);
+      fetchUsers();
+    } catch (err) {
+      alert(err.message || "Failed to delete user");
+    } finally {
+      setConfirm(null);
     }
   };
 
-  const handleAddUserSubmit = (e) => {
+  const doRoleChange = async (user) => {
+    try {
+      const next = user.role === "USER" ? "ADMIN" : "USER";
+      await AdminService.adminChangeRole(user.email, next);
+      fetchUsers();
+    } catch (err) {
+      alert(err.message || "Failed to change user role");
+    } finally {
+      setConfirm(null);
+    }
+  };
+
+  const doAddUser = async (e) => {
     e.preventDefault();
-    if (!newUser.firstName || !newUser.lastName || !newUser.email) return alert('Fill all fields');
-    
-    const maxId = Math.max(...users.map(u => u.id)) || 0;
-    const addedUser = { 
-      ...newUser, 
-      id: maxId + 1, 
-      locked: false, 
-      createdAt: new Date().toISOString().split('T')[0] 
-    };
-    
-    setUsers([addedUser, ...users]);
-    setIsAddUserOpen(false);
-    setNewUser({ firstName: '', lastName: '', email: '', role: 'USER' });
-    alert('Simulated: User Created successfully!');
+    try {
+      await AdminService.adminCreateUser(newUser);
+      setNewUser({ firstName: "", lastName: "", email: "", password: "", role: "USER" });
+      setShowAdd(false);
+      fetchUsers();
+    } catch (err) {
+      alert(err.message || "Failed to create user");
+    }
   };
 
-  // Filter users based on search
-  const filteredUsers = users.filter((user) => 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    user.firstName.toLowerCase().includes(searchTerm.toLowerCase())
+  const doPurge = async () => {
+    try {
+      await AdminService.purgeSoftDeletedUsers();
+      fetchUsers();
+    } catch (err) {
+      alert(err.message || "Failed to purge deleted users");
+    } finally {
+      setConfirm(null);
+    }
+  };
+
+  const isLocked = (user) => user.accountLockedUntil && new Date(user.accountLockedUntil) > new Date();
+  
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const filtered = users.filter(u =>
+    `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: "'Inter', sans-serif", position: 'relative' }}>
-      
-      {/* Header Section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 0 24px 0', borderBottom: '1px solid #e2e8f0', marginBottom: '32px' }}>
-        <div>
-          <h1 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: '28px', fontWeight: '700' }}>User Management</h1>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '15px' }}>
-            View, edit, lock, or delete user accounts across the platform.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <button style={{ padding: '10px 20px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', transition: 'background 0.2s' }}
-                  onMouseOver={(e) => e.target.style.background = '#dc2626'}
-                  onMouseOut={(e) => e.target.style.background = '#ef4444'}
-                  onClick={() => alert('Simulate: Purging all soft-deleted users (DELETE /purge)')}>
-            Purge Deleted Users
-          </button>
-          <button style={{ padding: '10px 20px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', transition: 'background 0.2s' }}
-                  onMouseOver={(e) => e.target.style.background = '#2563eb'}
-                  onMouseOut={(e) => e.target.style.background = '#3b82f6'}
-                  onClick={() => setIsAddUserOpen(true)}>
-            + Add User
-          </button>
-        </div>
-      </div>
+    <>
+      <style>{styles}</style>
+      <div className="au2-root">
 
-      {/* Top Stats & Search Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 24px', borderRadius: '12px' }}>
-            <span style={{ color: '#64748b', fontSize: '13px', display: 'block' }}>Total Users</span>
-            <span style={{ color: '#0f172a', fontSize: '20px', fontWeight: '700' }}>{users.length}</span>
+        {/* ── PAGE HEADER ── */}
+        <div className="au2-header">
+          <div className="au2-header-left">
+            <div className="au2-eyebrow"><span className="au2-ornament">✦</span> Admin Panel</div>
+            <h1 className="au2-page-title">User <span>Management</span></h1>
+            <p className="au2-page-sub">View, edit, lock, or remove member accounts across the platform.</p>
           </div>
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 24px', borderRadius: '12px' }}>
-            <span style={{ color: '#64748b', fontSize: '13px', display: 'block' }}>Locked Accounts</span>
-            <span style={{ color: '#ef4444', fontSize: '20px', fontWeight: '700' }}>{users.filter(u => u.locked).length}</span>
+          <div className="au2-header-actions">
+            <button className="au2-btn-danger" onClick={() => setConfirm({ type: "purge" })}>
+              <Trash2Icon size={13} /> Purge Deleted
+            </button>
+            <button className="au2-btn-primary" onClick={() => setShowAdd(true)}>
+              <UserPlusIcon size={13} /> Add Member
+            </button>
           </div>
         </div>
-        
-        <input 
-          type="text" 
-          placeholder="Search by name or email..." 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', width: '300px', outline: 'none' }}
-        />
-      </div>
 
-      {/* Data Table */}
-      <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-            <tr>
-              <th style={{ padding: '16px 24px', color: '#475569', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Name</th>
-              <th style={{ padding: '16px 24px', color: '#475569', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Email</th>
-              <th style={{ padding: '16px 24px', color: '#475569', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Role</th>
-              <th style={{ padding: '16px 24px', color: '#475569', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Status</th>
-              <th style={{ padding: '16px 24px', color: '#475569', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.length > 0 ? filteredUsers.map((user, idx) => (
-              <tr key={user.id} style={{ borderBottom: idx !== filteredUsers.length - 1 ? '1px solid #f1f5f9' : 'none', transition: 'background 0.2s' }}>
-                <td style={{ padding: '16px 24px', color: '#0f172a', fontWeight: '500' }}>{user.firstName} {user.lastName}</td>
-                <td style={{ padding: '16px 24px', color: '#64748b' }}>{user.email}</td>
-                <td style={{ padding: '16px 24px' }}>
-                  <span style={{ 
-                    padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                    background: user.role.includes('ADMIN') ? '#dbeafe' : '#f1f5f9',
-                    color: user.role.includes('ADMIN') ? '#1e40af' : '#475569'
-                  }}>
-                    {user.role}
-                  </span>
-                </td>
-                <td style={{ padding: '16px 24px' }}>
-                  <span style={{ 
-                    display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', marginRight: '8px',
-                    background: user.locked ? '#ef4444' : '#10b981' 
-                  }}></span>
-                  <span style={{ color: '#475569', fontSize: '14px' }}>{user.locked ? 'Locked' : 'Active'}</span>
-                </td>
-                <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                    <button 
-                      onClick={() => setViewingUser(user)}
-                      style={{ padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', color: '#334155', fontWeight: '500' }}>
-                      View
-                    </button>
-                    <button 
-                      onClick={() => handleRoleChange(user.email, user.role)}
-                      style={{ padding: '6px 12px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', color: '#475569', fontWeight: '500' }}>
-                      Role
-                    </button>
-                    <button 
-                      onClick={() => handleLockToggle(user.email, user.locked)}
-                      style={{ padding: '6px 12px', background: user.locked ? '#ecfdf5' : '#fef2f2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', color: user.locked ? '#059669' : '#dc2626', fontWeight: '500' }}>
-                      {user.locked ? 'Unlock' : 'Lock'}
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(user.email, 'soft')}
-                      style={{ padding: '6px 12px', background: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', color: '#b91c1c', fontWeight: '500' }}>
-                      Del
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )) : (
+        {/* ── TOOLBAR ── */}
+        <div className="au2-toolbar">
+          <div className="au2-stats">
+            <div className="au2-stat-chip">
+              <span className="au2-stat-chip-label">Total Members</span>
+              <span className="au2-stat-chip-value">{users.length}</span>
+            </div>
+            <div className="au2-stat-chip">
+              <span className="au2-stat-chip-label">Locked Accounts</span>
+              <span className="au2-stat-chip-value red">{users.filter(u => isLocked(u)).length}</span>
+            </div>
+            <div className="au2-stat-chip">
+              <span className="au2-stat-chip-label">Admins</span>
+              <span className="au2-stat-chip-value">{users.filter(u => u.role && u.role.includes("ADMIN")).length}</span>
+            </div>
+          </div>
+          <div className="au2-search-field">
+            <SearchIcon size={14} />
+            <input
+              className="au2-search-input"
+              type="text"
+              placeholder="Search by name or email…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* ── TABLE ── */}
+        <div className="au2-table-card">
+          <table className="au2-table">
+            <thead>
               <tr>
-                <td colSpan="5" style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>No users matched your search criteria.</td>
+                <th>Member</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th style={{ textAlign: "right" }}>Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="5">
+                    <div className="au2-empty">
+                      <div className="au2-empty-icon"><Loader2Icon size={20} className="animate-spin" style={{ color: "#c9856a" }} /></div>
+                      <div className="au2-empty-title">Loading members...</div>
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan="5">
+                    <div className="au2-empty">
+                      <div className="au2-empty-icon"><AlertCircleIcon size={20} style={{ color: "#dc2626" }} /></div>
+                      <div className="au2-empty-title">Error</div>
+                      <p className="au2-empty-sub">{error}</p>
+                      <button className="au2-btn-ghost" onClick={fetchUsers} style={{ marginTop: "1rem" }}>Retry</button>
+                    </div>
+                  </td>
+                </tr>
+              ) : filtered.length > 0 ? filtered.map((u) => (
+                <tr key={u.id}>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+                      <div className="au2-avatar">{u.firstName[0]}{u.lastName[0]}</div>
+                      <div>
+                        <div className="au2-user-name">{u.firstName} {u.lastName}</div>
+                        <div className="au2-user-date">Joined {formatDate(u.createdAt)}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ color: "#9a7060", fontSize: "0.79rem" }}>{u.email}</td>
+                  <td>
+                    <span className={`au2-badge ${roleBadgeClass(u.role)}`}>
+                      {u.role === "SUPER_ADMIN" ? <><SparklesIcon size={9} /> Super Admin</> :
+                       u.role === "ADMIN" ? <><ShieldIcon size={9} /> Admin</> :
+                       <><UsersIcon size={9} /> Member</>}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`au2-badge ${isLocked(u) ? "red" : "green"}`}>
+                      {isLocked(u)
+                        ? <><LockIcon size={9} /> Locked</>
+                        : <><CheckIcon size={9} /> Active</>
+                      }
+                    </span>
+                  </td>
+                  <td>
+                    <div className="au2-actions">
+                      <button className="au2-action-btn" onClick={() => setViewUser(u)}>
+                        <EyeIcon size={11} /> View
+                      </button>
+                      {u.role !== "SUPER_ADMIN" && (
+                        <button className="au2-action-btn" onClick={() => setConfirm({ type: "role", user: u })}>
+                          <ShieldIcon size={11} /> Role
+                        </button>
+                      )}
+                      <button
+                        className={`au2-action-btn ${isLocked(u) ? "unlock" : "lock"}`}
+                        onClick={() => setConfirm({ type: "lock", user: u })}
+                      >
+                        {isLocked(u) ? <><UnlockIcon size={11} /> Unlock</> : <><LockIcon size={11} /> Lock</>}
+                      </button>
+                      {u.role !== "SUPER_ADMIN" && (
+                        <button className="au2-action-btn del" onClick={() => setConfirm({ type: "delete", user: u })}>
+                          <Trash2Icon size={11} /> Delete
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan="5">
+                    <div className="au2-empty">
+                      <div className="au2-empty-icon"><SearchIcon size={20} style={{ color: "#c9856a" }} /></div>
+                      <div className="au2-empty-title">No members found</div>
+                      <p className="au2-empty-sub">No results matched "<strong>{search}</strong>". Try a different search term.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ── VIEW MODAL ── */}
+        {viewUser && (
+          <div className="au2-overlay" onClick={() => setViewUser(null)}>
+            <div className="au2-modal" onClick={e => e.stopPropagation()}>
+              <div className="au2-modal-header">
+                <div>
+                  <div className="au2-modal-title">Member Profile</div>
+                  <div className="au2-modal-sub">UID #{viewUser.id}</div>
+                </div>
+                <button className="au2-modal-close" onClick={() => setViewUser(null)}><XIcon size={14} /></button>
+              </div>
+              <div className="au2-modal-body">
+                <div className="au2-view-avatar-row">
+                  <div className="au2-view-avatar">{viewUser.firstName[0]}{viewUser.lastName[0]}</div>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.2rem", fontWeight: 600, color: "#2d1810" }}>
+                      {viewUser.firstName} {viewUser.lastName}
+                    </div>
+                    <span className={`au2-badge ${roleBadgeClass(viewUser.role)}`} style={{ marginTop: 4, display: "inline-flex" }}>
+                      {viewUser.role}
+                    </span>
+                  </div>
+                </div>
+                <div className="au2-view-grid">
+                  <div>
+                    <div className="au2-view-field-label">Email</div>
+                    <div className="au2-view-field-value">{viewUser.email}</div>
+                  </div>
+                  <div>
+                    <div className="au2-view-field-label">Status</div>
+                    <div className="au2-view-field-value">
+                      <span className={`au2-badge ${isLocked(viewUser) ? "red" : "green"}`}>
+                        {isLocked(viewUser) ? "Locked" : "Active"}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="au2-view-field-label">Member Since</div>
+                    <div className="au2-view-field-value">{formatDate(viewUser.createdAt)}</div>
+                  </div>
+                  <div>
+                    <div className="au2-view-field-label">Account ID</div>
+                    <div className="au2-view-field-value">#{viewUser.id}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="au2-modal-footer">
+                <button className="au2-btn-ghost" onClick={() => setViewUser(null)}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── ADD USER MODAL ── */}
+        {showAdd && (
+          <div className="au2-overlay" onClick={() => setShowAdd(false)}>
+            <div className="au2-modal" onClick={e => e.stopPropagation()}>
+              <div className="au2-modal-header">
+                <div>
+                  <div className="au2-modal-title">Add New Member</div>
+                  <div className="au2-modal-sub">Create a platform account manually</div>
+                </div>
+                <button className="au2-modal-close" onClick={() => setShowAdd(false)}><XIcon size={14} /></button>
+              </div>
+              <form onSubmit={doAddUser}>
+                <div className="au2-modal-body">
+                  <div className="au2-form-row">
+                    <div className="au2-form-group">
+                      <label className="au2-form-label">First Name</label>
+                      <input className="au2-form-input" type="text" required placeholder="e.g. Kasun"
+                        value={newUser.firstName} onChange={e => setNewUser({ ...newUser, firstName: e.target.value })} />
+                    </div>
+                    <div className="au2-form-group">
+                      <label className="au2-form-label">Last Name</label>
+                      <input className="au2-form-input" type="text" required placeholder="e.g. Perera"
+                        value={newUser.lastName} onChange={e => setNewUser({ ...newUser, lastName: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="au2-form-group">
+                    <label className="au2-form-label">Email Address</label>
+                    <input className="au2-form-input" type="email" required placeholder="member@example.com"
+                      value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} />
+                  </div>
+                  <div className="au2-form-group">
+                    <label className="au2-form-label">Initial Password</label>
+                    <input className="au2-form-input" type="password" required placeholder="Min 6 characters"
+                      value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} />
+                  </div>
+                  <div className="au2-form-group">
+                    <label className="au2-form-label">Role</label>
+                    <div className="au2-select-wrap">
+                      <select className="au2-form-select" value={newUser.role}
+                        onChange={e => setNewUser({ ...newUser, role: e.target.value })}>
+                        <option value="USER">Standard Member</option>
+                        <option value="ADMIN">Administrator</option>
+                      </select>
+                      <ChevronDownIcon size={13} />
+                    </div>
+                  </div>
+                </div>
+                <div className="au2-modal-footer">
+                  <button type="button" className="au2-btn-ghost" onClick={() => setShowAdd(false)}>Cancel</button>
+                  <button type="submit" className="au2-btn-primary"><UserPlusIcon size={13} /> Create Member</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ── CONFIRM DIALOG ── */}
+        {confirm && (
+          <div className="au2-overlay" onClick={() => setConfirm(null)}>
+            <div className="au2-confirm-modal" onClick={e => e.stopPropagation()}>
+              {confirm.type === "delete" && <>
+                <div className="au2-confirm-icon" style={{ background: "#fef2f2" }}>
+                  <Trash2Icon size={22} style={{ color: "#dc2626" }} />
+                </div>
+                <div className="au2-confirm-title">Delete Member?</div>
+                <p className="au2-confirm-sub">
+                  <strong>{confirm.user.firstName} {confirm.user.lastName}</strong> will be permanently removed. This cannot be undone.
+                </p>
+                <div className="au2-confirm-btns">
+                  <button className="au2-btn-ghost" onClick={() => setConfirm(null)}>Cancel</button>
+                  <button className="au2-btn-danger" onClick={() => doDelete(confirm.user)}><Trash2Icon size={12} /> Delete</button>
+                </div>
+              </>}
+              {confirm.type === "lock" && <>
+                <div className="au2-confirm-icon" style={{ background: isLocked(confirm.user) ? "#f0fdf4" : "#fffbeb" }}>
+                  {isLocked(confirm.user)
+                    ? <UnlockIcon size={22} style={{ color: "#16a34a" }} />
+                    : <LockIcon size={22} style={{ color: "#d97706" }} />
+                  }
+                </div>
+                <div className="au2-confirm-title">{isLocked(confirm.user) ? "Unlock Account?" : "Lock Account?"}</div>
+                <p className="au2-confirm-sub">
+                  {isLocked(confirm.user)
+                    ? <>This will restore access for <strong>{confirm.user.firstName}</strong>.</>
+                    : <>This will prevent <strong>{confirm.user.firstName}</strong> from logging in.</>
+                  }
+                </p>
+                <div className="au2-confirm-btns">
+                  <button className="au2-btn-ghost" onClick={() => setConfirm(null)}>Cancel</button>
+                  <button
+                    className={isLocked(confirm.user) ? "au2-btn-primary" : "au2-btn-danger"}
+                    style={isLocked(confirm.user) ? {} : { background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a" }}
+                    onClick={() => doLockToggle(confirm.user)}
+                  >
+                    {isLocked(confirm.user) ? <><UnlockIcon size={12} /> Unlock</> : <><LockIcon size={12} /> Lock</>}
+                  </button>
+                </div>
+              </>}
+              {confirm.type === "role" && <>
+                <div className="au2-confirm-icon" style={{ background: "#faf5ff" }}>
+                  <ShieldIcon size={22} style={{ color: "#7c3aed" }} />
+                </div>
+                <div className="au2-confirm-title">Change Role?</div>
+                <p className="au2-confirm-sub">
+                  Change <strong>{confirm.user.firstName}'s</strong> role from{" "}
+                  <strong>{confirm.user.role}</strong> to{" "}
+                  <strong>{confirm.user.role === "USER" ? "ADMIN" : "USER"}</strong>?
+                </p>
+                <div className="au2-confirm-btns">
+                  <button className="au2-btn-ghost" onClick={() => setConfirm(null)}>Cancel</button>
+                  <button className="au2-btn-primary" onClick={() => doRoleChange(confirm.user)}><CheckIcon size={12} /> Confirm</button>
+                </div>
+              </>}
+              {confirm.type === "purge" && <>
+                <div className="au2-confirm-icon" style={{ background: "#fef2f2" }}>
+                  <AlertCircleIcon size={22} style={{ color: "#dc2626" }} />
+                </div>
+                <div className="au2-confirm-title">Purge Deleted Users?</div>
+                <p className="au2-confirm-sub">
+                  This will permanently erase all soft-deleted accounts from the database. This cannot be reversed.
+                </p>
+                <div className="au2-confirm-btns">
+                  <button className="au2-btn-ghost" onClick={() => setConfirm(null)}>Cancel</button>
+                  <button className="au2-btn-danger" onClick={() => doPurge()}><Trash2Icon size={12} /> Purge All</button>
+                </div>
+              </>}
+            </div>
+          </div>
+        )}
+
       </div>
-
-      {/* --- ADD USER MODAL --- */}
-      {isAddUserOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50 }}>
-          <div style={{ background: '#fff', width: '450px', borderRadius: '16px', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}>
-            <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', color: '#0f172a' }}>Add New User</h2>
-            
-            <form onSubmit={handleAddUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', color: '#475569', marginBottom: '6px', fontWeight: '500' }}>First Name</label>
-                <input type="text" required value={newUser.firstName} onChange={(e) => setNewUser({...newUser, firstName: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', color: '#475569', marginBottom: '6px', fontWeight: '500' }}>Last Name</label>
-                <input type="text" required value={newUser.lastName} onChange={(e) => setNewUser({...newUser, lastName: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', color: '#475569', marginBottom: '6px', fontWeight: '500' }}>Email Address</label>
-                <input type="email" required value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', color: '#475569', marginBottom: '6px', fontWeight: '500' }}>Role</label>
-                <select value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' , background: '#fff' }}>
-                  <option value="USER">Standard User</option>
-                  <option value="ADMIN">Administrator</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
-                <button type="button" onClick={() => setIsAddUserOpen(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: '500' }}>Cancel</button>
-                <button type="submit" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer', fontWeight: '500' }}>Create User</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- VIEW USER MODAL --- */}
-      {viewingUser && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50 }}>
-          <div style={{ background: '#fff', width: '500px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}>
-            
-            {/* Modal Header */}
-            <div style={{ background: '#f8fafc', padding: '24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-               <div>
-                  <h2 style={{ margin: '0 0 4px 0', fontSize: '20px', color: '#0f172a' }}>{viewingUser.firstName} {viewingUser.lastName}</h2>
-                  <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>System UID: #{viewingUser.id}</p>
-               </div>
-               <span style={{ 
-                  padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                  background: viewingUser.role.includes('ADMIN') ? '#dbeafe' : '#f1f5f9',
-                  color: viewingUser.role.includes('ADMIN') ? '#1e40af' : '#475569'
-                }}>
-                  {viewingUser.role} 
-                </span>
-            </div>
-
-            {/* Modal Body */}
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                 <div>
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase' }}>Email Address</span>
-                    <p style={{ margin: '4px 0 0 0', color: '#334155', fontSize: '15px' }}>{viewingUser.email}</p>
-                 </div>
-                 <div>
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase' }}>Status</span>
-                    <p style={{ margin: '4px 0 0 0', color: viewingUser.locked ? '#ef4444' : '#10b981', fontSize: '15px', fontWeight: '500' }}>
-                      {viewingUser.locked ? 'Currently Locked' : 'Active'}
-                    </p>
-                 </div>
-                 <div>
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase' }}>Created At</span>
-                    <p style={{ margin: '4px 0 0 0', color: '#334155', fontSize: '15px' }}>{viewingUser.createdAt}</p>
-                 </div>
-               </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
-               <button onClick={() => setViewingUser(null)} style={{ padding: '10px 24px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: '600', color: '#475569' }}>
-                 Close Profile
-               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
+    </>
   );
 };
 

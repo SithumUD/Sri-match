@@ -1,5 +1,6 @@
 package com.ceycodez.srimatch.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +17,9 @@ import java.util.Map;
 @AllArgsConstructor
 public class DetailedProfileResponse {
     private Long id;
+    private Long userId;
     private String firstName;
+    private String lastName;
     private Integer age;
     private String city;
     private String district;
@@ -35,6 +38,13 @@ public class DetailedProfileResponse {
     private boolean isVerified;
     private boolean isBoosted;
     private Integer compatibilityScore;
+
+    // Interaction status with the currently logged-in user
+    @JsonProperty("interactionType")
+    private String interactionType; // NORMAL, STAR, null
+    
+    @JsonProperty("interactionStatus")
+    private String interactionStatus; // PENDING, ACCEPTED, etc., null
 
     // Physical
     private Integer height;
@@ -75,9 +85,14 @@ public class DetailedProfileResponse {
     private Map<String, String> favoriteThings;
     private String personalityTraits;
     private String dealbreakers;
+    private Map<String, Object> partnerPreferences;
     private Map<String, String> quizAnswers;
     
     // Stats
     private Integer profileViews;
     private Integer completionScore;
+
+    // Premium Status
+    private boolean premium;
+    private java.time.LocalDateTime premiumExpiryDate;
 }

@@ -60,4 +60,31 @@ public class ProfileController {
                 .data(response)
                 .build());
     }
+    @PatchMapping("/image/primary")
+    public ResponseEntity<ApiResponse<ProfileResponse>> setPrimaryImage(
+            @RequestParam("imageUrl") String imageUrl,
+            Authentication authentication
+    ) {
+        String email = authentication.getName();
+        ProfileResponse response = profileService.setPrimaryImage(email, imageUrl);
+        return ResponseEntity.ok(ApiResponse.<ProfileResponse>builder()
+                .success(true)
+                .message("Primary image updated")
+                .data(response)
+                .build());
+    }
+
+    @DeleteMapping("/image")
+    public ResponseEntity<ApiResponse<ProfileResponse>> deleteImage(
+            @RequestParam("imageUrl") String imageUrl,
+            Authentication authentication
+    ) {
+        String email = authentication.getName();
+        ProfileResponse response = profileService.deleteImage(email, imageUrl);
+        return ResponseEntity.ok(ApiResponse.<ProfileResponse>builder()
+                .success(true)
+                .message("Image deleted")
+                .data(response)
+                .build());
+    }
 }

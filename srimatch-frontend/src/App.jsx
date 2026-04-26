@@ -27,6 +27,7 @@ import RefundPolicyPage from "./pages/RefundPolicyPage";
 import CookiePolicyPage from "./pages/CookiePolicyPage";
 import SafetyGuidelinesPage from "./pages/SafetyGuidelinesPage";
 import SuccessStoriesPage from "./pages/SuccessStoriesPage";
+import MobileSelfiePage from "./pages/MobileSelfiePage";
 
 // Admin
 import AdminLoginPage from "./pages/Admin/AdminLoginPage";
@@ -38,11 +39,15 @@ import AdminSettings from "./pages/AdminSettings";
 import AdminPayments from "./pages/AdminPayments";
 import AdminReports from "./pages/AdminReports";
 import AdminSupport from "./pages/AdminSupport";
+import AdminPackages from "./pages/AdminPackages";
+import AdminLocations from "./pages/AdminLocations";
+import AdminAudits from "./pages/AdminAudits";
+import AdminUserVerify from "./pages/AdminUserVerify";
 
 export function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -59,6 +64,7 @@ export function App() {
           <Route path="/cookie-policy" element={<CookiePolicyPage />} />
           <Route path="/safety-guidelines" element={<SafetyGuidelinesPage />} />
           <Route path="/success-stories" element={<SuccessStoriesPage />} />
+          <Route path="/mobile-selfie" element={<MobileSelfiePage />} />
 
           <Route
             path="/profile-creation"
@@ -78,6 +84,10 @@ export function App() {
             <Route path="payments" element={<AdminPayments />} />
             <Route path="reports" element={<AdminReports />} />
             <Route path="support" element={<AdminSupport />} />
+            <Route path="packages" element={<AdminPackages />} />
+            <Route path="locations" element={<AdminLocations />} />
+            <Route path="audits" element={<AdminAudits />} />
+            <Route path="user-verify" element={<AdminUserVerify />} />
           </Route>
 
           <Route element={<Layout />}>
@@ -149,7 +159,7 @@ export function App() {
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      </BrowserRouter>
+      
     </AuthProvider>
   );
 }

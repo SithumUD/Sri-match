@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -19,7 +19,14 @@ import {
   ArrowLeftIcon,
   LockIcon,
   CheckCircleIcon,
+  UploadIcon,
+  FileTextIcon,
+  BanknoteIcon,
+  CreditCardIcon as CardIcon,
+  ClockIcon,
 } from "lucide-react";
+import SubscriptionService from "../services/subscription.service";
+import PaymentService from "../services/payment.service";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -477,15 +484,41 @@ const styles = `
 const SubscriptionPage = () => {
   const { subscription, upgradeSubscription, cancelSubscription, activateBoost } = useAuth();
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState("3month");
+  const [plans, setPlans] = useState([]);
+  const [bankDetails, setBankDetails] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submittingReceipt, setSubmittingReceipt] = useState(false);
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [initiatedSubscription, setInitiatedSubscription] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("manual"); // manual, online
+  const [selectedPlan, setSelectedPlan] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [hasPendingApproval, setHasPendingApproval] = useState(false);
 
-  const plans = [
-    { id: "monthly",  name: "1 Month",   price: 29.99, perMonth: 29.99, save: null,  popular: false },
-    { id: "3month",   name: "3 Months",  price: 79.99, perMonth: 26.66, save: "11%", popular: true  },
-    { id: "6month",   name: "6 Months",  price: 149.99, perMonth: 25.0, save: "17%", popular: false },
-    { id: "yearly",   name: "12 Months", price: 239.99, perMonth: 20.0, save: "33%", popular: false },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [pkgRes, bankRes, pendingRes] = await Promise.all([
+          PaymentService.getPackages(),
+          PaymentService.getBankDetails(),
+          PaymentService.checkPendingPayment()
+        ]);
+        
+        if (pkgRes.success && pkgRes.data.length > 0) {
+          setPlans(pkgRes.data);
+          setSelectedPlan(pkgRes.data[0].id);
+        }
+        if (bankRes.success) setBankDetails(bankRes.data);
+        if (pendingRes.success) setHasPendingApproval(pendingRes.data);
+      } catch (err) {
+        console.error("Error fetching subscription data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const features = [
     {
@@ -583,7 +616,7 @@ const SubscriptionPage = () => {
     },
   ];
 
-  const isPremium = subscription?.plan === "premium";
+  const isPremium = subscription?.status === "ACTIVE";
   const selectedPlanData = plans.find(p => p.id === selectedPlan);
 
   const boostActive =
@@ -606,11 +639,47 @@ const SubscriptionPage = () => {
     }
   };
 
-  const handlePaymentSubmit = (e) => {
+  const handleInitiateSubscription = async (planId) => {
+    if (hasPendingApproval) {
+      alert("You already have a payment pending approval. Please wait for the admin to review it.");
+      return;
+    }
+    try {
+      const response = await SubscriptionService.initiateSubscription(planId);
+      if (response.success) {
+        setInitiatedSubscription(response.data);
+        setShowPaymentModal(true);
+      } else {
+        alert(response.message || "Failed to initiate subscription");
+      }
+    } catch (err) {
+      alert("An error occurred while initiating subscription");
+    }
+  };
+
+  const handleReceiptUpload = async (e) => {
     e.preventDefault();
-    upgradeSubscription(selectedPlan);
-    setShowPaymentModal(false);
-    alert("Subscription successfully upgraded! Welcome to SriMatch Premium ✦");
+    if (!receiptFile || !initiatedSubscription) return;
+
+    try {
+      setSubmittingReceipt(true);
+      const formData = new FormData();
+      formData.append("receipt", receiptFile);
+      
+      const response = await PaymentService.submitReceipt(initiatedSubscription.id, formData);
+      if (response.success) {
+        alert("Receipt submitted successfully! Admin will review it shortly.");
+        setShowPaymentModal(false);
+        setInitiatedSubscription(null);
+        setReceiptFile(null);
+      } else {
+        alert(response.message || "Failed to submit receipt");
+      }
+    } catch (err) {
+      alert("Error uploading receipt");
+    } finally {
+      setSubmittingReceipt(false);
+    }
   };
 
   return (
@@ -635,6 +704,31 @@ const SubscriptionPage = () => {
                 : "Find your perfect match faster with premium features"}
             </p>
           </div>
+
+          {/* Pending Approval Alert */}
+          {hasPendingApproval && (
+            <div style={{ 
+              background: 'linear-gradient(135deg, #fff9f2, #fff1e6)', 
+              border: '1px solid #f0ddd5', 
+              borderRadius: '16px', 
+              padding: '1.25rem', 
+              marginBottom: '2rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              boxShadow: '0 4px 12px rgba(139,78,46,0.06)'
+            }}>
+              <div style={{ background: '#fdf0e8', padding: '0.75rem', borderRadius: '12px' }}>
+                <ClockIcon size={20} color="#8b4e2e" />
+              </div>
+              <div>
+                <h4 style={{ fontSize: '0.9rem', color: '#8b4e2e', marginBottom: '0.2rem', fontWeight: 600 }}>Payment Approval Pending</h4>
+                <p style={{ fontSize: '0.8rem', color: '#9a7060', lineHeight: 1.5 }}>
+                  We've received your receipt and are currently reviewing it. Please wait for approval; you will receive an email notification once it's confirmed.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* ── Current Plan card ── */}
           <div className="sp-current-card">
@@ -665,18 +759,20 @@ const SubscriptionPage = () => {
                 {isPremium ? (
                   <>
                     <div className="sp-plan-detail-row">
-                      <CheckCircleIcon size={14} /><span>Unlimited daily likes</span>
+                      <CheckCircleIcon size={14} /><span>Status: <strong style={{ color: subscription?.status === 'ACTIVE' ? '#5aaa7a' : '#e07a30' }}>{subscription?.status}</strong></span>
                     </div>
                     <div className="sp-plan-detail-row">
-                      <CheckCircleIcon size={14} /><span>Voice & video calls enabled</span>
+                      <CheckCircleIcon size={14} /><span>Plan: <strong>{subscription?.packageName}</strong></span>
                     </div>
-                    <div className="sp-plan-detail-row">
-                      <CheckCircleIcon size={14} /><span>Advanced filters & horoscope matching</span>
-                    </div>
-                    {subscription?.expiresAt && (
+                    {subscription?.daysRemaining > 0 && (
+                      <div className="sp-plan-detail-row">
+                        <CheckCircleIcon size={14} /><span>Time remaining: <strong>{subscription.daysRemaining} days</strong></span>
+                      </div>
+                    )}
+                    {subscription?.endDate && (
                       <div className="sp-plan-expires">
                         <CrownIcon size={11} style={{ color: "#8b4e2e" }} />
-                        Expires: {new Date(subscription.expiresAt).toLocaleDateString("en-LK", { year: "numeric", month: "long", day: "numeric" })}
+                        Expires: {new Date(subscription.endDate).toLocaleDateString("en-LK", { year: "numeric", month: "long", day: "numeric" })}
                       </div>
                     )}
                   </>
@@ -712,7 +808,7 @@ const SubscriptionPage = () => {
                   </>
                 ) : (
                   <button
-                    onClick={() => setShowPaymentModal(true)}
+                    onClick={() => handleInitiateSubscription(selectedPlan)}
                     className="sp-btn-upgrade"
                   >
                     <CrownIcon size={14} /> Upgrade to Premium ✦
@@ -795,23 +891,25 @@ const SubscriptionPage = () => {
                   className={`sp-plan-card${selectedPlan === plan.id ? " selected" : ""}`}
                   onClick={() => setSelectedPlan(plan.id)}
                 >
-                  {plan.popular && <div className="sp-popular-badge">Most Popular</div>}
+                  {plan.offerPercentage > 0 && <div className="sp-popular-badge">{plan.offerPercentage}% OFF</div>}
 
-                  <div className="sp-plan-name">{plan.name}</div>
+                  <div className="sp-plan-name">{plan.title}</div>
                   <div className="sp-plan-price-wrap">
-                    <span className="sp-plan-currency">$</span>
+                    <span className="sp-plan-currency">Rs.</span>
                     <span className="sp-plan-price">{plan.price}</span>
                   </div>
-                  <div className="sp-plan-per">${plan.perMonth.toFixed(2)} / month</div>
-                  {plan.save ? (
-                    <div className="sp-plan-save">Save {plan.save}</div>
+                  <div className="sp-plan-per">
+                    {plan.timelineMonths} {plan.timelineMonths === 1 ? 'Month' : 'Months'}
+                  </div>
+                  {plan.offerPercentage > 0 ? (
+                    <div className="sp-plan-save">Save {plan.offerPercentage}%</div>
                   ) : (
                     <div style={{ height: "1.2rem", marginBottom: "1.1rem" }} />
                   )}
 
                   <button
                     className={`sp-plan-btn${selectedPlan === plan.id ? " selected" : ""}`}
-                    onClick={e => { e.stopPropagation(); setSelectedPlan(plan.id); setShowPaymentModal(true); }}
+                    onClick={e => { e.stopPropagation(); setSelectedPlan(plan.id); handleInitiateSubscription(plan.id); }}
                   >
                     {selectedPlan === plan.id ? "Selected ✓" : "Choose Plan"}
                   </button>
@@ -824,9 +922,9 @@ const SubscriptionPage = () => {
               <button
                 className="sp-btn-upgrade"
                 style={{ display: "inline-flex" }}
-                onClick={() => setShowPaymentModal(true)}
+                onClick={() => handleInitiateSubscription(selectedPlan)}
               >
-                <CrownIcon size={14} /> Get Premium — ${selectedPlanData?.price} ✦
+                <CrownIcon size={14} /> Get Premium — Rs. {selectedPlanData?.price} ✦
               </button>
               <p style={{ fontSize: "0.72rem", color: "#b09080", marginTop: "0.65rem" }}>
                 No auto-renewal · One-time payment · Cancel anytime
@@ -884,102 +982,108 @@ const SubscriptionPage = () => {
                 <div>
                   <div className="sp-order-plan-name">
                     <CrownIcon size={13} style={{ color: "#d4a017", display: "inline", verticalAlign: "middle", marginRight: 5 }} />
-                    Premium — {selectedPlanData?.name}
+                    {selectedPlanData?.title}
                   </div>
-                  <div className="sp-order-plan-sub">All premium features · ${selectedPlanData?.perMonth.toFixed(2)}/month</div>
+                  <div className="sp-order-plan-sub">Validity: {selectedPlanData?.timelineMonths} months</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div className="sp-order-price-big">${selectedPlanData?.price}</div>
+                  <div className="sp-order-price-big">Rs. {selectedPlanData?.price}</div>
                   <div className="sp-order-price-note">one-time</div>
                 </div>
               </div>
 
-              {/* Plan selector inside modal */}
-              <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem", flexWrap: "wrap" }}>
-                {plans.map(p => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setSelectedPlan(p.id)}
-                    style={{
-                      padding: "0.35rem 0.85rem", borderRadius: "99px", fontSize: "0.74rem",
-                      fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-                      border: selectedPlan === p.id ? "none" : "1.5px solid #e8ddd8",
-                      background: selectedPlan === p.id ? "linear-gradient(135deg, #3d1f12, #8b4e2e)" : "#fdf8f5",
-                      color: selectedPlan === p.id ? "#fff" : "#6b4a3a",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    {p.name}{p.save ? ` (–${p.save})` : ""}
-                  </button>
-                ))}
+              {/* Payment Method Toggle */}
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                <button 
+                  className={`sp-btn-cancel ${paymentMethod === 'manual' ? 'active' : ''}`}
+                  style={{ flex: 1, border: paymentMethod === 'manual' ? '2px solid #8b4e2e' : '1px solid #e8ddd8', background: paymentMethod === 'manual' ? '#fdf5ee' : 'none' }}
+                  onClick={() => setPaymentMethod('manual')}
+                >
+                  <BanknoteIcon size={14} /> Manual Transfer
+                </button>
+                <button 
+                  className="sp-btn-cancel" 
+                  style={{ flex: 1, opacity: 0.5, cursor: 'not-allowed' }}
+                  disabled
+                  title="Coming Soon"
+                >
+                  <CardIcon size={14} /> Online Card (Soon)
+                </button>
               </div>
 
-              <form onSubmit={handlePaymentSubmit}>
-                {/* Card info */}
-                <div className="sp-form-group">
-                  <label className="sp-form-label">Card Number</label>
-                  <div className="sp-input-icon-wrap">
-                    <CreditCardIcon size={15} className="sp-input-icon" />
-                    <input className="sp-input" type="text" placeholder="1234 5678 9012 3456" required maxLength={19} />
+              {paymentMethod === 'manual' ? (
+                <div className="sp-manual-payment">
+                  <div style={{ background: '#fdf8f5', padding: '1rem', borderRadius: '12px', border: '1px solid #f0ddd5', marginBottom: '1.5rem' }}>
+                    <h4 style={{ fontSize: '0.85rem', color: '#8b4e2e', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <BanknoteIcon size={16} /> Bank Transfer Details
+                    </h4>
+                    {bankDetails.map(bank => (
+                      <div key={bank.id} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px dashed #e8ddd8' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#4a3028' }}><strong>Bank:</strong> {bank.bankName}</p>
+                        <p style={{ fontSize: '0.8rem', color: '#4a3028' }}><strong>Branch:</strong> {bank.branchName}</p>
+                        <p style={{ fontSize: '0.8rem', color: '#4a3028' }}><strong>Account:</strong> {bank.accountNumber}</p>
+                        <p style={{ fontSize: '0.8rem', color: '#4a3028' }}><strong>Name:</strong> {bank.accountHolderName}</p>
+                      </div>
+                    ))}
+                    <p style={{ fontSize: '0.75rem', color: '#9a7060', fontStyle: 'italic' }}>
+                      Please transfer the total amount (Rs. {selectedPlanData?.price}) and upload the receipt below.
+                    </p>
                   </div>
-                </div>
 
-                <div className="sp-form-group">
-                  <div className="sp-input-row">
-                    <div>
-                      <label className="sp-form-label">Expiry Date</label>
-                      <input className="sp-input" type="text" placeholder="MM / YY" required maxLength={7} />
+                  <form onSubmit={handleReceiptUpload}>
+                    <div className="sp-form-group">
+                      <label className="sp-form-label">Upload Receipt (Image/PDF)</label>
+                      <div style={{ position: 'relative' }}>
+                        <input 
+                          type="file" 
+                          accept="image/*,.pdf" 
+                          onChange={(e) => setReceiptFile(e.target.files[0])}
+                          style={{ opacity: 0, position: 'absolute', inset: 0, cursor: 'pointer' }}
+                          required
+                          disabled={hasPendingApproval}
+                        />
+                        <div className="sp-input" style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.5rem', 
+                          color: receiptFile ? '#2d1810' : '#c4b0a5',
+                          opacity: hasPendingApproval ? 0.6 : 1
+                        }}>
+                          <UploadIcon size={16} /> {receiptFile ? receiptFile.name : 'Select receipt file...'}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="sp-form-label">CVC</label>
-                      <input className="sp-input" type="text" placeholder="•••" required maxLength={4} />
-                    </div>
-                  </div>
+
+                    <button 
+                      type="submit" 
+                      className="sp-pay-btn" 
+                      disabled={submittingReceipt || hasPendingApproval}
+                      style={hasPendingApproval ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
+                    >
+                      {submittingReceipt ? (
+                        <>Processing...</>
+                      ) : hasPendingApproval ? (
+                        <>Awaiting Approval</>
+                      ) : (
+                        <>
+                          <CheckCircleIcon size={16} /> Submit Receipt
+                        </>
+                      )}
+                    </button>
+                    
+                    {hasPendingApproval && (
+                      <p style={{ textAlign: 'center', fontSize: '0.72rem', color: '#9a7060', marginTop: '0.75rem' }}>
+                        Submission disabled while payment is pending approval.
+                      </p>
+                    )}
+                  </form>
                 </div>
-
-                <div className="sp-form-group">
-                  <label className="sp-form-label">Name on Card</label>
-                  <input className="sp-input" type="text" placeholder="Full name" required />
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                  <CardIcon size={48} color="#e8ddd8" style={{ marginBottom: '1rem' }} />
+                  <p style={{ color: '#9a7060', fontSize: '0.9rem' }}>Online card payments are currently being integrated. Please use Manual Transfer for now.</p>
                 </div>
-
-                <div className="sp-divider" />
-
-                {/* Billing */}
-                <div className="sp-form-group">
-                  <label className="sp-form-label">Billing Address</label>
-                  <input className="sp-input" type="text" placeholder="Street address" required style={{ marginBottom: "0.5rem" }} />
-                  <div className="sp-input-row">
-                    <input className="sp-input" type="text" placeholder="City" required />
-                    <input className="sp-input" type="text" placeholder="Postal code" required />
-                  </div>
-                </div>
-
-                <div className="sp-divider" />
-
-                <div className="sp-total-row">
-                  <div>
-                    <div className="sp-total-label">Total Amount</div>
-                    <span style={{ fontSize: "0.72rem", color: "#9a7060" }}>Taxes included · one-time</span>
-                  </div>
-                  <div className="sp-total-price">${selectedPlanData?.price}</div>
-                </div>
-
-                <button type="submit" className="sp-pay-btn">
-                  <LockIcon size={14} /> Pay & Unlock Premium ✦
-                </button>
-
-                <div className="sp-secure-row">
-                  <div className="sp-secure-item"><ShieldCheckIcon size={12} /> SSL Encrypted</div>
-                  <div className="sp-secure-item"><LockIcon size={12} /> Data protected</div>
-                </div>
-
-                <p className="sp-modal-footer">
-                  By completing this purchase you agree to our{" "}
-                  <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
-                  SriMatch does not store your card details.
-                </p>
-              </form>
+              )}
             </div>
           </div>
         </div>

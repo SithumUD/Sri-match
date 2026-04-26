@@ -1,10 +1,8 @@
 // VerificationPage.jsx - Redesigned to match SriMatch luxury aesthetic
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import {
-  ShieldCheck, Camera, Upload, CheckCircle, Clock,
-  AlertCircle, XCircle, Info, X, Award, Lock, Star,
-} from "lucide-react";
+import { AlertCircle, XCircle, Upload, Clock, Camera, CheckCircle, Info, X, Award, Lock, Star, ShieldCheck, QrCode, RefreshCw } from "lucide-react";
+import VerificationService from "../services/verification.service";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -278,12 +276,12 @@ const styles = `
 
 /* ─── ID Type data ───────────────────────────────────────────────────────── */
 const ID_TYPES = [
-  { key: "national-id", label: "National ID" },
-  { key: "passport",    label: "Passport" },
-  { key: "drivers-license", label: "Driver's License" },
+  { key: "NIC", label: "National ID" },
+  { key: "PASSPORT", label: "Passport" },
+  { key: "DRIVING_LICENSE", label: "Driver's License" },
 ];
 
-const ID_LABELS = { "national-id": "National ID", passport: "Passport", "drivers-license": "Driver's License" };
+const ID_LABELS = { "NIC": "National ID", "PASSPORT": "Passport", "DRIVING_LICENSE": "Driver's License" };
 
 const STEPS = [
   { label: "ID Type" },
@@ -297,35 +295,155 @@ const VerificationPage = () => {
   const { user, updateUserProfile } = useAuth();
 
   const [step, setStep] = useState(1);
-  const [idType, setIdType] = useState("national-id");
-  const [idFront, setIdFront] = useState(null);
-  const [idBack, setIdBack] = useState(null);
-  const [selfie, setSelfie] = useState(null);
+  const [idType, setIdType] = useState("NIC");
+  const [idFrontFile, setIdFrontFile] = useState(null);
+  const [idBackFile, setIdBackFile] = useState(null);
+  const [idFrontPreview, setIdFrontPreview] = useState(null);
+  const [idBackPreview, setIdBackPreview] = useState(null);
+  const [selfiePreview, setSelfiePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [status, setStatus] = useState(user?.isVerified ? "verified" : "not-submitted");
+  const [loading, setLoading] = useState(true);
+  const [verificationData, setVerificationData] = useState(null);
+  const [polling, setPolling] = useState(false);
+  const [useLocalCamera, setUseLocalCamera] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const [localPhoto, setLocalPhoto] = useState(null);
 
-  const readFile = (e, setter) => {
+  useEffect(() => {
+    fetchStatus();
+  }, []);
+
+  const fetchStatus = async () => {
+    try {
+      setLoading(true);
+      const res = await VerificationService.getStatus();
+      setVerificationData(res.data);
+
+      // Resume flow if pending selfie
+      if (res.data?.status === 'PENDING') {
+        setStep(3);
+        setPolling(true);
+      }
+    } catch (err) {
+      console.error("Fetch verification status error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let interval;
+    if (polling && verificationData?.selfieSessionToken && !useLocalCamera) {
+      interval = setInterval(async () => {
+        try {
+          const res = await VerificationService.getStatus();
+          if (res.data?.status === 'UNDER_REVIEW') {
+            setVerificationData(res.data);
+            setPolling(false);
+            setStep(4);
+          }
+        } catch (err) {
+          console.error("Polling error:", err);
+        }
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [polling, verificationData, useLocalCamera]);
+
+  useEffect(() => {
+    if (step === 3 && useLocalCamera && !localPhoto) {
+      startLocalCamera();
+    } else {
+      stopLocalCamera();
+    }
+    return () => stopLocalCamera();
+  }, [step, useLocalCamera, localPhoto]);
+
+  const startLocalCamera = async () => {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      setLocalStream(s);
+      const video = document.getElementById('localVideo');
+      if (video) video.srcObject = s;
+    } catch (err) {
+      console.error("Camera error:", err);
+      alert("Could not access camera. Please use the QR code option.");
+      setUseLocalCamera(false);
+    }
+  };
+
+  const stopLocalCamera = () => {
+    if (localStream) {
+      localStream.getTracks().forEach(t => t.stop());
+      setLocalStream(null);
+    }
+  };
+
+  const captureLocalPhoto = () => {
+    const video = document.getElementById('localVideo');
+    if (!video) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0);
+    setLocalPhoto(canvas.toDataURL('image/jpeg'));
+    stopLocalCamera();
+  };
+
+  const handleLocalUpload = async () => {
+    try {
+      setIsSubmitting(true);
+      const res = await fetch(localPhoto);
+      const blob = await res.blob();
+      const file = new File([blob], "selfie.jpg", { type: "image/jpeg" });
+      await VerificationService.submitSelfie(verificationData.selfieSessionToken, file);
+      setPolling(false);
+      setStep(4);
+      fetchStatus();
+    } catch (err) {
+      alert("Failed to upload selfie");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const readFile = (e, fileSetter, previewSetter) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    fileSetter(file);
     const r = new FileReader();
-    r.onload = ev => setter(ev.target.result);
+    r.onload = ev => previewSetter(ev.target.result);
     r.readAsDataURL(file);
   };
 
-  const handleSubmit = () => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setStatus("pending");
+  const handleNextToSelfie = async () => {
+    try {
+      setIsSubmitting(true);
+      const res = await VerificationService.submitDocuments(idType, idFrontFile, idBackFile);
+      setVerificationData(res.data);
+      setStep(3);
+      setPolling(true);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to upload documents");
+    } finally {
       setIsSubmitting(false);
-      setTimeout(() => {
-        setStatus("verified");
-        updateUserProfile({ isVerified: true });
-      }, 3000);
-    }, 1500);
+    }
+  };
+
+  const status = verificationData?.status?.toLowerCase() || (user?.isVerified ? "approved" : "not-submitted");
+
+  const handleSubmit = async () => {
+    // This is just a UI completion step now since selfie was submitted via mobile
+    // or we can add a final "Confirm" if needed.
+    // For now, moving to status view.
+    fetchStatus();
   };
 
   /* ── Status screens ── */
-  if (status === "verified") {
+  if (status === "approved") {
     return (
       <>
         <style>{styles}</style>
@@ -355,7 +473,7 @@ const VerificationPage = () => {
     );
   }
 
-  if (status === "pending") {
+  if (status === "under_review") {
     return (
       <>
         <style>{styles}</style>
@@ -425,7 +543,7 @@ const VerificationPage = () => {
               </div>
               <div>
                 <div className="vp-top-title">Identity Verification</div>
-                <div className="vp-top-sub">Verify your identity to receive a trusted badge and attract more matches</div>
+                <div className="vp-top-sub">Secure encryption ensures your data remains private and protected</div>
               </div>
             </div>
 
@@ -487,10 +605,10 @@ const VerificationPage = () => {
                     {/* Front */}
                     <div>
                       <span className="vp-upload-label-text">Front of {ID_LABELS[idType]}</span>
-                      {idFront ? (
+                      {idFrontPreview ? (
                         <div className="vp-upload-preview">
-                          <img src={idFront} alt="ID Front" />
-                          <button className="vp-remove-btn" onClick={() => setIdFront(null)} type="button">
+                          <img src={idFrontPreview} alt="ID Front" />
+                          <button className="vp-remove-btn" onClick={() => { setIdFrontPreview(null); setIdFrontFile(null); }} type="button">
                             <X size={12} />
                           </button>
                         </div>
@@ -498,17 +616,17 @@ const VerificationPage = () => {
                         <label className="vp-upload-zone">
                           <Upload size={22} style={{ color: "#c9856a" }} />
                           <span>Click to upload<br />front image</span>
-                          <input type="file" hidden accept="image/*" onChange={e => readFile(e, setIdFront)} />
+                          <input type="file" hidden accept="image/*" onChange={e => readFile(e, setIdFrontFile, setIdFrontPreview)} />
                         </label>
                       )}
                     </div>
                     {/* Back */}
                     <div>
                       <span className="vp-upload-label-text">Back of {ID_LABELS[idType]}</span>
-                      {idBack ? (
+                      {idBackPreview ? (
                         <div className="vp-upload-preview">
-                          <img src={idBack} alt="ID Back" />
-                          <button className="vp-remove-btn" onClick={() => setIdBack(null)} type="button">
+                          <img src={idBackPreview} alt="ID Back" />
+                          <button className="vp-remove-btn" onClick={() => { setIdBackPreview(null); setIdBackFile(null); }} type="button">
                             <X size={12} />
                           </button>
                         </div>
@@ -516,15 +634,15 @@ const VerificationPage = () => {
                         <label className="vp-upload-zone">
                           <Upload size={22} style={{ color: "#c9856a" }} />
                           <span>Click to upload<br />back image</span>
-                          <input type="file" hidden accept="image/*" onChange={e => readFile(e, setIdBack)} />
+                          <input type="file" hidden accept="image/*" onChange={e => readFile(e, setIdBackFile, setIdBackPreview)} />
                         </label>
                       )}
                     </div>
                   </div>
                   <div className="vp-nav">
                     <button className="vp-btn-prev" onClick={() => setStep(1)}>← Back</button>
-                    <button className="vp-btn-next" disabled={!idFront || !idBack} onClick={() => setStep(3)}>
-                      Continue →
+                    <button className="vp-btn-next" disabled={!idFrontFile || isSubmitting} onClick={handleNextToSelfie}>
+                      {isSubmitting ? <><div className="vp-spinner" /> Encrypting...</> : <>Continue →</>}
                     </button>
                   </div>
                 </>
@@ -533,27 +651,75 @@ const VerificationPage = () => {
               {/* ── STEP 3: Selfie ── */}
               {step === 3 && (
                 <>
-                  <h2 className="vp-section-title">Take a Selfie</h2>
-                  <p className="vp-section-sub">Upload a clear photo of yourself holding your {ID_LABELS[idType]} next to your face. Your face and ID should both be clearly visible.</p>
-                  {selfie ? (
-                    <div className="vp-selfie-preview">
-                      <img src={selfie} alt="Selfie with ID" />
-                      <button className="vp-remove-btn" style={{ top: "0.6rem", right: "0.6rem" }} onClick={() => setSelfie(null)} type="button">
-                        <X size={13} />
-                      </button>
+                  <h2 className="vp-section-title">Complete with Selfie</h2>
+                  <p className="vp-section-sub">We need a live photo to ensure your identity matches the document provided. You can scan the QR code to use your phone or use this device's camera.</p>
+                  
+                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', background: '#fdf8f4', padding: '0.4rem', borderRadius: '12px' }}>
+                    <button 
+                      className={`vp-id-btn ${!useLocalCamera ? 'selected' : ''}`} 
+                      style={{ flex: 1, padding: '0.75rem', flexDirection: 'row' }}
+                      onClick={() => setUseLocalCamera(false)}
+                    >
+                      <QrCode size={16} /> Mobile Phone
+                    </button>
+                    <button 
+                      className={`vp-id-btn ${useLocalCamera ? 'selected' : ''}`} 
+                      style={{ flex: 1, padding: '0.75rem', flexDirection: 'row' }}
+                      onClick={() => setUseLocalCamera(true)}
+                    >
+                      <Camera size={16} /> This Device
+                    </button>
+                  </div>
+
+                  {!useLocalCamera ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', padding: '2rem', background: '#fdfaf8', borderRadius: '20px', border: '1px solid #f0ddd5', marginBottom: '2rem' }}>
+                      <div style={{ padding: '1rem', background: '#fff', borderRadius: '12px', boxShadow: '0 8px 24px rgba(139,78,46,0.1)' }}>
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${window.location.origin}/mobile-selfie?token=${verificationData?.selfieSessionToken}`} 
+                          alt="Scan to take selfie"
+                          style={{ width: '180px', height: '180px' }}
+                        />
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#4a3028' }}>Scan with your mobile camera</p>
+                        <p style={{ fontSize: '0.75rem', color: '#9a7060', marginTop: '0.25rem' }}>The page will automatically update once you finish on your phone.</p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#8b4e2e', fontSize: '0.8rem', fontWeight: 600 }}>
+                        <RefreshCw size={14} className="animate-spin" />
+                        Waiting for mobile selfie...
+                      </div>
                     </div>
                   ) : (
-                    <label className="vp-selfie-zone">
-                      <Camera size={28} style={{ color: "#c9856a" }} />
-                      <span>Click to take or upload a selfie<br />Hold your ID next to your face</span>
-                      <input type="file" hidden accept="image/*" onChange={e => readFile(e, setSelfie)} />
-                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                      {localPhoto ? (
+                        <div className="vp-selfie-preview" style={{ width: '100%' }}>
+                          <img src={localPhoto} alt="Selfie" style={{ width: '100%', borderRadius: '14px' }} />
+                          <button className="vp-remove-btn" onClick={() => setLocalPhoto(null)}><X size={14} /></button>
+                        </div>
+                      ) : (
+                        <div style={{ width: '100%', aspectRatio: '4/3', background: '#000', borderRadius: '20px', overflow: 'hidden', position: 'relative' }}>
+                          <video id="localVideo" autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
+                          <button 
+                            className="vp-btn-next" 
+                            style={{ position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)', borderRadius: '50%', width: '56px', height: '56px', padding: 0, justifyContent: 'center' }}
+                            onClick={captureLocalPhoto}
+                          >
+                            <Camera size={24} />
+                          </button>
+                        </div>
+                      )}
+                      <p style={{ fontSize: '0.75rem', color: '#9a7060' }}>Make sure your face is clearly visible and well-lit.</p>
+                    </div>
                   )}
+
                   <div className="vp-nav">
                     <button className="vp-btn-prev" onClick={() => setStep(2)}>← Back</button>
-                    <button className="vp-btn-next" disabled={!selfie} onClick={() => setStep(4)}>
-                      Continue →
-                    </button>
+                    {useLocalCamera && localPhoto && (
+                      <button className="vp-btn-next" onClick={handleLocalUpload} disabled={isSubmitting}>
+                        {isSubmitting ? <><div className="vp-spinner" /> Uploading...</> : <>Submit Selfie →</>}
+                      </button>
+                    )}
+                    {!localPhoto && <div />}
                   </div>
                 </>
               )}
@@ -564,18 +730,23 @@ const VerificationPage = () => {
                   <h2 className="vp-section-title">Review & Submit</h2>
                   <p className="vp-section-sub">Please review your documents before submitting. Ensure all images are clear and all details are readable.</p>
 
-                  <div className="vp-review-grid">
+                  <div className="vp-review-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                     <div>
                       <p className="vp-review-img-label">Front of {ID_LABELS[idType]}</p>
-                      <img src={idFront} alt="ID Front" className="vp-review-img" />
+                      <img src={idFrontPreview} alt="ID Front" className="vp-review-img" />
                     </div>
-                    <div>
-                      <p className="vp-review-img-label">Back of {ID_LABELS[idType]}</p>
-                      <img src={idBack} alt="ID Back" className="vp-review-img" />
-                    </div>
-                    <div>
-                      <p className="vp-review-img-label">Selfie with ID</p>
-                      <img src={selfie} alt="Selfie" className="vp-review-img" />
+                    {idBackPreview && (
+                      <div>
+                        <p className="vp-review-img-label">Back of {ID_LABELS[idType]}</p>
+                        <img src={idBackPreview} alt="ID Back" className="vp-review-img" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ textAlign: 'center', padding: '1.5rem', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #dcfce7', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#16a34a', fontWeight: 600 }}>
+                      <CheckCircle size={18} />
+                      Selfie captured successfully
                     </div>
                   </div>
 

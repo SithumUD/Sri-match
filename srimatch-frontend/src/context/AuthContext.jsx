@@ -1,4 +1,12 @@
 import React, { useEffect, useState, createContext, useContext } from "react";
+import CookieService from "../services/cookie.service";
+import AuthService from "../services/auth.service";
+import UserService from "../services/user.service";
+import ProfileService from "../services/profile.service";
+import LikeService from "../services/like.service";
+import MatchService from "../services/match.service";
+import SubscriptionService from "../services/subscription.service";
+import PaymentService from "../services/payment.service";
 
 const AuthContext = createContext(undefined);
 
@@ -29,123 +37,87 @@ export const AuthProvider = ({ children }) => {
     },
   });
 
-  useEffect(() => {
-    // TODO: Replace with backend API call to get current user session
-    const fetchUserSession = async () => {
-      try {
-        // const response = await fetch('/api/auth/session');
-        // const data = await response.json();
-        // if (data.user) {
-        //   setUser(data.user);
-        //   setIsAuthenticated(true);
-        // }
+  // Fetch current user session
+  const fetchUserSession = async () => {
+    try {
+      const response = await ProfileService.getMyProfile();
+      if (response && response.success && response.data) {
+        const profileData = response.data;
+        setUser(profileData);
+        setIsAuthenticated(true);
         
-        // For now, check localStorage as fallback
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-          setIsAuthenticated(true);
+        if (profileData.activeSubscription) {
+          setSubscription(profileData.activeSubscription);
         }
-        const storedAdmin = localStorage.getItem("adminUser");
-        if (storedAdmin) {
-          setAdminUser(JSON.parse(storedAdmin));
-          setIsAdminAuthenticated(true);
+      } else {
+        // If request succeeded but no data, we might still be authenticated (just no profile yet)
+        setIsAuthenticated(!!CookieService.get("token"));
+      }
+    } catch (error) {
+      if (error.status === 403 || error.status === 404) {
+        setIsAuthenticated(!!CookieService.get("token"));
+        // Fetch basic user data if profile doesn't exist yet
+        try {
+          const userRes = await UserService.getMyUserData();
+          if (userRes && userRes.success) {
+            setUser(userRes.data);
+          }
+        } catch (uErr) {
+          console.error("Critical error fetching basic user info:", uErr);
         }
-      } catch (error) {
+      } else {
         console.error("Error fetching user session:", error);
+        setIsAuthenticated(false);
+        setUser(null);
       }
-    };
+    }
+  };
 
-    // TODO: Replace with backend API calls for user data
-    const fetchUserData = async () => {
-      if (!isAuthenticated) return;
+  // Fetch additional user data
+  const fetchUserData = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const [receivedRes, sentRes, matchesRes, subRes] = await Promise.all([
+        LikeService.getReceivedLikes(0, 100),
+        LikeService.getSentLikes(0, 100),
+        MatchService.getMyMatches(0, 100),
+        SubscriptionService.getMyActiveSubscription()
+      ]);
+
+      if (sentRes.success) {
+        const sentData = sentRes.data.content || sentRes.data || [];
+        setLikedProfiles(sentData.map(l => ({ 
+          profileId: l.receiver?.id || l.receiverId, 
+          type: l.type 
+        })));
+      }
+
+      if (receivedRes.success) {
+        setReceivedRequests(receivedRes.data.content || receivedRes.data || []);
+      }
       
-      try {
-        // Fetch liked profiles
-        // const likedResponse = await fetch('/api/user/likes');
-        // const likedData = await likedResponse.json();
-        // setLikedProfiles(likedData);
-        
-        // Fetch sent requests
-        // const sentResponse = await fetch('/api/user/requests/sent');
-        // const sentData = await sentResponse.json();
-        // setSentRequests(sentData);
-        
-        // Fetch received requests
-        // const receivedResponse = await fetch('/api/user/requests/received');
-        // const receivedData = await receivedResponse.json();
-        // setReceivedRequests(receivedData);
-        
-        // Fetch connections
-        // const connectionsResponse = await fetch('/api/user/connections');
-        // const connectionsData = await connectionsResponse.json();
-        // setConnections(connectionsData);
-        
-        // Fetch subscription
-        // const subscriptionResponse = await fetch('/api/user/subscription');
-        // const subscriptionData = await subscriptionResponse.json();
-        // setSubscription(subscriptionData);
-        
-        // Fetch notifications
-        // const notificationsResponse = await fetch('/api/user/notifications');
-        // const notificationsData = await notificationsResponse.json();
-        // setNotifications(notificationsData);
-        
-        // Fetch likes remaining
-        // const likesResponse = await fetch('/api/user/likes/remaining');
-        // const likesData = await likesResponse.json();
-        // setLikesRemaining(likesData.remaining);
-        
-        // Load from localStorage as fallback
-        const storedLikedProfiles = localStorage.getItem("likedProfiles");
-        if (storedLikedProfiles) {
-          setLikedProfiles(JSON.parse(storedLikedProfiles));
-        }
-        
-        const storedSentRequests = localStorage.getItem("sentRequests");
-        if (storedSentRequests) {
-          setSentRequests(JSON.parse(storedSentRequests));
-        }
-        
-        const storedReceivedRequests = localStorage.getItem("receivedRequests");
-        if (storedReceivedRequests) {
-          setReceivedRequests(JSON.parse(storedReceivedRequests));
-        }
-        
-        const storedConnections = localStorage.getItem("connections");
-        if (storedConnections) {
-          setConnections(JSON.parse(storedConnections));
-        }
-        
-        const storedSubscription = localStorage.getItem("subscription");
-        if (storedSubscription) {
-          setSubscription(JSON.parse(storedSubscription));
-        }
-        
-        const storedLikesRemaining = localStorage.getItem("likesRemaining");
-        if (storedLikesRemaining) {
-          setLikesRemaining(parseInt(storedLikesRemaining));
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
+      if (matchesRes.success) {
+        setConnections(matchesRes.data.content || matchesRes.data || []);
       }
-    };
+      
+      if (subRes.success && subRes.data) {
+        setSubscription(subRes.data);
+        setLikesRemaining(subRes.data.remainingLikes || 5);
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  };
 
-    // Check for daily like reset
+  useEffect(() => {
     const checkDailyReset = async () => {
       try {
-        // TODO: Replace with backend API call to check/reset daily likes
-        // const response = await fetch('/api/user/likes/check-reset');
-        // const data = await response.json();
-        // if (data.reset) {
-        //   setLikesRemaining(data.remaining);
-        // }
-        
-        const lastResetDate = localStorage.getItem("lastLikesResetDate");
+        const lastResetDate = CookieService.get("lastLikesResetDate");
         const today = new Date().toDateString();
         if (!lastResetDate || lastResetDate !== today) {
           resetDailyLikes();
-          localStorage.setItem("lastLikesResetDate", today);
+          CookieService.set("lastLikesResetDate", today);
         }
       } catch (error) {
         console.error("Error checking daily reset:", error);
@@ -159,346 +131,179 @@ export const AuthProvider = ({ children }) => {
     checkDailyReset();
   }, [isAuthenticated]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, captchaToken = null) => {
     try {
-      // TODO: Replace with actual backend API call
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password })
-      // });
-      // const data = await response.json();
-      // if (data.success) {
-      //   setUser(data.user);
-      //   setIsAuthenticated(true);
-      //   localStorage.setItem('token', data.token);
-      //   localStorage.setItem('user', JSON.stringify(data.user));
-      //   return { success: true, user: data.user };
-      // } else {
-      //   return { success: false, message: data.message };
-      // }
+      const response = await AuthService.login({ email, password, captchaToken });
       
-      // Temporary demo logic - remove this in production
-      const demoUsers = [
-        { email: "user@example.com", password: "password123" }
-      ];
-      const demoUser = demoUsers.find(u => u.email === email && u.password === password);
-      
-      if (demoUser) {
-        const userData = {
-          id: "1",
-          email: email,
-          firstName: "Demo",
-          lastName: "User",
-          profileCompleted: true,
-          isVerified: true,
-          profileImage: null,
-        };
-        setUser(userData);
-        setIsAuthenticated(true);
-        localStorage.setItem("user", JSON.stringify(userData));
+      if (response.success && response.data) {
+        const { accessToken, refreshToken, ...userData } = response.data;
+        
+        // Save tokens in secure cookies
+        CookieService.set("token", accessToken);
+        CookieService.set("refreshToken", refreshToken);
+        
+        // Fetch full profile/user info
+        await fetchUserSession();
+        
         return { success: true, user: userData };
       }
-      
-      return { success: false, message: "Invalid credentials" };
+      return { success: false, message: response.message || "Invalid credentials" };
     } catch (error) {
       console.error("Login error:", error);
-      return { success: false, message: "An error occurred during login" };
+      return { success: false, message: error.message || "An error occurred during login" };
     }
   };
 
   const register = async (userData) => {
     try {
-      // TODO: Replace with actual backend API call
-      // const response = await fetch('/api/auth/register', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(userData)
-      // });
-      // const data = await response.json();
-      // if (data.success) {
-      //   setUser(data.user);
-      //   setIsAuthenticated(true);
-      //   localStorage.setItem('token', data.token);
-      //   localStorage.setItem('user', JSON.stringify(data.user));
-      //   return { success: true, user: data.user };
-      // } else {
-      //   return { success: false, message: data.message };
-      // }
+      const response = await AuthService.register(userData);
       
-      // Temporary demo logic - remove this in production
-      const newUser = {
-        ...userData,
-        id: Date.now().toString(),
-        profileCompleted: false,
-        isVerified: false,
-        profileImage: null,
-      };
-      setUser(newUser);
-      setIsAuthenticated(true);
-      localStorage.setItem("user", JSON.stringify(newUser));
-      return { success: true, user: newUser };
+      if (response.success) {
+        return { success: true, message: response.message || "Registration successful. Please verify your email." };
+      }
+      return { success: false, message: response.message || "Registration failed" };
     } catch (error) {
       console.error("Registration error:", error);
-      return { success: false, message: "An error occurred during registration" };
+      return { success: false, message: error.message || "An error occurred during registration" };
+    }
+  };
+
+  const verifyEmail = async (email, otp) => {
+    try {
+      const response = await AuthService.verifyEmail({ identifier: email, otp });
+      if (response.success) {
+        return { success: true, message: response.message || "Email verified successfully" };
+      }
+      return { success: false, message: response.message || "Verification failed" };
+    } catch (error) {
+      console.error("Verification error:", error);
+      return { success: false, message: error.message || "An error occurred during verification" };
     }
   };
 
   const logout = async () => {
     try {
-      // TODO: Replace with backend API call for logout
-      // await fetch('/api/auth/logout', { method: 'POST' });
-      
-      setUser(null);
-      setIsAuthenticated(false);
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
+      await AuthService.logout();
     } catch (error) {
       console.error("Logout error:", error);
+    } finally {
+      // Always clear local session even if server-side logout fails
+      setUser(null);
+      setIsAuthenticated(false);
+      CookieService.remove("user");
+      CookieService.remove("token");
+      CookieService.remove("refreshToken");
+      window.location.href = "/login";
     }
   };
 
-  const adminLogin = async (email, password) => {
+  const adminLogin = async (email, password, totpCode = null) => {
     try {
-      // Dummy admin login
-      if (email === "admin@admin.com" && password === "admin") {
-        const adminData = {
-          id: "admin-1",
-          email: email,
-          name: "System Admin",
-          role: "admin"
-        };
-        setAdminUser(adminData);
-        setIsAdminAuthenticated(true);
-        localStorage.setItem("adminUser", JSON.stringify(adminData));
-        return { success: true, user: adminData };
+      const response = await AuthService.login({ email, password, totpCode });
+      
+      if (response.success && response.data) {
+        const { accessToken, refreshToken, ...userData } = response.data;
+        
+        // Check for admin privileges
+        if (userData.role === "ADMIN" || userData.role === "SUPER_ADMIN") {
+            setAdminUser(userData);
+            setIsAdminAuthenticated(true);
+            CookieService.set("adminUser", JSON.stringify(userData));
+            CookieService.set("token", accessToken);
+            CookieService.set("refreshToken", refreshToken);
+            return { success: true, user: userData };
+        }
+        return { success: false, message: "Insufficient privileges for Admin Panel" };
       }
-      return { success: false, message: "Invalid admin credentials" };
+      return { success: false, message: response.message || "Invalid admin credentials" };
     } catch (error) {
+      if (error.message && error.message.includes("MFA_REQUIRED")) {
+          return { success: false, mfaRequired: true, message: error.message };
+      }
       console.error("Admin login error:", error);
-      return { success: false, message: "An error occurred during admin login" };
+      return { success: false, message: error.message || "An error occurred during admin login" };
     }
   };
 
   const adminLogout = () => {
     setAdminUser(null);
     setIsAdminAuthenticated(false);
-    localStorage.removeItem("adminUser");
+    CookieService.remove("adminUser");
   };
 
   const updateUserProfile = async (data) => {
     try {
-      // TODO: Replace with backend API call
-      // const response = await fetch('/api/user/profile', {
-      //   method: 'PUT',
-      //   headers: { 
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-      //   },
-      //   body: JSON.stringify(data)
-      // });
-      // const updatedData = await response.json();
+      const response = await ProfileService.updateProfile(data);
       
-      const updatedUser = {
-        ...user,
-        ...data,
-      };
-      setUser(updatedUser);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      return { success: true, user: updatedUser };
+      if (response.success) {
+        setUser(response.data);
+        CookieService.set("user", JSON.stringify(response.data));
+        return { success: true, user: response.data };
+      }
+      return { success: false, message: response.message || "Failed to update profile" };
     } catch (error) {
       console.error("Update profile error:", error);
-      return { success: false, message: "Failed to update profile" };
+      const errorMsg = error.data?.message || error.message || "Failed to update profile";
+      return { success: false, message: errorMsg, status: error.status };
     }
   };
 
-  const toggleLike = async (profileId) => {
-    // Check if user has remaining likes
+  const toggleLike = async (profileId, type = 'NORMAL') => {
+    // Basic limit check (can be expanded with backend limit data)
+    // Basic limit check
+    const alreadyLiked = likedProfiles.some(p => p.profileId === profileId);
+    
     if (
-      !likedProfiles.includes(profileId) &&
-      subscription.plan !== "premium" &&
-      likesRemaining <= 0
+      !alreadyLiked &&
+      subscription.plan === "free" &&
+      likesRemaining <= 0 &&
+      type === 'NORMAL'
     ) {
-      alert(
-        "You've reached your daily like limit. Upgrade to Premium for unlimited likes!"
-      );
-      return { success: false, message: "Daily like limit reached" };
+      alert("Daily like limit reached. Upgrade for more!");
+      return { success: false };
+    }
+
+    const targetId = Number(profileId);
+    if (!targetId || isNaN(targetId)) {
+      console.error("Invalid profile ID for like action:", profileId);
+      return { success: false, message: "Invalid profile ID" };
     }
 
     try {
-      // TODO: Replace with backend API call
-      // const response = await fetch(`/api/user/like/${profileId}`, {
-      //   method: likedProfiles.includes(profileId) ? 'DELETE' : 'POST',
-      //   headers: { 
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-      //   }
-      // });
-      // const data = await response.json();
+      const response = await LikeService.sendLike(targetId, type);
       
-      // Update local state
-      setLikedProfiles((prevLiked) => {
-        let newLiked;
-        if (prevLiked.includes(profileId)) {
-          newLiked = prevLiked.filter((id) => id !== profileId);
-        } else {
-          newLiked = [...prevLiked, profileId];
-          // Decrement likes remaining if not premium and adding a new like
-          if (subscription.plan !== "premium") {
-            setLikesRemaining((prev) => {
-              const newValue = prev - 1;
-              localStorage.setItem("likesRemaining", newValue.toString());
-              return newValue;
-            });
-          }
+      if (response.success) {
+        setLikedProfiles(prev => [...prev, { profileId: targetId, type }]);
+        if (subscription.plan === "free" && type === 'NORMAL') {
+            setLikesRemaining(prev => prev - 1);
         }
-        localStorage.setItem("likedProfiles", JSON.stringify(newLiked));
-        return newLiked;
-      });
-      
-      return { success: true };
+        return { success: true };
+      }
+      return { success: false, message: response.message };
     } catch (error) {
       console.error("Toggle like error:", error);
       return { success: false, message: "Failed to process like" };
     }
   };
 
-  const toggleFriendRequest = async (profileId) => {
+  // Mutual matches are handled automatically by backend when both users like each other.
+  // Friend request functions removed to align with Like/Match architecture.
+
+  const upgradeSubscription = async (packageId) => {
     try {
-      // TODO: Replace with backend API call
-      // const method = sentRequests.includes(profileId) ? 'DELETE' : 'POST';
-      // const response = await fetch(`/api/user/request/${profileId}`, {
-      //   method,
-      //   headers: { 
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-      //   }
-      // });
-      // const data = await response.json();
+      const response = await SubscriptionService.initiateSubscription(packageId);
       
-      // Update local state
-      setSentRequests((prevRequests) => {
-        let newRequests;
-        if (prevRequests.includes(profileId)) {
-          newRequests = prevRequests.filter((id) => id !== profileId);
-        } else {
-          newRequests = [...prevRequests, profileId];
+      if (response.success) {
+        // After initiation, the user usually goes to a payment gateway
+        // For now, we'll refresh the active subscription state
+        const activeSub = await SubscriptionService.getMyActiveSubscription();
+        if (activeSub.success) {
+            setSubscription(activeSub.data);
+            CookieService.set("subscription", JSON.stringify(activeSub.data));
         }
-        localStorage.setItem("sentRequests", JSON.stringify(newRequests));
-        return newRequests;
-      });
-      
-      return { success: true };
-    } catch (error) {
-      console.error("Toggle friend request error:", error);
-      return { success: false, message: "Failed to process friend request" };
-    }
-  };
-
-  const acceptFriendRequest = async (profileId) => {
-    try {
-      // TODO: Replace with backend API call
-      // const response = await fetch(`/api/user/request/${profileId}/accept`, {
-      //   method: 'POST',
-      //   headers: { 
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-      //   }
-      // });
-      // const data = await response.json();
-      
-      // Remove from received requests
-      setReceivedRequests((prev) => {
-        const updated = prev.filter((id) => id !== profileId);
-        localStorage.setItem("receivedRequests", JSON.stringify(updated));
-        return updated;
-      });
-      
-      // Add to connections
-      setConnections((prev) => {
-        const updated = [...prev, profileId];
-        localStorage.setItem("connections", JSON.stringify(updated));
-        return updated;
-      });
-      
-      return { success: true };
-    } catch (error) {
-      console.error("Accept friend request error:", error);
-      return { success: false, message: "Failed to accept friend request" };
-    }
-  };
-
-  const rejectFriendRequest = async (profileId) => {
-    try {
-      // TODO: Replace with backend API call
-      // const response = await fetch(`/api/user/request/${profileId}/reject`, {
-      //   method: 'POST',
-      //   headers: { 
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-      //   }
-      // });
-      // const data = await response.json();
-      
-      // Remove from received requests
-      setReceivedRequests((prev) => {
-        const updated = prev.filter((id) => id !== profileId);
-        localStorage.setItem("receivedRequests", JSON.stringify(updated));
-        return updated;
-      });
-      
-      return { success: true };
-    } catch (error) {
-      console.error("Reject friend request error:", error);
-      return { success: false, message: "Failed to reject friend request" };
-    }
-  };
-
-  const upgradeSubscription = async (plan) => {
-    try {
-      // TODO: Replace with backend API call to payment gateway
-      // const response = await fetch('/api/subscription/upgrade', {
-      //   method: 'POST',
-      //   headers: { 
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-      //   },
-      //   body: JSON.stringify({ plan })
-      // });
-      // const data = await response.json();
-      
-      // Calculate expiration date based on plan
-      const now = new Date();
-      let expirationDate;
-      switch (plan) {
-        case "monthly":
-          expirationDate = new Date(now.setMonth(now.getMonth() + 1));
-          break;
-        case "3month":
-          expirationDate = new Date(now.setMonth(now.getMonth() + 3));
-          break;
-        case "6month":
-          expirationDate = new Date(now.setMonth(now.getMonth() + 6));
-          break;
-        case "yearly":
-          expirationDate = new Date(now.setFullYear(now.getFullYear() + 1));
-          break;
+        return { success: true, message: "Subscription initiated. Redirecting to payment..." };
       }
-      
-      const updatedSubscription = {
-        plan: "premium",
-        expiresAt: expirationDate.toISOString(),
-        features: {
-          dailyLikes: Infinity,
-          canSeeWhoLikedYou: true,
-          canVoiceVideoCall: true,
-          advancedFilters: true,
-          messageBeforeAccept: 3,
-          hasBoost: true,
-          boostExpiresAt: null,
-        },
-      };
-      
-      setSubscription(updatedSubscription);
-      localStorage.setItem("subscription", JSON.stringify(updatedSubscription));
-      
-      return { success: true };
+      return { success: false, message: response.message };
     } catch (error) {
       console.error("Upgrade subscription error:", error);
       return { success: false, message: "Failed to upgrade subscription" };
@@ -506,75 +311,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const cancelSubscription = async () => {
-    try {
-      // TODO: Replace with backend API call
-      // const response = await fetch('/api/subscription/cancel', {
-      //   method: 'POST',
-      //   headers: { 
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-      //   }
-      // });
-      // const data = await response.json();
-      
-      const freeSubscription = {
-        plan: "free",
-        expiresAt: null,
-        features: {
-          dailyLikes: 5,
-          canSeeWhoLikedYou: false,
-          canVoiceVideoCall: false,
-          advancedFilters: false,
-          messageBeforeAccept: 0,
-          hasBoost: false,
-          boostExpiresAt: null,
-        },
-      };
-      
-      setSubscription(freeSubscription);
-      localStorage.setItem("subscription", JSON.stringify(freeSubscription));
-      resetDailyLikes();
-      
-      return { success: true };
-    } catch (error) {
-      console.error("Cancel subscription error:", error);
-      return { success: false, message: "Failed to cancel subscription" };
-    }
+     // Backend doesn't currently expose a cancel endpoint in the analyzed controller.
+     // Placeholder for future implementation.
+     return { success: false, message: "Manual cancellation required. Please contact support." };
   };
 
   const activateBoost = async () => {
-    if (subscription.plan !== "premium") {
-      return { success: false, message: "Premium subscription required" };
-    }
-    
-    try {
-      // TODO: Replace with backend API call
-      // const response = await fetch('/api/user/boost', {
-      //   method: 'POST',
-      //   headers: { 
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-      //   }
-      // });
-      // const data = await response.json();
-      
-      // Set boost expiration to 5 days from now
-      const now = new Date();
-      const boostExpiration = new Date(now.setDate(now.getDate() + 5));
-      const updatedSubscription = {
-        ...subscription,
-        features: {
-          ...subscription.features,
-          boostExpiresAt: boostExpiration.toISOString(),
-        },
-      };
-      
-      setSubscription(updatedSubscription);
-      localStorage.setItem("subscription", JSON.stringify(updatedSubscription));
-      
-      return { success: true };
-    } catch (error) {
-      console.error("Activate boost error:", error);
-      return { success: false, message: "Failed to activate boost" };
-    }
+    // Boost logic not yet implemented in backend controllers.
+    return { success: false, message: "Boost feature coming soon!" };
   };
 
   const resetDailyLikes = async () => {
@@ -583,7 +327,7 @@ export const AuthProvider = ({ children }) => {
       // const response = await fetch('/api/user/likes/reset', {
       //   method: 'POST',
       //   headers: { 
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
+      //     'Authorization': `Bearer ${CookieService.get('token')}`
       //   }
       // });
       // const data = await response.json();
@@ -591,7 +335,7 @@ export const AuthProvider = ({ children }) => {
       const dailyLimit =
         subscription.features.dailyLikes === Infinity ? Infinity : 5;
       setLikesRemaining(dailyLimit);
-      localStorage.setItem("likesRemaining", dailyLimit.toString());
+      CookieService.set("likesRemaining", dailyLimit.toString());
       
       return { success: true };
     } catch (error) {
@@ -693,6 +437,7 @@ export const AuthProvider = ({ children }) => {
         isAdminAuthenticated,
         login,
         register,
+        verifyEmail,
         logout,
         adminLogin,
         adminLogout,
@@ -702,9 +447,7 @@ export const AuthProvider = ({ children }) => {
         receivedRequests,
         connections,
         toggleLike,
-        toggleFriendRequest,
-        acceptFriendRequest,
-        rejectFriendRequest,
+        
         profileCreationStep,
         setProfileCreationStep,
         profileCreationData,

@@ -11,4 +11,7 @@ import java.util.List;
 public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
     List<SupportTicket> findByUserOrderByUpdatedAtDesc(User user);
     List<SupportTicket> findAllByOrderByUpdatedAtDesc();
+
+    long countByStatus(com.ceycodez.srimatch.model.enums.TicketStatus status);
+    List<SupportTicket> findTop5ByOrderByCreatedAtDesc();
 }

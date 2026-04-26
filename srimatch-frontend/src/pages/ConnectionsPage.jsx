@@ -1,9 +1,11 @@
 // ConnectionsPage.jsx - Redesigned to match SriMatch luxury aesthetic
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { dummyProfiles } from "../data/dummyData";
-import { UserPlus, User, Check, X, MessageCircle, MapPin, Briefcase, Heart, Users, ChevronRight, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import { UserPlus, User, Check, X, MessageCircle, MapPin, Briefcase, Heart, Users, ChevronRight, Sparkles, Eye, Loader2, Lock } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import LikeService from "../services/like.service";
+import MatchService from "../services/match.service";
+import ProfileService from "../services/profile.service";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -116,6 +118,35 @@ const styles = `
     border-color: #e8c9b8;
   }
 
+  /* ── Blurred like card ── */
+  .cp-like-card-blurred {
+    cursor: pointer;
+    position: relative;
+  }
+  .cp-like-card-blurred:hover {
+    box-shadow: 0 10px 30px rgba(120,60,30,0.18);
+    transform: translateY(-2px);
+    border-color: #c9856a;
+  }
+
+  /* Blurred image fill */
+  .cp-blurred-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: blur(18px);
+    transform: scale(1.1); /* hide blur edges */
+    transition: filter 0.3s;
+  }
+
+  /* Blurred text content */
+  .cp-blurred-text {
+    filter: blur(6px);
+    user-select: none;
+    pointer-events: none;
+  }
+
   .cp-card-img-wrap { position: relative; height: 130px; overflow: hidden; }
   .cp-card-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s; }
   .cp-profile-card:hover .cp-card-img { transform: scale(1.06); }
@@ -159,30 +190,68 @@ const styles = `
   }
   .cp-card-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(139,78,46,0.3); }
 
-  /* Request-specific action buttons */
-  .cp-req-btn {
-    width: 36px; height: 36px; border-radius: 50%; border: none;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+  /* ── Blurred card lock overlay ── */
+  .cp-lock-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    gap: 0.4rem;
   }
-  .cp-req-btn.accept { background: #e0f5e8; color: #4a8a5e; }
-  .cp-req-btn.accept:hover { background: #4a8a5e; color: #fff; transform: scale(1.1); }
-  .cp-req-btn.decline { background: #f5e8e8; color: #a84a4a; }
-  .cp-req-btn.decline:hover { background: #a84a4a; color: #fff; transform: scale(1.1); }
+  .cp-lock-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(20, 8, 4, 0.62);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 14px;
+    padding: 0.75rem 1.1rem;
+    color: #fff;
+  }
+  .cp-lock-badge svg { opacity: 0.95; }
+  .cp-lock-badge span {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
 
-  /* Requests list layout */
-  .cp-req-list { display: flex; flex-direction: column; gap: 0.85rem; }
-  .cp-req-card {
-    display: flex; align-items: center; gap: 1rem;
-    padding: 1rem 1.1rem; border: 1px solid #f0ddd5;
-    border-radius: 14px; background: #fff; transition: all 0.2s;
+  /* ── Premium banner above likes grid ── */
+  .cp-premium-banner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #3d1f12, #8b4e2e);
+    margin-bottom: 1.25rem;
+    color: #fff;
   }
-  .cp-req-card:hover { box-shadow: 0 6px 20px rgba(120,60,30,0.08); border-color: #e8c9b8; }
-  .cp-req-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid #f0ddd5; flex-shrink: 0; }
-  .cp-req-info { flex: 1; min-width: 0; }
-  .cp-req-name { font-size: 0.92rem; font-weight: 500; color: #2d1810; margin-bottom: 2px; }
-  .cp-req-sub { font-size: 0.75rem; color: #9a7060; display: flex; gap: 0.5rem; flex-wrap: wrap; }
-  .cp-req-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+  .cp-premium-banner-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .cp-premium-banner-text { flex: 1; }
+  .cp-premium-banner-text strong {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem; font-weight: 600; display: block; margin-bottom: 2px;
+  }
+  .cp-premium-banner-text span { font-size: 0.75rem; opacity: 0.82; }
+  .cp-premium-banner-cta {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.5rem 1rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600;
+    background: #fff; color: #8b4e2e; text-decoration: none;
+    white-space: nowrap; transition: all 0.2s; flex-shrink: 0;
+  }
+  .cp-premium-banner-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
 
   /* ── Empty states ── */
   .cp-empty {
@@ -221,23 +290,141 @@ const styles = `
     .cp-tabs-header { padding: 1.25rem 1.25rem 0; }
     .cp-tab-body { padding: 1.25rem 1.25rem; }
     .cp-stat-card { padding: 0.85rem 1rem; }
-    .cp-req-card { flex-wrap: wrap; }
+    .cp-premium-banner { flex-wrap: wrap; }
   }
 `;
 
+/* ─── Blurred Like Card ──────────────────────────────────────────────────── */
+const BlurredLikeCard = ({ like, isPremium, onUnlockClick }) => {
+  const isBlurred = !isPremium || like.isBlurred;
+
+  if (!isBlurred) {
+    // Premium user, fully visible
+    return (
+      <Link to={`/profile/${like.sender.id}`} style={{ textDecoration: 'none' }}>
+        <div className="cp-profile-card">
+          <div className="cp-card-img-wrap">
+            <img src={like.sender.profileImage || like.sender.profileImageUrl || "/default-avatar.png"} alt={like.sender.firstName || like.sender.name} className="cp-card-img" />
+            <div className="cp-card-img-overlay" />
+            <span className="cp-card-img-name">{like.sender.firstName || like.sender.name}, {like.sender.age}</span>
+          </div>
+          <div className="cp-card-body">
+            <div className="cp-card-meta">
+              <span className="cp-card-tag loc"><MapPin size={9} />{like.sender.district || like.sender.city}</span>
+              {like.sender.profession && (
+                <span className="cp-card-tag job"><Briefcase size={9} />{like.sender.profession}</span>
+              )}
+            </div>
+          </div>
+          <div className="cp-card-actions">
+            <button className="cp-card-btn primary" style={{ width: '100%' }}>
+              <User size={13} /> View Profile
+            </button>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  // Free user — fully blurred card
+  return (
+    <div className="cp-profile-card cp-like-card-blurred" onClick={onUnlockClick}>
+      {/* Image section — blurred */}
+      <div className="cp-card-img-wrap" style={{ position: 'relative' }}>
+        <img
+          src={like.sender.profileImage || like.sender.profileImageUrl || "/default-avatar.png"}
+          alt="Hidden profile"
+          className="cp-blurred-img"
+        />
+        {/* Dark gradient overlay */}
+        <div className="cp-card-img-overlay" />
+        {/* Lock badge centered over image */}
+        <div className="cp-lock-overlay">
+          <div className="cp-lock-badge">
+            <Lock size={18} />
+            <span>Premium Only</span>
+          </div>
+        </div>
+        {/* Blurred name placeholder */}
+        <span className="cp-card-img-name cp-blurred-text" style={{ zIndex: 1 }}>
+          ███████, ██
+        </span>
+      </div>
+
+      {/* Body section — blurred */}
+      <div className="cp-card-body">
+        <div className="cp-card-meta cp-blurred-text">
+          <span className="cp-card-tag loc"><MapPin size={9} />██████████</span>
+          <span className="cp-card-tag job"><Briefcase size={9} />████████</span>
+        </div>
+      </div>
+
+      {/* Action — unlock CTA */}
+      <div className="cp-card-actions">
+        <Link
+          to="/subscription"
+          className="cp-card-btn primary"
+          style={{ width: '100%' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Sparkles size={13} /> Unlock
+        </Link>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Component ──────────────────────────────────────────────────────────── */
 const ConnectionsPage = () => {
-  const [activeTab, setActiveTab] = useState("connections");
-  const {
-    connections = [],
-    receivedRequests = [],
-    likedProfiles = [],
-    acceptFriendRequest,
-    rejectFriendRequest,
-  } = useAuth();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("matches");
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ views: 0, likes: 0, matches: 0 });
+  const [matches, setMatches] = useState([]);
+  const [receivedLikes, setReceivedLikes] = useState([]);
+  const [starLikes, setStarLikes] = useState([]);
+  const [isPremium, setIsPremium] = useState(false);
 
-  const connectedProfiles = dummyProfiles.filter(p => connections.includes(p.id));
-  const requestProfiles   = dummyProfiles.filter(p => receivedRequests.includes(p.id));
+  React.useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [profileRes, likesRes, starLikesRes, matchesRes] = await Promise.all([
+        ProfileService.getMyProfile(),
+        LikeService.getReceivedLikes(0, 50),
+        LikeService.getReceivedLikes(0, 50, 'STAR'),
+        MatchService.getMyMatches(0, 50)
+      ]);
+
+      if (profileRes.success) {
+        setStats(prev => ({ ...prev, views: profileRes.data.profileViews || 0 }));
+        setIsPremium(profileRes.data.premium);
+      }
+
+      if (likesRes.success) {
+        setReceivedLikes(likesRes.data.likes || []);
+        setStats(prev => ({ ...prev, likes: likesRes.data.totalLikesCount || 0 }));
+      }
+
+      if (starLikesRes.success) {
+        setStarLikes(starLikesRes.data.likes || []);
+      }
+
+      if (matchesRes.success) {
+        const matchesData = matchesRes.data.content || matchesRes.data || [];
+        setMatches(matchesData);
+        setStats(prev => ({ ...prev, matches: matchesData.length }));
+      }
+    } catch (err) {
+      console.error("Error fetching connections data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -255,29 +442,29 @@ const ConnectionsPage = () => {
           <div className="cp-stats-row">
             <div className="cp-stat-card">
               <div className="cp-stat-icon connections">
-                <Users size={20} style={{ color: "#8b4e2e" }} />
+                <Eye size={20} style={{ color: "#8b4e2e" }} />
               </div>
               <div>
-                <div className="cp-stat-num">{connections.length}</div>
-                <div className="cp-stat-label">Connections</div>
+                <div className="cp-stat-num">{stats.views}</div>
+                <div className="cp-stat-label">Profile Views</div>
               </div>
             </div>
             <div className="cp-stat-card">
               <div className="cp-stat-icon requests">
-                <UserPlus size={20} style={{ color: "#3a6ea8" }} />
+                <Heart size={20} style={{ color: "#3a6ea8" }} />
               </div>
               <div>
-                <div className="cp-stat-num">{receivedRequests.length}</div>
-                <div className="cp-stat-label">Pending Requests</div>
+                <div className="cp-stat-num">{stats.likes}</div>
+                <div className="cp-stat-label">Likes Received</div>
               </div>
             </div>
             <div className="cp-stat-card">
               <div className="cp-stat-icon liked">
-                <Heart size={20} style={{ color: "#c03060" }} />
+                <Users size={20} style={{ color: "#c03060" }} />
               </div>
               <div>
-                <div className="cp-stat-num">{likedProfiles?.length || 0}</div>
-                <div className="cp-stat-label">Liked Profiles</div>
+                <div className="cp-stat-num">{stats.matches}</div>
+                <div className="cp-stat-label">Total Matches</div>
               </div>
             </div>
           </div>
@@ -287,22 +474,31 @@ const ConnectionsPage = () => {
 
             {/* Tabs header */}
             <div className="cp-tabs-header">
-              <div className="cp-tabs-title">People you know</div>
+              <div className="cp-tabs-title">People you connect with</div>
               <div className="cp-tabs-nav">
                 <button
-                  className={`cp-tab-btn${activeTab === "connections" ? " active" : ""}`}
-                  onClick={() => setActiveTab("connections")}
+                  className={`cp-tab-btn${activeTab === "matches" ? " active" : ""}`}
+                  onClick={() => setActiveTab("matches")}
                 >
-                  <Users size={13} /> Connections
-                  <span className="cp-tab-badge">{connections.length}</span>
+                  <Users size={13} /> Matches
+                  <span className="cp-tab-badge">{stats.matches}</span>
                 </button>
                 <button
-                  className={`cp-tab-btn${activeTab === "requests" ? " active" : ""}`}
-                  onClick={() => setActiveTab("requests")}
+                  className={`cp-tab-btn${activeTab === "likes" ? " active" : ""}`}
+                  onClick={() => setActiveTab("likes")}
                 >
-                  <UserPlus size={13} /> Requests
-                  {receivedRequests.length > 0 && (
-                    <span className="cp-tab-badge">{receivedRequests.length}</span>
+                  <Heart size={13} /> Received Likes
+                  {stats.likes > 0 && (
+                    <span className="cp-tab-badge">{stats.likes}</span>
+                  )}
+                </button>
+                <button
+                  className={`cp-tab-btn${activeTab === "starLikes" ? " active" : ""}`}
+                  onClick={() => setActiveTab("starLikes")}
+                >
+                  <Sparkles size={13} /> Star Likes
+                  {starLikes.length > 0 && (
+                    <span className="cp-tab-badge">{starLikes.length}</span>
                   )}
                 </button>
               </div>
@@ -310,116 +506,129 @@ const ConnectionsPage = () => {
 
             {/* Tab body */}
             <div className="cp-tab-body">
-
-              {/* ── Connections Tab ── */}
-              {activeTab === "connections" && (
-                connectedProfiles.length === 0 ? (
-                  <div className="cp-empty">
-                    <div className="cp-empty-icon">
-                      <Users size={28} style={{ color: "#c9856a" }} />
-                    </div>
-                    <h3>No connections yet</h3>
-                    <p>Start browsing profiles and send connection requests<br />to build your network of potential matches.</p>
-                    <Link to="/home" className="cp-empty-cta">
-                      <Sparkles size={14} /> Browse Profiles
-                    </Link>
-                  </div>
-                ) : (
-                  <>
-                    <div className="cp-grid">
-                      {connectedProfiles.map(profile => (
-                        <div key={profile.id} className="cp-profile-card">
-                          <div className="cp-card-img-wrap">
-                            <img src={profile.profileImage} alt={profile.firstName} className="cp-card-img" />
-                            <div className="cp-card-img-overlay" />
-                            <span className="cp-card-img-name">{profile.firstName}, {profile.age}</span>
-                          </div>
-                          <div className="cp-card-body">
-                            <div className="cp-card-meta">
-                              {profile.city && (
-                                <span className="cp-card-tag loc">
-                                  <MapPin size={9} />{profile.city}
-                                </span>
-                              )}
-                              {profile.profession && (
-                                <span className="cp-card-tag job">
-                                  <Briefcase size={9} />{profile.profession}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="cp-card-actions">
-                            <Link to={`/profile/${profile.id}`} className="cp-card-btn">
-                              <User size={13} /> Profile
-                            </Link>
-                            <Link to={`/messages?user=${profile.id}`} className="cp-card-btn primary">
-                              <MessageCircle size={13} /> Message
-                            </Link>
-                          </div>
+              {loading ? (
+                <div style={{ padding: '3rem', textAlign: 'center', color: '#9a7060' }}>
+                  <Loader2 size={32} style={{ margin: '0 auto 1rem', display: 'block' }} />
+                  <p>Fetching your connections...</p>
+                </div>
+              ) : (
+                <>
+                  {/* ── Matches tab ── */}
+                  {activeTab === "matches" && (
+                    matches.length === 0 ? (
+                      <div className="cp-empty">
+                        <div className="cp-empty-icon">
+                          <Users size={28} style={{ color: "#c9856a" }} />
                         </div>
-                      ))}
-                    </div>
-                    <div className="cp-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
-                  </>
-                )
-              )}
-
-              {/* ── Requests Tab ── */}
-              {activeTab === "requests" && (
-                requestProfiles.length === 0 ? (
-                  <div className="cp-empty">
-                    <div className="cp-empty-icon">
-                      <UserPlus size={28} style={{ color: "#c9856a" }} />
-                    </div>
-                    <h3>No pending requests</h3>
-                    <p>When someone sends you a connection request,<br />it will appear here for you to accept or decline.</p>
-                    <Link to="/home" className="cp-empty-cta">
-                      <Sparkles size={14} /> Discover Matches
-                    </Link>
-                  </div>
-                ) : (
-                  <>
-                    <div className="cp-req-list">
-                      {requestProfiles.map(profile => (
-                        <div key={profile.id} className="cp-req-card">
-                          <img src={profile.profileImage} alt={profile.firstName} className="cp-req-avatar" />
-                          <div className="cp-req-info">
-                            <div className="cp-req-name">
-                              {profile.firstName} {profile.lastName}
+                        <h3>No matches yet</h3>
+                        <p>Start browsing profiles to find your perfect match.<br />Matched profiles will appear here.</p>
+                        <Link to="/" className="cp-empty-cta">
+                          <Sparkles size={14} /> Discover Matches
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="cp-grid">
+                        {matches.map(match => (
+                          <div
+                            key={match.id}
+                            className="cp-profile-card"
+                            onClick={() => navigate(`/profile/${match.otherUser.id}`)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <div className="cp-card-img-wrap">
+                              <img src={match.otherUser.profileImageUrl || "/default-avatar.png"} alt={match.otherUser.name} className="cp-card-img" />
+                              <div className="cp-card-img-overlay" />
+                              <span className="cp-card-img-name">{match.otherUser.name}, {match.otherUser.age}</span>
                             </div>
-                            <div className="cp-req-sub">
-                              {profile.age && <span>{profile.age} yrs</span>}
-                              {profile.city && <span><MapPin size={10} style={{ display: "inline", verticalAlign: "middle" }} /> {profile.city}</span>}
-                              {profile.profession && <span>{profile.profession}</span>}
+                            <div className="cp-card-body">
+                              <div className="cp-card-meta">
+                                <span className="cp-card-tag loc"><MapPin size={9} />{match.otherUser.district}</span>
+                                <span className="cp-card-tag job"><Briefcase size={9} />{match.otherUser.profession}</span>
+                              </div>
+                            </div>
+                            <div className="cp-card-actions">
+                              <Link to={`/profile/${match.otherUser.id}`} className="cp-card-btn" onClick={(e) => e.stopPropagation()}>
+                                <User size={13} /> Profile
+                              </Link>
+                              <Link to="/messages" className="cp-card-btn primary" onClick={(e) => e.stopPropagation()}>
+                                <MessageCircle size={13} /> Message
+                              </Link>
                             </div>
                           </div>
-                          <div className="cp-req-actions">
-                            <button
-                              className="cp-req-btn accept"
-                              title="Accept Request"
-                              onClick={() => acceptFriendRequest(profile.id)}
-                            >
-                              <Check size={16} />
-                            </button>
-                            <button
-                              className="cp-req-btn decline"
-                              title="Decline Request"
-                              onClick={() => rejectFriendRequest(profile.id)}
-                            >
-                              <X size={16} />
-                            </button>
-                            <Link to={`/profile/${profile.id}`} className="cp-card-btn" style={{ width: "auto", flex: "none", padding: "0.45rem 0.75rem", textDecoration: "none" }}>
-                              <User size={13} /> View
+                        ))}
+                      </div>
+                    )
+                  )}
+
+                  {/* ── Who Liked Me tab ── */}
+                  {activeTab === "likes" && (
+                    receivedLikes.length === 0 ? (
+                      <div className="cp-empty">
+                        <div className="cp-empty-icon">
+                          <Heart size={28} style={{ color: "#c9856a" }} />
+                        </div>
+                        <h3>No likes yet</h3>
+                        <p>Likes from other users will show up here.<br />Try boosting your profile for more visibility.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Premium upsell banner — shown only to free users */}
+                        {!isPremium && (
+                          <div className="cp-premium-banner">
+                            <div className="cp-premium-banner-icon">
+                              <Lock size={18} color="#fff" />
+                            </div>
+                            <div className="cp-premium-banner-text">
+                              <strong>{stats.likes} people liked your profile</strong>
+                              <span>Upgrade to Premium to see who they are</span>
+                            </div>
+                            <Link to="/subscription" className="cp-premium-banner-cta">
+                              <Sparkles size={12} /> Unlock All
                             </Link>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="cp-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
-                  </>
-                )
-              )}
+                        )}
 
+                        <div className="cp-grid">
+                          {receivedLikes.map(like => (
+                            <BlurredLikeCard
+                              key={like.likeId}
+                              like={like}
+                              isPremium={isPremium}
+                              onUnlockClick={() => navigate("/subscription")}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )
+                  )}
+
+                  {/* ── Star Likes tab ── */}
+                  {activeTab === "starLikes" && (
+                    starLikes.length === 0 ? (
+                      <div className="cp-empty">
+                        <div className="cp-empty-icon">
+                          <Sparkles size={28} style={{ color: "#c9856a" }} />
+                        </div>
+                        <h3>No Star Likes yet</h3>
+                        <p>Special likes from users who want to stand out<br />will appear here. These are prioritized connections!</p>
+                      </div>
+                    ) : (
+                      <div className="cp-grid">
+                        {starLikes.map(like => (
+                          <BlurredLikeCard
+                            key={like.likeId}
+                            like={like}
+                            isPremium={isPremium}
+                            onUnlockClick={() => navigate("/subscription")}
+                          />
+                        ))}
+                      </div>
+                    )
+                  )}
+
+                  <div className="cp-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
+                </>
+              )}
             </div>
           </div>
         </div>

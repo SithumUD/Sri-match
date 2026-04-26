@@ -4,10 +4,13 @@ import { useLocation, Link } from "react-router-dom";
 import { dummyMessages, dummyProfiles } from "../data/dummyData";
 import { useAuth } from "../context/AuthContext";
 import {
-  Search, Send, Smile, Paperclip, Image, Mic,
+  Search, Send, Smile, Paperclip, Image as ImageIcon, Mic,
   MessageCircle, Phone, Video, UserPlus, Check,
-  X, Info, Lock, Crown, Zap, Heart, ChevronRight,
+  X, Info, Lock, Crown, Zap, Heart, ChevronRight, Loader2, Clock, Flag,
 } from "lucide-react";
+import ChatService from "../services/chat.service";
+import MatchService from "../services/match.service";
+import ReportService from "../services/report.service";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -314,13 +317,11 @@ const styles = `
   }
 
   @media (max-width: 600px) {
-    .mp-root { padding: 1.25rem 0.75rem 4rem; }
-    .mp-bubble { max-width: 85%; }
-    .mp-chat-head { padding: 0.75rem 1rem; }
-    .mp-messages { padding: 1rem; }
-    .mp-input-bar { padding: 0.75rem 1rem; }
     .mp-banner { padding: 0.6rem 1rem; }
   }
+
+  .mp-spin { animation: mp-spin 1s linear infinite; }
+  @keyframes mp-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 `;
 
 /* ─── Component ──────────────────────────────────────────────────────────── */
@@ -338,107 +339,147 @@ const MessagesPage = () => {
     toggleFriendRequest,
   } = useAuth();
 
-  const [conversations, setConversations] = useState(dummyMessages);
+  const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [message, setMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [messagesBeforeConnect, setMessagesBeforeConnect] = useState(0);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDesc, setReportDesc] = useState("");
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(false);
   const messageEndRef = useRef(null);
-
-  /* seed online status once per mount */
-  const [onlineMap] = useState(() => {
-    const map = {};
-    dummyMessages.forEach(c => { map[c.id] = Math.random() > 0.5; });
-    return map;
-  });
+  const pollingInterval = useRef(null);
 
   useEffect(() => {
-    if (initialUserId) {
-      const conv = conversations.find(c => c.userId === initialUserId);
-      if (conv) {
-        setActiveConversation(conv);
-      } else {
-        const profile = dummyProfiles.find(p => p.id === initialUserId);
-        if (profile) {
-          const newConv = {
-            id: `conv-${Date.now()}`,
-            userId: profile.id,
-            name: `${profile.firstName} ${profile.lastName}`,
-            messages: [],
-            unread: 0,
-            lastMessageTime: "Just now",
-            avatar: profile.profileImage,
-          };
-          setConversations(prev => [...prev, newConv]);
-          setActiveConversation(newConv);
-        }
-      }
-    } else if (conversations.length > 0 && !activeConversation) {
-      setActiveConversation(conversations[0]);
+    fetchConversations();
+    return () => {
+      if (pollingInterval.current) clearInterval(pollingInterval.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeConversation) {
+      fetchMessages(activeConversation.id);
+      
+      // Start polling for new messages (fallback for WebSockets)
+      if (pollingInterval.current) clearInterval(pollingInterval.current);
+      pollingInterval.current = setInterval(() => {
+        fetchMessages(activeConversation.id, true);
+      }, 5000);
+    } else {
+      if (pollingInterval.current) clearInterval(pollingInterval.current);
     }
-  }, [initialUserId]);
+  }, [activeConversation?.id]);
 
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeConversation?.messages?.length]);
+  }, [messages.length]);
 
-  const handleSendMessage = (e) => {
+  const fetchConversations = async () => {
+    try {
+      setLoading(true);
+      const response = await MatchService.getMyMatches();
+      if (response.success) {
+        setConversations(response.data.content || []);
+        if (response.data.content?.length > 0 && !activeConversation && !initialUserId) {
+          setActiveConversation(response.data.content[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching conversations:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMessages = async (matchId, isPolling = false) => {
+    try {
+      if (!isPolling) setLoadingMessages(true);
+      const response = await ChatService.getChatHistory(matchId);
+      if (response.success) {
+        // Only update if new messages arrived to avoid jitter
+        setMessages(prev => {
+          const newMessages = response.data.content || [];
+          if (newMessages.length !== prev.length) return newMessages.reverse();
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching messages:", err);
+    } finally {
+      if (!isPolling) setLoadingMessages(false);
+    }
+  };
+
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!message.trim() || !activeConversation) return;
 
-    const isConnected = connections.includes(activeConversation.userId);
-    const isPremium = subscription?.plan === "premium";
-
-    if (!isConnected && !isPremium) return;
-    if (!isConnected && isPremium) {
-      if (messagesBeforeConnect >= (subscription?.features?.messageBeforeAccept || 3)) return;
-      setMessagesBeforeConnect(n => n + 1);
-    }
-
-    const newMsg = {
-      id: `m${Date.now()}`,
-      sender: user?.id,
+    const payload = {
+      matchId: activeConversation.id,
+      receiverId: activeConversation.otherUser.id,
       content: message,
-      timestamp: new Date().toISOString(),
-      read: true,
+      type: "TEXT"
     };
 
-    setConversations(prev => prev.map(c =>
-      c.id === activeConversation.id
-        ? { ...c, messages: [...c.messages, newMsg], lastMessageTime: "Just now" }
-        : c
-    ));
-    setActiveConversation(prev => ({
-      ...prev,
-      messages: [...prev.messages, newMsg],
-    }));
-    setMessage("");
+    try {
+      const response = await ChatService.sendMessage(payload);
+      if (response.success) {
+        setMessages(prev => [...prev, response.data]);
+        setMessage("");
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      alert("Failed to send message. Please try again.");
+    }
+  };
+
+  const handleReport = async (e) => {
+    e.preventDefault();
+    if (!reportReason || !reportDesc || !activeConversation) return;
+    try {
+      setReportLoading(true);
+      await ReportService.submitReport({
+        reportedUserId: activeConversation.otherUser.id,
+        reason: reportReason,
+        description: reportDesc
+      });
+      setReportSuccess(true);
+      setTimeout(() => {
+        setShowReportModal(false);
+        setReportSuccess(false);
+        setReportReason("");
+        setReportDesc("");
+      }, 2000);
+    } catch (err) {
+      alert(err.message || "Failed to submit report");
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   const selectConversation = (conv) => {
     setActiveConversation(conv);
-    setMessagesBeforeConnect(0);
-    /* mark as read */
-    setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread: 0 } : c));
   };
 
   const formatTime = (ts) => {
+    if (!ts) return "";
     try {
       return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     } catch { return ""; }
   };
 
   const filtered = conversations.filter(c =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
+    c.otherUser.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const isConnected = activeConversation ? connections.includes(activeConversation.userId) : false;
-  const hasSentRequest = activeConversation ? sentRequests.includes(activeConversation.userId) : false;
-  const activeProfile = activeConversation ? dummyProfiles.find(p => p.id === activeConversation.userId) : null;
-  const isPremium = subscription?.plan === "premium";
-  const canCall = subscription?.features?.canVoiceVideoCall;
-  const msgsLeft = (subscription?.features?.messageBeforeAccept || 3) - messagesBeforeConnect;
-  const canType = isConnected || isPremium;
+  const isPremium = user?.premium;
+  const canCall = isPremium && (subscription?.daysRemaining > 0);
+  const canType = true; // Based on match status
 
   return (
     <>
@@ -471,30 +512,32 @@ const MessagesPage = () => {
               </div>
 
               <div className="mp-conv-list">
-                {filtered.length > 0 ? filtered.map(conv => {
-                  const lastMsg = conv.messages[conv.messages.length - 1];
-                  const isOnline = onlineMap[conv.id];
+                {loading ? (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: '#9a7060' }}>
+                    <Loader2 size={24} className="mp-spin" style={{ margin: '0 auto 0.5rem' }} />
+                    <p style={{ fontSize: '0.8rem' }}>Loading conversations...</p>
+                  </div>
+                ) : filtered.length > 0 ? filtered.map(conv => {
                   const isActive = activeConversation?.id === conv.id;
                   return (
                     <div
                       key={conv.id}
-                      className={`mp-conv-item${isActive ? " active" : ""}${conv.unread > 0 ? " unread" : ""}`}
+                      className={`mp-conv-item${isActive ? " active" : ""}`}
                       onClick={() => selectConversation(conv)}
                     >
                       <div className="mp-conv-avatar-wrap">
-                        <img src={conv.avatar} alt={conv.name} className={`mp-conv-avatar${isActive ? " active-border" : ""}`} />
-                        <div className={`mp-conv-online ${isOnline ? "online" : "offline"}`} />
+                        <img src={conv.otherUser.profileImageUrl || "/default-avatar.png"} alt={conv.otherUser.name} className={`mp-conv-avatar${isActive ? " active-border" : ""}`} />
+                        {/* Status could be added here if available */}
                       </div>
                       <div className="mp-conv-body">
                         <div className="mp-conv-top">
-                          <span className="mp-conv-name">{conv.name}</span>
-                          <span className="mp-conv-time">{conv.lastMessageTime}</span>
+                          <span className="mp-conv-name">{conv.otherUser.name}</span>
+                          <span className="mp-conv-time">{new Date(conv.matchedAt).toLocaleDateString()}</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.3rem" }}>
-                          <span className={`mp-conv-preview${conv.unread > 0 ? " bold" : ""}`}>
-                            {lastMsg?.content || "Start a conversation…"}
+                          <span className="mp-conv-preview">
+                            Click to chat with {conv.otherUser.name}
                           </span>
-                          {conv.unread > 0 && <span className="mp-conv-badge">{conv.unread}</span>}
                         </div>
                       </div>
                     </div>
@@ -502,7 +545,8 @@ const MessagesPage = () => {
                 }) : (
                   <div className="mp-conv-empty">
                     <MessageCircle size={28} style={{ color: "#e8c9b8" }} />
-                    <p>No conversations found</p>
+                    <p>No matches yet</p>
+                    <Link to="/" style={{ fontSize: '0.75rem', color: '#8b4e2e', marginTop: '0.5rem' }}>Find your match ✦</Link>
                   </div>
                 )}
               </div>
@@ -514,98 +558,81 @@ const MessagesPage = () => {
                 <>
                   {/* Chat header */}
                   <div className="mp-chat-head">
-                    <img src={activeConversation.avatar} alt={activeConversation.name} className="mp-chat-avatar" />
+                    <img src={activeConversation.otherUser.profileImageUrl || "/default-avatar.png"} alt={activeConversation.otherUser.name} className="mp-chat-avatar" />
                     <div className="mp-chat-info">
-                      <div className="mp-chat-name">{activeConversation.name}</div>
+                      <div className="mp-chat-name">{activeConversation.otherUser.name}</div>
                       <div className="mp-chat-status">
-                        {onlineMap[activeConversation.id]
-                          ? <><span className="mp-chat-status-dot" />Online</>
-                          : "Last seen recently"}
+                        {activeConversation.otherUser.profession} · {activeConversation.otherUser.district}
                       </div>
                     </div>
                     <div className="mp-chat-actions">
                       <button
-                        className={`mp-chat-btn${canCall ? "" : ""}`}
-                        title={canCall ? "Voice Call" : "Upgrade for voice calls"}
+                        className="mp-chat-btn"
+                        title="Report User"
+                        onClick={() => setShowReportModal(true)}
+                      >
+                        <Flag size={15} />
+                      </button>
+                      <button
+                        className="mp-chat-btn"
+                        title={canCall ? "Voice Call" : "Coming Soon"}
                         disabled={!canCall}
-                        onClick={() => !canCall && alert("Voice calls are a Premium feature.")}
+                        onClick={() => !canCall ? alert("Voice calls are coming soon!") : alert("Voice call feature is coming soon!")}
                       >
                         <Phone size={15} />
                       </button>
                       <button
                         className="mp-chat-btn"
-                        title={canCall ? "Video Call" : "Upgrade for video calls"}
+                        title={canCall ? "Video Call" : "Coming Soon"}
                         disabled={!canCall}
-                        onClick={() => !canCall && alert("Video calls are a Premium feature.")}
+                        onClick={() => !canCall ? alert("Video calls are coming soon!") : alert("Video call feature is coming soon!")}
                       >
                         <Video size={15} />
                       </button>
-                      {!isConnected && (
-                        <button
-                          className={`mp-chat-btn${hasSentRequest ? " active" : ""}`}
-                          title={hasSentRequest ? "Request Sent" : "Send Connection Request"}
-                          onClick={() => toggleFriendRequest(activeConversation.userId)}
-                        >
-                          <UserPlus size={15} />
-                        </button>
-                      )}
-                      {isConnected && (
-                        <button className="mp-chat-btn active" title="Connected" style={{ cursor: "default" }}>
-                          <Check size={15} />
-                        </button>
-                      )}
                     </div>
                   </div>
 
-                  {/* Premium upsell bar */}
-                  {!isPremium && !isConnected && !hasSentRequest && (
+                  {!isPremium && (
                     <div className="mp-premium-bar">
                       <div className="mp-premium-bar-left">
                         <Crown size={13} style={{ color: "#e8c97a" }} />
-                        Upgrade to Premium to message before connecting
+                        Get Premium to enjoy unlimited features and boost your profile
                       </div>
                       <Link to="/subscription" className="mp-premium-bar-btn" style={{ textDecoration: "none" }}>Upgrade ✦</Link>
                     </div>
                   )}
 
-                  {/* Connection status banner */}
-                  {!isConnected && (hasSentRequest || isPremium) && (
-                    <div className={`mp-banner ${hasSentRequest ? "info" : "warning"}`}>
-                      <div className="mp-banner-left">
-                        {hasSentRequest
-                          ? <><Info size={13} />Request sent · waiting for {activeProfile?.firstName} to accept</>
-                          : <><Zap size={13} style={{ color: "#c07030" }} />{msgsLeft} free message{msgsLeft !== 1 ? "s" : ""} remaining before connection</>}
-                      </div>
-                      {!hasSentRequest && (
-                        <button className="mp-banner-btn" onClick={() => toggleFriendRequest(activeConversation.userId)}>
-                          Connect
-                        </button>
-                      )}
-                    </div>
-                  )}
-
                   {/* Messages */}
                   <div className="mp-messages">
-                    {activeConversation.messages.length === 0 ? (
+                    {loadingMessages ? (
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         <Loader2 size={32} className="mp-spin" color="#e8c9b8" />
+                      </div>
+                    ) : messages.length === 0 ? (
                       <div className="mp-chat-empty" style={{ flex: 1 }}>
                         <div className="mp-chat-empty-icon">
                           <Heart size={26} style={{ color: "#c9856a" }} />
                         </div>
-                        <h3>Say hello to {activeProfile?.firstName || "them"}</h3>
+                        <h3>Say hello to {activeConversation.otherUser.name}</h3>
                         <p>Be the first to break the ice ✦</p>
                       </div>
                     ) : (
                       <>
-                        <div className="mp-date-sep">Today</div>
-                        {activeConversation.messages.map(msg => {
-                          const isMine = msg.sender === user?.id;
+                        <div className="mp-date-sep">Chat Started</div>
+                        {messages.map(msg => {
+                          const isMine = msg.senderId === user?.id;
                           return (
                             <div key={msg.id} className={`mp-bubble-row ${isMine ? "mine" : "theirs"}`}>
                               <div className={`mp-bubble ${isMine ? "mine" : "theirs"}`}>
                                 <span className="mp-bubble-text">{msg.content}</span>
-                                <span className={`mp-bubble-time ${isMine ? "mine" : "theirs"}`}>
-                                  {formatTime(msg.timestamp)}
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
+                                    <span className={`mp-bubble-time ${isMine ? "mine" : "theirs"}`}>
+                                    {formatTime(msg.createdAt)}
+                                    </span>
+                                    {isMine && (
+                                        msg.read ? <Check size={10} color="#fff" /> : <Clock size={10} color="rgba(255,255,255,0.6)" />
+                                    )}
+                                </div>
                               </div>
                             </div>
                           );
@@ -624,7 +651,7 @@ const MessagesPage = () => {
                       <input
                         type="text"
                         className="mp-input"
-                        placeholder={canType ? `Message ${activeProfile?.firstName || ""}…` : "Connect to send messages"}
+                        placeholder={`Message ${activeConversation.otherUser.name}…`}
                         value={message}
                         onChange={e => setMessage(e.target.value)}
                         disabled={!canType}
@@ -649,6 +676,85 @@ const MessagesPage = () => {
           </div>
         </div>
       </div>
+
+      {showReportModal && (
+        <div 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(30,8,2,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1.5rem', backdropFilter: 'blur(4px)' }}
+          onClick={() => !reportLoading && setShowReportModal(false)}
+        >
+          <div 
+            style={{ background: '#fff', borderRadius: '22px', width: '100%', maxWidth: '450px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', animation: 'slideUp 0.3s ease-out', position: 'relative', margin: 'auto' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ padding: '1.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Report {activeConversation?.otherUser.name}</h3>
+                <button 
+                  style={{ width: '28px', height: '28px', borderRadius: '50%', border: 'none', background: '#f5ede5', color: '#8b4e2e', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  onClick={() => setShowReportModal(false)}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              {reportSuccess ? (
+                <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                    <Check size={24} />
+                  </div>
+                  <p style={{ fontWeight: 600, color: '#2d1810' }}>Report Submitted</p>
+                  <p style={{ fontSize: '0.85rem', color: '#9a7060', marginTop: '0.25rem' }}>Our team will investigate this user shortly.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleReport}>
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8b4e2e', marginBottom: '0.4rem', display: 'block' }}>Reason for report</label>
+                    <select 
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1.5px solid #f0ddd5', fontSize: '0.85rem', outline: 'none', background: '#fdfaf8' }}
+                      value={reportReason}
+                      onChange={e => setReportReason(e.target.value)}
+                      required
+                    >
+                      <option value="">Select a reason</option>
+                      <option value="FAKE_PROFILE">Fake Profile / Identity</option>
+                      <option value="HARASSMENT">Harassment or Abuse</option>
+                      <option value="INAPPROPRIATE_CONTENT">Inappropriate Content</option>
+                      <option value="SPAM">Spam or Scamming</option>
+                      <option value="FRAUD">Fraudulent Activity</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: '1.75rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8b4e2e', marginBottom: '0.4rem', display: 'block' }}>Description</label>
+                    <textarea 
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1.5px solid #f0ddd5', fontSize: '0.85rem', outline: 'none', resize: 'none', minHeight: '110px', background: '#fdfaf8' }}
+                      placeholder="Please provide details about the issue..."
+                      value={reportDesc}
+                      onChange={e => setReportDesc(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button 
+                    type="submit" 
+                    disabled={reportLoading}
+                    style={{ width: '100%', padding: '0.85rem', borderRadius: '99px', border: 'none', background: 'linear-gradient(135deg, #3d1f12, #8b4e2e)', color: '#fff', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 8px 20px rgba(139,78,46,0.25)' }}
+                  >
+                    {reportLoading ? <Loader2 size={16} className="mp-spin" /> : <Flag size={14} />}
+                    Submit Report
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </>
   );
 };

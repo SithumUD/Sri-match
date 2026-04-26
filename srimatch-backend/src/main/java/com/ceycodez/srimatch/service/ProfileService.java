@@ -8,6 +8,10 @@ import com.ceycodez.srimatch.dto.response.PublicProfileResponse;
 import com.ceycodez.srimatch.model.Profile;
 import com.ceycodez.srimatch.model.ProfileView;
 import com.ceycodez.srimatch.model.User;
+import com.ceycodez.srimatch.model.Like;
+import com.ceycodez.srimatch.model.enums.LikeStatus;
+import com.ceycodez.srimatch.model.enums.LikeType;
+import com.ceycodez.srimatch.repository.LikeRepository;
 import com.ceycodez.srimatch.repository.ProfileRepository;
 import com.ceycodez.srimatch.repository.ProfileViewRepository;
 import com.ceycodez.srimatch.repository.UserRepository;
@@ -33,14 +37,15 @@ public class ProfileService {
     private final CloudinaryService cloudinaryService;
     private final MatchingService matchingService;
     private final ProfileViewRepository profileViewRepository;
+    private final LikeRepository likeRepository;
 
     @Transactional
     public ProfileResponse createOrUpdateProfile(String email, ProfileRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!user.isEmailVerified() || !user.isPhoneVerified()) {
-            throw new RuntimeException("Cannot create profile without verifying email and phone number");
+        if (!user.isEmailVerified()) {
+            throw new RuntimeException("Cannot create profile without verifying email address");
         }
 
         // Update User basic info
@@ -146,18 +151,24 @@ public class ProfileService {
         ProfileResponse response = new ProfileResponse();
         BeanUtils.copyProperties(profile, response);
         response.setUserId(profile.getUser().getId());
+        response.setFirstName(profile.getUser().getFirstName());
+        response.setLastName(profile.getUser().getLastName());
         response.setAge(profile.getAge());
+        response.setPremium(profile.getUser().isPremiumActive());
+        response.setPremiumExpiryDate(profile.getUser().getPremiumExpiryDate());
         return response;
     }
 
     public Page<PublicProfileResponse> searchProfiles(ProfileSearchRequest request, String currentUserEmail) {
         boolean isPremium = false;
         Profile searcher = null;
+        User currentUser = null;
         if (currentUserEmail != null) {
             Optional<User> userOpt = userRepository.findByEmail(currentUserEmail);
             if (userOpt.isPresent()) {
-                isPremium = userOpt.get().isPremiumActive();
-                searcher = userOpt.get().getProfile();
+                currentUser = userOpt.get();
+                isPremium = currentUser.isPremiumActive();
+                searcher = currentUser.getProfile();
             }
         }
         
@@ -187,7 +198,8 @@ public class ProfileService {
                     break;
                 case "newest":
                 default:
-                    sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                    // Primary Sort: Boosted first, then Newest
+                    sort = Sort.by(Sort.Order.desc("isBoosted"), Sort.Order.desc("createdAt"));
                     break;
             }
         }
@@ -196,8 +208,23 @@ public class ProfileService {
         Specification<Profile> spec = ProfileSpecification.buildSpecification(request, finalSearcher, isPremium, shuffle);
 
         Page<Profile> profiles = profileRepository.findAll(spec, pageable);
+        
+        // Fetch interactions in batch
+        Map<Long, Like> interactionMap = new HashMap<>();
+        if (currentUser != null) {
+            Long senderId = currentUser.getId();
+            List<Long> receiverIds = profiles.getContent().stream()
+                    .map(p -> p.getUser().getId())
+                    .collect(Collectors.toList());
+            
+            if (!receiverIds.isEmpty()) {
+                List<Like> interactions = likeRepository.findBySenderIdAndReceiverIdIn(senderId, receiverIds);
+                interactions.forEach(l -> interactionMap.put(l.getReceiver().getId(), l));
+            }
+        }
+
         List<PublicProfileResponse> responseList = profiles.stream()
-                .map(p -> mapToPublicResponse(p, finalSearcher))
+                .map(p -> mapToPublicResponse(p, finalSearcher, interactionMap.get(p.getUser().getId())))
                 .collect(Collectors.toList());
 
         // Layer 5: Diversity Filter (Simple Implementation)
@@ -211,21 +238,25 @@ public class ProfileService {
 
     private List<PublicProfileResponse> applyDiversityFilter(List<PublicProfileResponse> list) {
         if (list.size() <= 2) return list;
-        List<PublicProfileResponse> result = new ArrayList<>();
+        
+        List<PublicProfileResponse> prioritised = new ArrayList<>();
+        List<PublicProfileResponse> moved = new ArrayList<>();
         Map<String, Integer> comboCount = new HashMap<>();
 
         for (PublicProfileResponse p : list) {
-            String combo = p.getProfession() + "|" + p.getDistrict();
+            String combo = (p.getProfession() != null ? p.getProfession() : "unknown") + "|" + (p.getDistrict() != null ? p.getDistrict() : "unknown");
             int count = comboCount.getOrDefault(combo, 0);
             if (count < 2) {
-                result.add(p);
+                prioritised.add(p);
                 comboCount.put(combo, count + 1);
             } else {
-                // Too many similar in this page, move to end or just drop for this specific slice
-                result.add(p); // Keep it but we could reorder. Reordering breaks stability.
+                // Too many similar items, move them slightly down the list
+                moved.add(p);
             }
         }
-        return result; 
+        
+        prioritised.addAll(moved);
+        return prioritised; 
     }
 
     @Transactional
@@ -234,6 +265,7 @@ public class ProfileService {
                 .orElseThrow(() -> new RuntimeException("Profile not found"));
         
         Profile searcher = null;
+        Like interaction = null;
         if (viewerEmail != null) {
             User viewer = userRepository.findByEmail(viewerEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
@@ -247,14 +279,19 @@ public class ProfileService {
             profileViewRepository.save(view);
             
             // Increment profile view count
-            profile.setProfileViews(profile.getProfileViews() + 1);
+            Integer currentViews = profile.getProfileViews();
+            profile.setProfileViews((currentViews != null ? currentViews : 0) + 1);
             profileRepository.save(profile);
+
+            // Fetch interaction status
+            interaction = likeRepository.findBySenderAndReceiver(viewer, profile.getUser())
+                    .orElse(null);
         }
         
-        return mapToDetailedResponse(profile, searcher);
+        return mapToDetailedResponse(profile, searcher, interaction);
     }
 
-    private DetailedProfileResponse mapToDetailedResponse(Profile profile, Profile searcher) {
+    private DetailedProfileResponse mapToDetailedResponse(Profile profile, Profile searcher, Like interaction) {
         Integer compatibilityScore = null;
         if (searcher != null) {
             compatibilityScore = (int) Math.round(matchingService.calculateCompatibility(searcher, profile));
@@ -262,7 +299,9 @@ public class ProfileService {
 
         return DetailedProfileResponse.builder()
                 .id(profile.getId())
+                .userId(profile.getUser().getId())
                 .firstName(profile.getUser().getFirstName())
+                .lastName(profile.getUser().getLastName())
                 .age(profile.getAge())
                 .city(profile.getCity())
                 .district(profile.getDistrict())
@@ -281,6 +320,9 @@ public class ProfileService {
                 .isVerified(profile.isIdVerified())
                 .isBoosted(profile.isBoosted())
                 .compatibilityScore(compatibilityScore)
+                // Interaction
+                .interactionType(interaction != null ? interaction.getType().name() : null)
+                .interactionStatus(interaction != null ? interaction.getStatus().name() : null)
                 // Physical
                 .height(profile.getHeight())
                 .bodyType(profile.getBodyType() != null ? profile.getBodyType().name() : null)
@@ -312,6 +354,7 @@ public class ProfileService {
                 .familyInvolvement(profile.getFamilyInvolvement())
                 .weddingPreferences(profile.getWeddingPreferences())
                 // Additional
+                .partnerPreferences(profile.getPartnerPreferences())
                 .favoriteThings(profile.getFavoriteThings())
                 .personalityTraits(profile.getPersonalityTraits())
                 .dealbreakers(profile.getDealbreakers())
@@ -319,15 +362,17 @@ public class ProfileService {
                 // Stats
                 .profileViews(profile.getProfileViews())
                 .completionScore(profile.getCompletionScore())
+                .premium(profile.getUser().isPremiumActive())
+                .premiumExpiryDate(profile.getUser().getPremiumExpiryDate())
                 .build();
     }
 
-    private PublicProfileResponse mapToPublicResponse(Profile profile, Profile searcher) {
+    private PublicProfileResponse mapToPublicResponse(Profile profile, Profile searcher, Like interaction) {
         Integer compatibilityScore = null;
         if (searcher != null) {
             compatibilityScore = (int) Math.round(matchingService.calculateCompatibility(searcher, profile));
         }
-
+ 
         return PublicProfileResponse.builder()
                 .id(profile.getId())
                 .firstName(profile.getUser().getFirstName())
@@ -347,7 +392,42 @@ public class ProfileService {
                 .isVerified(profile.isIdVerified())
                 .isBoosted(profile.isBoosted())
                 .compatibilityScore(compatibilityScore)
+                .interactionType(interaction != null ? interaction.getType().name() : null)
+                .interactionStatus(interaction != null ? interaction.getStatus().name() : null)
                 .build();
+    }
+
+    public ProfileResponse setPrimaryImage(String email, String imageUrl) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        Profile profile = profileRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new RuntimeException("Profile not found"));
+                
+        if (profile.getProfileImages() != null && profile.getProfileImages().contains(imageUrl)) {
+            profile.setPrimaryImageUrl(imageUrl);
+            Profile saved = profileRepository.save(profile);
+            return mapToResponse(saved);
+        }
+        throw new RuntimeException("Image not found in profile");
+    }
+
+    public ProfileResponse deleteImage(String email, String imageUrl) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        Profile profile = profileRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new RuntimeException("Profile not found"));
+                
+        if (profile.getProfileImages() != null) {
+            profile.getProfileImages().remove(imageUrl);
+            if (imageUrl.equals(profile.getPrimaryImageUrl())) {
+                profile.setPrimaryImageUrl(profile.getProfileImages().isEmpty() ? null : profile.getProfileImages().get(0));
+            }
+            Profile saved = profileRepository.save(profile);
+            return mapToResponse(saved);
+        }
+        return mapToResponse(profile);
     }
 
     private int calculateCompletionScore(Profile profile) {

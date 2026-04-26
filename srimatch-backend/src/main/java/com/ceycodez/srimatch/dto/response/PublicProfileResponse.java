@@ -26,4 +26,6 @@ public class PublicProfileResponse {
     private boolean isVerified;
     private boolean isBoosted;
     private Integer compatibilityScore;
+    private String interactionType;
+    private String interactionStatus;
 }

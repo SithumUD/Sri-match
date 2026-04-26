@@ -16,9 +16,13 @@ const ConnectionRequests = () => {
   const [showRequests, setShowRequests] = useState(false);
 
   // Get profile data for received requests
-  const requestProfiles = dummyProfiles.filter((profile) =>
-    receivedRequests.includes(profile.id)
-  );
+  const safeRequests = Array.isArray(receivedRequests)
+  ? receivedRequests
+  : [];
+
+const requestProfiles = dummyProfiles.filter((profile) =>
+  safeRequests.includes(profile.id)
+);
 
   return (
     <div className="relative">

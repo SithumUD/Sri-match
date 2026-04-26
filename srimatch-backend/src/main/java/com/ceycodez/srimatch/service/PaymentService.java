@@ -113,11 +113,23 @@ public class PaymentService {
                 .collect(Collectors.toList());
     }
 
+    public List<PaymentResponse> getAllPayments() {
+        return paymentRepository.findAll().stream()
+                .map(PaymentResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
     public List<PaymentResponse> getUserPayments(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return paymentRepository.findByUser(user).stream()
                 .map(PaymentResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    public boolean hasPendingPayment(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return paymentRepository.existsByUserAndPaymentStatus(user, PaymentStatus.PENDING);
     }
 }

@@ -18,4 +18,10 @@ public class LoginRequest {
     private String password;
     
     private boolean rememberMe = false;
+
+    /** Required for admins when 2FA is enabled */
+    private Integer totpCode;
+
+    /** Cloudflare Turnstile token - required in production */
+    private String captchaToken;
 }

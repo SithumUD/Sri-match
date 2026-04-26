@@ -1,14 +1,31 @@
-// HomePage.jsx - Redesigned to match SriMatch luxury aesthetic
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { dummyProfiles, profileOptions } from "../data/dummyData";
 import { useAuth } from "../context/AuthContext";
 import {
-  Heart, UserPlus, Check, MapPin, Briefcase, GraduationCap,
+  Heart, Star, Check, MapPin, Briefcase, GraduationCap,
   BookOpen, Search, ChevronDown, ChevronRight,
   Crown, Zap, Shield, ArrowUp, ArrowDown, Sparkles,
-  Filter, RefreshCw,
+  Filter, RefreshCw, Loader2, Image as ImageIcon
 } from "lucide-react";
+import ProfileService from "../services/profile.service";
+
+/* ─── Options Data ──────────────────────────────────────────────────────── */
+const PROFILE_OPTIONS = {
+  maritalStatus: ["Never Married", "Divorced", "Widowed", "Separated", "Annulled"],
+  religion: ["Buddhist", "Hindu", "Muslim", "Christian", "Catholic", "No Religion", "Other"],
+  ethnicity: ["Sinhalese", "Tamil", "Moor", "Burgher", "Malay", "Other"],
+  education: ["High School", "Diploma", "Bachelors", "Masters", "Doctorate", "Professional Certification", "Other"],
+  bodyType: ["Slim", "Athletic", "Average", "Overweight", "Plus Size", "Muscular"],
+  complexion: ["Fair", "Wheatish", "Medium", "Dusky", "Dark"],
+  smoking: ["Never", "Occasionally", "Regularly", "Trying to Quit"],
+  drinking: ["Never", "Socially", "Occasionally", "Regularly"],
+  dietary: ["Vegetarian", "Vegan", "Non Vegetarian", "Pescatarian", "No Preference"],
+  horoscope: ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"],
+  districts: ["Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", "Mannar", "Matale", "Matara", "Moneragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"],
+  interests: ["Music", "Travel", "Photography", "Reading", "Movies", "Gaming", "Cooking", "Sports", "Yoga", "Dancing"],
+  industries: ["Technology", "Healthcare", "Finance", "Education", "Engineering", "Arts", "Government", "Other"],
+  incomeRanges: ["Less than 50k", "50k - 100k", "100k - 200k", "200k - 500k", "Above 500k"]
+};
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -23,6 +40,9 @@ const styles = `
     color: #2d1810;
     padding: 2rem 1.5rem 4rem;
   }
+
+  @keyframes spin { 100% { transform:rotate(360deg); } }
+  .spinning { animation: spin 1s linear infinite; }
 
   /* ── Page header ── */
   .hp-page-header {
@@ -288,9 +308,9 @@ const styles = `
   .hp-action-btn.like { background: rgba(255,255,255,0.9); color: #b09080; }
   .hp-action-btn.like.active { background: #f4c9d0; color: #c03060; }
   .hp-action-btn.like:hover { background: #fff; color: #c9856a; }
-  .hp-action-btn.connect { background: rgba(255,255,255,0.9); color: #b09080; }
-  .hp-action-btn.connect.active { background: #e0eaf5; color: #3a6ea8; }
-  .hp-action-btn.connect:hover { background: #fff; color: #4a6ea0; }
+  .hp-action-btn.star { background: rgba(255,255,255,0.9); color: #b09080; }
+  .hp-action-btn.star.active { background: #fff5d1; color: #d4a017; }
+  .hp-action-btn.star:hover { background: #fff; color: #d4a017; }
 
   /* Card body */
   .hp-card-body { padding: 1rem 1.2rem 1.15rem; flex: 1; display: flex; flex-direction: column; }
@@ -371,19 +391,24 @@ const styles = `
 const HomePage = () => {
   const {
     likedProfiles = [],
-    sentRequests = [],
     toggleLike,
-    toggleFriendRequest,
     subscription = {},
     likesRemaining = 5,
+    user: currentUser
   } = useAuth();
 
-  const [profiles] = useState(dummyProfiles);
+  const [profiles, setProfiles] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [sortOrder, setSortOrder] = useState("newest");
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalElements, setTotalElements] = useState(0);
+
   const [filters, setFilters] = useState({
-    ageRange: [18, 60],
+    ageFrom: 18,
+    ageTo: 60,
     gender: "",
     maritalStatus: "",
     hasChildren: "",
@@ -395,25 +420,90 @@ const HomePage = () => {
     profession: "",
     industry: "",
     income: "",
-    height: [140, 200],
+    heightFrom: 140,
+    heightTo: 220,
     bodyType: "",
     smoking: "",
     drinking: "",
-    dietaryPreference: "",
+    dietaryPreferences: "",
     verified: false,
     horoscopeSign: "",
     interests: [],
   });
 
-  const isPremium = subscription?.plan === "premium";
+  const isPremium = subscription?.plan === "premium" || currentUser?.premium;
+
+  // Infinite Scroll Observer
+  const observerRef = useRef();
+  const lastElementRef = useCallback(node => {
+    if (loading) return;
+    if (observerRef.current) observerRef.current.disconnect();
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prev => prev + 1);
+      }
+    });
+    if (node) observerRef.current.observe(node);
+  }, [loading, hasMore]);
+
+  const loadProfiles = async (pNum, isNew = false) => {
+    setLoading(true);
+    try {
+      const mapEnum = (val) => val ? val.toUpperCase().replace(/\s+/g, '_') : null;
+      
+      const searchParams = {
+        ...filters,
+        page: pNum,
+        size: 12,
+        sortBy: sortOrder,
+        query: searchTerm,
+        maritalStatus: mapEnum(filters.maritalStatus),
+        religion: mapEnum(filters.religion),
+        ethnicity: mapEnum(filters.ethnicity),
+        education: mapEnum(filters.education),
+        gender: mapEnum(filters.gender),
+        bodyType: mapEnum(filters.bodyType),
+        smoking: mapEnum(filters.smoking),
+        drinking: mapEnum(filters.drinking),
+        dietaryPreferences: mapEnum(filters.dietaryPreferences),
+        horoscopeSign: mapEnum(filters.horoscopeSign),
+        hasChildren: filters.hasChildren === "" ? null : filters.hasChildren === "true"
+      };
+
+      const res = await ProfileService.searchProfiles(searchParams);
+      if (res.success) {
+        const newProfiles = res.data.content || [];
+        setProfiles(prev => isNew ? newProfiles : [...prev, ...newProfiles]);
+        setHasMore(!res.data.last);
+        setTotalElements(res.data.totalElements || 0);
+      }
+    } catch (err) {
+      console.error("Failed to fetch profiles:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setPage(0);
+    loadProfiles(0, true);
+  }, [filters, searchTerm, sortOrder]);
+
+  useEffect(() => {
+    if (page > 0) {
+      loadProfiles(page, false);
+    }
+  }, [page]);
 
   const handleFilterChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFilters(p => ({ ...p, [name]: type === "checkbox" ? checked : value }));
   };
 
-  const handleRange = (name, val, idx) => {
-    setFilters(p => ({ ...p, [name]: idx === 0 ? [val, p[name][1]] : [p[name][0], val] }));
+  const handleRange = (name, val, isMax) => {
+    setFilters(p => ({ 
+      ...p, [isMax ? `${name}To` : `${name}From`]: val 
+    }));
   };
 
   const toggleInterest = (interest) => {
@@ -425,52 +515,14 @@ const HomePage = () => {
 
   const resetFilters = () => {
     setFilters({
-      ageRange: [18, 60], gender: "", maritalStatus: "", hasChildren: "",
+      ageFrom: 18, ageTo: 60, gender: "", maritalStatus: "", hasChildren: "",
       city: "", district: "", ethnicity: "", religion: "", education: "",
-      profession: "", industry: "", income: "", height: [140, 200],
-      bodyType: "", smoking: "", drinking: "", dietaryPreference: "",
+      profession: "", industry: "", income: "", heightFrom: 140, heightTo: 220,
+      bodyType: "", smoking: "", drinking: "", dietaryPreferences: "",
       verified: false, horoscopeSign: "", interests: [],
     });
     setSearchTerm("");
   };
-
-  const cities = [...new Set(dummyProfiles.map(p => p.city))];
-  const professions = [...new Set(dummyProfiles.map(p => p.profession))];
-
-  const filtered = [...profiles]
-    .filter(p => {
-      const name = `${p.firstName} ${p.lastName}`.toLowerCase();
-      if (searchTerm && !name.includes(searchTerm.toLowerCase()) && !p.profession?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      if (filters.gender && p.gender !== filters.gender) return false;
-      if (filters.maritalStatus && p.maritalStatus !== filters.maritalStatus) return false;
-      if (filters.hasChildren !== "" && p.hasChildren !== (filters.hasChildren === "true")) return false;
-      if (filters.city && p.city !== filters.city) return false;
-      if (filters.district && p.district !== filters.district) return false;
-      if (filters.ethnicity && p.ethnicity !== filters.ethnicity) return false;
-      if (filters.religion && p.religion !== filters.religion) return false;
-      if (filters.education && p.education !== filters.education) return false;
-      if (filters.profession && !p.profession?.toLowerCase().includes(filters.profession.toLowerCase())) return false;
-      if (filters.industry && p.industry !== filters.industry) return false;
-      if (filters.income && p.income !== filters.income) return false;
-      if (p.height < filters.height[0] || p.height > filters.height[1]) return false;
-      if (filters.bodyType && p.bodyType !== filters.bodyType) return false;
-      if (filters.smoking && p.smoking !== filters.smoking) return false;
-      if (filters.drinking && p.drinking !== filters.drinking) return false;
-      if (filters.dietaryPreference && p.dietaryPreferences !== filters.dietaryPreference) return false;
-      if (p.age < filters.ageRange[0] || p.age > filters.ageRange[1]) return false;
-      if (filters.horoscopeSign && p.horoscope?.sign !== filters.horoscopeSign) return false;
-      if (filters.interests.length > 0 && !filters.interests.some(i => p.interests?.includes(i))) return false;
-      if (filters.verified && !p.isVerified) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortOrder === "newest") return parseInt(b.id?.replace(/\D/g, "") || 0) - parseInt(a.id?.replace(/\D/g, "") || 0);
-      if (sortOrder === "age_asc") return (a.age || 0) - (b.age || 0);
-      if (sortOrder === "age_desc") return (b.age || 0) - (a.age || 0);
-      if (sortOrder === "height_asc") return (a.height || 0) - (b.height || 0);
-      if (sortOrder === "height_desc") return (b.height || 0) - (a.height || 0);
-      return 0;
-    });
 
   const SORT_OPTIONS = [
     { key: "newest", label: "Newest" },
@@ -484,14 +536,11 @@ const HomePage = () => {
     <>
       <style>{styles}</style>
       <div className="hp-root">
-
-        {/* Page Header */}
         <div className="hp-page-header">
           <h1 className="hp-page-title">Find Your <span>Forever</span></h1>
           <p className="hp-page-sub">Discover compatible matches across Sri Lanka</p>
         </div>
 
-        {/* Search */}
         <div className="hp-search-wrap">
           <Search className="hp-search-icon" size={17} />
           <input
@@ -504,21 +553,13 @@ const HomePage = () => {
         </div>
 
         <div className="hp-layout">
-
-          {/* ── Sidebar ── */}
           <aside className="hp-sidebar">
             <div className="hp-sidebar-header">
-              <span className="hp-sidebar-title">
-                <Filter size={15} /> Filters
-              </span>
-              <button className="hp-sidebar-reset" onClick={resetFilters}>
-                <RefreshCw size={10} /> Reset
-              </button>
+              <span className="hp-sidebar-title"><Filter size={15} /> Filters</span>
+              <button className="hp-sidebar-reset" onClick={resetFilters}><RefreshCw size={10} /> Reset</button>
             </div>
 
             <div className="hp-sidebar-body">
-
-              {/* Premium upsell */}
               {!isPremium && (
                 <div className="hp-premium-banner">
                   <h4><Crown size={13} style={{ color: "#d4a017" }} /> Premium Filters</h4>
@@ -527,10 +568,8 @@ const HomePage = () => {
                 </div>
               )}
 
-              {/* Basic */}
               <div className="hp-filter-group">
                 <div className="hp-filter-group-title">Basic</div>
-
                 <label className="hp-filter-label">Looking for</label>
                 <select name="gender" value={filters.gender} onChange={handleFilterChange} className="hp-filter-select">
                   <option value="">Any Gender</option>
@@ -541,7 +580,7 @@ const HomePage = () => {
                 <label className="hp-filter-label">Marital Status</label>
                 <select name="maritalStatus" value={filters.maritalStatus} onChange={handleFilterChange} className="hp-filter-select">
                   <option value="">Any Status</option>
-                  {(profileOptions.maritalStatus || []).map(s => <option key={s} value={s.toLowerCase()}>{s}</option>)}
+                  {PROFILE_OPTIONS.maritalStatus.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
 
                 <label className="hp-filter-label">Has Children</label>
@@ -551,66 +590,46 @@ const HomePage = () => {
                   <option value="false">No</option>
                 </select>
 
-                <p className="hp-range-label">Age: {filters.ageRange[0]} – {filters.ageRange[1]} yrs</p>
-                <input type="range" min="18" max="60" value={filters.ageRange[0]} onChange={e => handleRange("ageRange", +e.target.value, 0)} />
-                <input type="range" min="18" max="60" value={filters.ageRange[1]} onChange={e => handleRange("ageRange", +e.target.value, 1)} />
+                <p className="hp-range-label">Age: {filters.ageFrom} – {filters.ageTo} yrs</p>
+                <input type="range" min="18" max="70" value={filters.ageFrom} onChange={e => handleRange("age", +e.target.value, false)} />
+                <input type="range" min="18" max="70" value={filters.ageTo} onChange={e => handleRange("age", +e.target.value, true)} />
               </div>
 
               <div className="hp-filter-divider" />
 
-              {/* Location & Background */}
               <div className="hp-filter-group">
                 <div className="hp-filter-group-title">Location & Background</div>
-
                 <label className="hp-filter-label">District</label>
                 <select name="district" value={filters.district} onChange={handleFilterChange} className="hp-filter-select">
                   <option value="">Any District</option>
-                  {(profileOptions.districts || []).map(d => <option key={d} value={d}>{d}</option>)}
+                  {PROFILE_OPTIONS.districts.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
-
                 <label className="hp-filter-label">City</label>
-                <select name="city" value={filters.city} onChange={handleFilterChange} className="hp-filter-select">
-                  <option value="">Any City</option>
-                  {cities.map((c, i) => <option key={i} value={c}>{c}</option>)}
-                </select>
-
+                <input name="city" value={filters.city} onChange={handleFilterChange} className="hp-filter-select" placeholder="e.g. Colombo" />
                 <label className="hp-filter-label">Religion</label>
                 <select name="religion" value={filters.religion} onChange={handleFilterChange} className="hp-filter-select">
                   <option value="">Any Religion</option>
-                  {(profileOptions.religions || []).map(r => <option key={r} value={r}>{r}</option>)}
+                  {PROFILE_OPTIONS.religion.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
-
                 <label className="hp-filter-label">Ethnicity</label>
                 <select name="ethnicity" value={filters.ethnicity} onChange={handleFilterChange} className="hp-filter-select">
                   <option value="">Any Ethnicity</option>
-                  {(profileOptions.ethnicities || []).map(e => <option key={e} value={e}>{e}</option>)}
+                  {PROFILE_OPTIONS.ethnicity.map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
               </div>
 
               <div className="hp-filter-divider" />
-
-              {/* Verified */}
               <div className="hp-verify-row">
                 <input type="checkbox" id="hp-verified" name="verified" checked={filters.verified} onChange={handleFilterChange} />
-                <label htmlFor="hp-verified">Verified Profiles Only <Shield size={11} style={{ color: "#5d9e6a", display: "inline", verticalAlign: "middle" }} /></label>
+                <label htmlFor="hp-verified">Verified Profiles Only <Shield size={11} style={{ color: "#5d9e6a", display: "inline" }} /></label>
               </div>
-
               <div className="hp-filter-divider" />
 
-              {/* Advanced toggle */}
-              <button
-                className="hp-advanced-toggle"
-                onClick={() => isPremium && setShowAdvanced(v => !v)}
-                disabled={!isPremium}
-              >
-                <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                  Advanced Filters
-                  {!isPremium && <Crown size={12} style={{ color: "#d4a017" }} />}
-                </span>
-                <ChevronDown size={14} style={{ transform: showAdvanced ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+              <button className="hp-advanced-toggle" onClick={() => isPremium && setShowAdvanced(!showAdvanced)} disabled={!isPremium}>
+                <span>Advanced Filters {!isPremium && <Crown size={12} style={{ color: "#d4a017" }} />}</span>
+                <ChevronDown size={14} style={{ transform: showAdvanced ? "rotate(180deg)" : "none", transition: "0.2s" }} />
               </button>
 
-              {/* Advanced filters — premium only */}
               {showAdvanced && isPremium && (
                 <div style={{ marginTop: "1rem" }}>
                   <div className="hp-filter-group">
@@ -618,221 +637,150 @@ const HomePage = () => {
                     <label className="hp-filter-label">Education Level</label>
                     <select name="education" value={filters.education} onChange={handleFilterChange} className="hp-filter-select">
                       <option value="">Any Education</option>
-                      {(profileOptions.educationLevels || []).map(l => <option key={l} value={l}>{l}</option>)}
+                      {PROFILE_OPTIONS.education.map(l => <option key={l} value={l}>{l}</option>)}
                     </select>
                     <label className="hp-filter-label">Profession</label>
-                    <select name="profession" value={filters.profession} onChange={handleFilterChange} className="hp-filter-select">
-                      <option value="">Any Profession</option>
-                      {professions.map((p, i) => <option key={i} value={p}>{p}</option>)}
-                    </select>
+                    <input name="profession" value={filters.profession} onChange={handleFilterChange} className="hp-filter-select" placeholder="Search profession..." />
                     <label className="hp-filter-label">Industry</label>
                     <select name="industry" value={filters.industry} onChange={handleFilterChange} className="hp-filter-select">
                       <option value="">Any Industry</option>
-                      {(profileOptions.industries || []).map(i => <option key={i} value={i}>{i}</option>)}
+                      {PROFILE_OPTIONS.industries.map(i => <option key={i} value={i}>{i}</option>)}
                     </select>
                     <label className="hp-filter-label">Income Range</label>
                     <select name="income" value={filters.income} onChange={handleFilterChange} className="hp-filter-select">
                       <option value="">Any Income</option>
-                      {(profileOptions.incomeRanges || []).map(r => <option key={r} value={r}>{r}</option>)}
+                      {PROFILE_OPTIONS.incomeRanges.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
-
                   <div className="hp-filter-divider" />
-
                   <div className="hp-filter-group">
                     <div className="hp-filter-group-title">Physical & Lifestyle</div>
-                    <p className="hp-range-label">Height: {filters.height[0]} – {filters.height[1]} cm</p>
-                    <input type="range" min="140" max="200" value={filters.height[0]} onChange={e => handleRange("height", +e.target.value, 0)} />
-                    <input type="range" min="140" max="200" value={filters.height[1]} onChange={e => handleRange("height", +e.target.value, 1)} />
+                    <p className="hp-range-label">Height: {filters.heightFrom} – {filters.heightTo} cm</p>
+                    <input type="range" min="120" max="250" value={filters.heightFrom} onChange={e => handleRange("height", +e.target.value, false)} />
+                    <input type="range" min="120" max="250" value={filters.heightTo} onChange={e => handleRange("height", +e.target.value, true)} />
                     <label className="hp-filter-label">Body Type</label>
                     <select name="bodyType" value={filters.bodyType} onChange={handleFilterChange} className="hp-filter-select">
                       <option value="">Any</option>
-                      {(profileOptions.bodyTypes || []).map(t => <option key={t} value={t}>{t}</option>)}
+                      {PROFILE_OPTIONS.bodyType.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                     <label className="hp-filter-label">Smoking</label>
                     <select name="smoking" value={filters.smoking} onChange={handleFilterChange} className="hp-filter-select">
                       <option value="">Any</option>
-                      {(profileOptions.smokingHabits || []).map(h => <option key={h} value={h}>{h}</option>)}
+                      {PROFILE_OPTIONS.smoking.map(h => <option key={h} value={h}>{h}</option>)}
                     </select>
                     <label className="hp-filter-label">Drinking</label>
                     <select name="drinking" value={filters.drinking} onChange={handleFilterChange} className="hp-filter-select">
                       <option value="">Any</option>
-                      {(profileOptions.drinkingHabits || []).map(h => <option key={h} value={h}>{h}</option>)}
+                      {PROFILE_OPTIONS.drinking.map(h => <option key={h} value={h}>{h}</option>)}
                     </select>
                     <label className="hp-filter-label">Dietary Preference</label>
-                    <select name="dietaryPreference" value={filters.dietaryPreference} onChange={handleFilterChange} className="hp-filter-select">
+                    <select name="dietaryPreferences" value={filters.dietaryPreferences} onChange={handleFilterChange} className="hp-filter-select">
                       <option value="">Any</option>
-                      {(profileOptions.dietaryPreferences || []).map(p => <option key={p} value={p}>{p}</option>)}
+                      {PROFILE_OPTIONS.dietary.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
-
                   <div className="hp-filter-divider" />
-
                   <div className="hp-filter-group">
                     <div className="hp-filter-group-title">Horoscope & Interests</div>
                     <label className="hp-filter-label">Horoscope Sign</label>
                     <select name="horoscopeSign" value={filters.horoscopeSign} onChange={handleFilterChange} className="hp-filter-select">
                       <option value="">Any Sign</option>
-                      {(profileOptions.horoscopeSigns || []).map(s => <option key={s} value={s}>{s}</option>)}
+                      {PROFILE_OPTIONS.horoscope.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <label className="hp-filter-label" style={{ marginTop: "0.5rem" }}>Interests</label>
                     <div className="hp-interests-filter">
-                      {(profileOptions.interests || []).slice(0, 15).map(interest => (
-                        <button key={interest} type="button"
-                          className={`hp-chip-filter${filters.interests.includes(interest) ? " sel" : ""}`}
-                          onClick={() => toggleInterest(interest)}>{interest}</button>
+                      {PROFILE_OPTIONS.interests.map(interest => (
+                        <button key={interest} type="button" className={`hp-chip-filter${filters.interests.includes(interest) ? " sel" : ""}`} onClick={() => toggleInterest(interest)}>{interest}</button>
                       ))}
                     </div>
-                    <p style={{ fontSize: "0.69rem", color: "#b09080", marginTop: "0.3rem" }}>Tap to filter by interests</p>
                   </div>
                 </div>
               )}
 
-              {/* Daily likes meter */}
               {!isPremium && (
                 <div className="hp-likes-meter">
                   <div className="hp-likes-meter-top">
-                    <span className="hp-likes-label">
-                      <Heart size={13} style={{ color: "#c9856a" }} /> Daily Likes
-                    </span>
+                    <span className="hp-likes-label"><Heart size={13} style={{ color: "#c9856a" }} /> Daily Likes</span>
                     <span className="hp-likes-count">{likesRemaining} / 5</span>
                   </div>
-                  <div className="hp-likes-track">
-                    <div className="hp-likes-fill" style={{ width: `${(likesRemaining / 5) * 100}%` }} />
-                  </div>
+                  <div className="hp-likes-track"><div className="hp-likes-fill" style={{ width: `${(likesRemaining / 5) * 100}%` }} /></div>
                   <p className="hp-likes-note">Upgrade to Premium for unlimited likes ✦</p>
                 </div>
               )}
             </div>
           </aside>
 
-          {/* ── Main content ── */}
           <main>
-            {/* Sort row */}
             <div className="hp-sort-row">
-              <p className="hp-result-count">
-                <strong>{filtered.length}</strong> {filtered.length === 1 ? "profile" : "profiles"} found
-              </p>
+              <p className="hp-result-count"><strong>{totalElements}</strong> {totalElements === 1 ? "profile" : "profiles"} found</p>
               <div className="hp-sort-btns">
                 {SORT_OPTIONS.map(s => (
-                  <button key={s.key} className={`hp-sort-btn${sortOrder === s.key ? " active" : ""}`}
-                    onClick={() => setSortOrder(s.key)}>
-                    {s.label}
-                  </button>
+                  <button key={s.key} className={`hp-sort-btn${sortOrder === s.key ? " active" : ""}`} onClick={() => setSortOrder(s.key)}>{s.label}</button>
                 ))}
               </div>
             </div>
 
-            {/* Cards */}
-            {filtered.length > 0 ? (
-              <div className="hp-grid">
-                {filtered.map(profile => (
-                  <div key={profile.id} className={`hp-card${profile.isBoosted ? " boosted" : ""}`}>
+            <div className="hp-grid">
+              {profiles.map((profile, index) => (
+                <div key={profile.id} ref={index === profiles.length - 1 ? lastElementRef : null} className={`hp-card${profile.boosted ? " boosted" : ""}`}>
+                  <div className="hp-card-img-wrap">
+                    <Link to={`/profile/${profile.id}`}>
+                      <img src={profile.profileImage || "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop"} alt={profile.firstName} className="hp-card-img" />
+                    </Link>
+                    <div className="hp-card-img-overlay" />
+                    {profile.verified && <div className="hp-badge verified"><Check size={9} /> Verified</div>}
+                    {profile.boosted && <div className="hp-badge boosted"><Zap size={9} /> Boosted</div>}
+                    <div className="hp-card-actions">
+                      <button 
+                        className={`hp-action-btn like${(profile.interactionType === 'NORMAL' || likedProfiles.some(p => p.profileId === profile.id && p.type === 'NORMAL')) ? " active" : ""}`} 
+                        onClick={() => !(profile.interactionType || likedProfiles.some(p => p.profileId === profile.id)) && toggleLike(profile.id)}
+                        title="Like"
+                      >
+                        <Heart size={14} fill={(profile.interactionType === 'NORMAL' || likedProfiles.some(p => p.profileId === profile.id && p.type === 'NORMAL')) ? "currentColor" : "none"} />
+                      </button>
 
-                    {/* Image section */}
-                    <div className="hp-card-img-wrap">
-                      <Link to={`/profile/${profile.id}`}>
-                        <img
-                          src={profile.profileImage}
-                          alt={`${profile.firstName}`}
-                          className="hp-card-img"
-                        />
-                      </Link>
-                      <div className="hp-card-img-overlay" />
-
-                      {profile.isVerified && (
-                        <div className="hp-badge verified">
-                          <Check size={9} /> Verified
-                        </div>
-                      )}
-                      {profile.isBoosted && (
-                        <div className="hp-badge boosted">
-                          <Zap size={9} /> Boosted
-                        </div>
-                      )}
-
-                      <div className="hp-card-actions">
-                        <button
-                          type="button"
-                          className={`hp-action-btn like${likedProfiles.includes(profile.id) ? " active" : ""}`}
-                          onClick={() => toggleLike(profile.id)}
-                          title={likedProfiles.includes(profile.id) ? "Unlike" : "Like"}
-                        >
-                          <Heart size={14} fill={likedProfiles.includes(profile.id) ? "currentColor" : "none"} />
-                        </button>
-                        <button
-                          type="button"
-                          className={`hp-action-btn connect${sentRequests.includes(profile.id) ? " active" : ""}`}
-                          onClick={() => toggleFriendRequest(profile.id)}
-                          title={sentRequests.includes(profile.id) ? "Request Sent" : "Send Request"}
-                        >
-                          <UserPlus size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Card body */}
-                    <div className="hp-card-body">
-                      <Link to={`/profile/${profile.id}`} className="hp-card-name">
-                        {profile.firstName}, {profile.age}
-                      </Link>
-
-                      <div className="hp-card-location">
-                        <MapPin size={10} /> {profile.city}, {profile.district}
-                      </div>
-
-                      <div className="hp-tags">
-                        {profile.profession && (
-                          <span className="hp-tag profession">
-                            <Briefcase size={9} /> {profile.profession}
-                          </span>
-                        )}
-                        {profile.education && (
-                          <span className="hp-tag education">
-                            <GraduationCap size={9} /> {profile.education}
-                          </span>
-                        )}
-                        {profile.religion && (
-                          <span className="hp-tag religion">
-                            <BookOpen size={9} /> {profile.religion}
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="hp-card-about">{profile.about}</p>
-
-                      {(profile.interests || []).length > 0 && (
-                        <div className="hp-interests">
-                          {(profile.interests || []).slice(0, 3).map((it, i) => (
-                            <span key={i} className="hp-interest">{it}</span>
-                          ))}
-                          {(profile.interests || []).length > 3 && (
-                            <span className="hp-interest">+{profile.interests.length - 3}</span>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="hp-card-footer">
-                        <Link to={`/profile/${profile.id}`} className="hp-view-link">
-                          View Profile <ChevronRight size={12} />
-                        </Link>
-                        {profile.matchScore && (
-                          <span className="hp-match-score">{profile.matchScore}% match</span>
-                        )}
-                      </div>
+                      <button 
+                        className={`hp-action-btn star${(profile.interactionType === 'STAR' || likedProfiles.some(p => p.profileId === profile.id && p.type === 'STAR')) ? " active" : ""}`} 
+                        onClick={() => !(profile.interactionType || likedProfiles.some(p => p.profileId === profile.id)) && toggleLike(profile.id, 'STAR')}
+                        title="Star Like"
+                      >
+                        <Star size={14} fill={(profile.interactionType === 'STAR' || likedProfiles.some(p => p.profileId === profile.id && p.type === 'STAR')) ? "currentColor" : "none"} />
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="hp-empty">
-                <div className="hp-empty-icon">
-                  <Search size={26} style={{ color: "#c9856a" }} />
+                  <div className="hp-card-body">
+                    <Link to={`/profile/${profile.id}`} className="hp-card-name">{profile.firstName}, {profile.age}</Link>
+                    <div className="hp-card-location"><MapPin size={10} /> {profile.city}, {profile.district}</div>
+                    <div className="hp-tags">
+                      {profile.profession && <span className="hp-tag profession"><Briefcase size={9} /> {profile.profession}</span>}
+                      {profile.education && <span className="hp-tag education"><GraduationCap size={9} /> {profile.education}</span>}
+                      {profile.religion && <span className="hp-tag religion"><BookOpen size={9} /> {profile.religion}</span>}
+                    </div>
+                    <p className="hp-card-about">{profile.about}</p>
+                    {(profile.interests || []).length > 0 && (
+                      <div className="hp-interests">
+                        {(profile.interests || []).slice(0, 3).map((it, i) => <span key={i} className="hp-interest">{it}</span>)}
+                        {(profile.interests || []).length > 3 && <span className="hp-interest">+{profile.interests.length - 3}</span>}
+                      </div>
+                    )}
+                    <div className="hp-card-footer">
+                      <Link to={`/profile/${profile.id}`} className="hp-view-link">View Profile <ChevronRight size={12} /></Link>
+                      {profile.compatibilityScore && <span className="hp-match-score">{profile.compatibilityScore}% match</span>}
+                    </div>
+                  </div>
                 </div>
-                <h3>No profiles found</h3>
-                <p>Try adjusting your filters or search term</p>
+              ))}
+            </div>
+
+            {loading && <div style={{ padding: "2rem", textAlign: "center", color: "#8b4e2e" }}><Loader2 className="spinning" size={32} /></div>}
+            {!loading && profiles.length === 0 && (
+              <div className="hp-empty">
+                <div className="hp-empty-icon"><Search size={28} style={{ color: "#c9856a" }} /></div>
+                <h3>No matches found</h3>
+                <p>Try adjusting your filters or search terms to see more profiles.</p>
               </div>
             )}
+            {!hasMore && profiles.length > 0 && <div style={{ padding: "2rem", textAlign: "center", color: "#9a7060", fontSize: "0.85rem" }}>You've reached the end of the matches ✦</div>}
           </main>
         </div>
       </div>

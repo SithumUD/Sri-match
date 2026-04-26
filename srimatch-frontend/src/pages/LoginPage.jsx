@@ -248,32 +248,109 @@ const FacebookIcon = () => (
   </svg>
 );
 
+/* ─── Turnstile Widget ─────────────────────────────────────────────────── */
+const TurnstileWidget = ({ onVerify }) => {
+  const containerRef = React.useRef(null);
+  const widgetIdRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const scriptId = "cf-turnstile-script";
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+
+    let isMounted = true;
+    const interval = setInterval(() => {
+      if (window.turnstile && containerRef.current && !widgetIdRef.current) {
+        try {
+          widgetIdRef.current = window.turnstile.render(containerRef.current, {
+            sitekey: "0x4AAAAAADCRNcxH7bShZFVD", // Always Passes test key
+            callback: (token) => {
+              if (isMounted) onVerify(token);
+            },
+            "error-callback": () => {
+              console.error("Turnstile error");
+            }
+          });
+          clearInterval(interval);
+        } catch (e) {
+          console.warn("Turnstile render failed, retrying...", e);
+        }
+      }
+    }, 250);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+      if (widgetIdRef.current && window.turnstile) {
+        // window.turnstile.remove(widgetIdRef.current);
+      }
+    };
+  }, [onVerify]);
+
+  return (
+    <div 
+      ref={containerRef} 
+      className="lp-turnstile" 
+      style={{ 
+        marginTop: '1.25rem', 
+        marginBottom: '1rem',
+        minHeight: '65px',
+        display: 'flex',
+        justifyContent: 'center'
+      }} 
+    />
+  );
+};
+
 /* ─── Component ──────────────────────────────────────────────────────────── */
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) navigate("/home");
-  }, [isAuthenticated, navigate]);
+    if (isAuthenticated && user) {
+      // If user is authenticated but has no profile, send to creation
+      if (user.hasProfile === false || (!user.id && !user.userId)) {
+        navigate("/profile-creation");
+      } else {
+        navigate("/home");
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!captchaToken) {
+      setError("Please complete the security check.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
-      const success = await login(email, password);
-      if (success) {
-        navigate("/home");
+      const result = await login(email, password, captchaToken);
+      if (result.success) {
+        if (result.user && !result.user.hasProfile) {
+          navigate("/profile-creation");
+        } else {
+          navigate("/home");
+        }
       } else {
-        setError('Invalid email or password. Hint: use an email containing "test".');
+        setError(result.message || "Invalid email or password.");
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
@@ -364,6 +441,9 @@ const LoginPage = () => {
                 </label>
                 <a href="#" className="lp-forgot">Forgot password?</a>
               </div>
+
+              {/* Turnstile */}
+              <TurnstileWidget onVerify={setCaptchaToken} />
 
               {/* Submit */}
               <button type="submit" disabled={loading} className="lp-submit">

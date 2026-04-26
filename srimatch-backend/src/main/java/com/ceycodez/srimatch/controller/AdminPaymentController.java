@@ -24,6 +24,16 @@ public class AdminPaymentController {
     private final PaymentService paymentService;
     private final UserRepository userRepository;
 
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<PaymentResponse>>> getAllPayments() {
+        List<PaymentResponse> response = paymentService.getAllPayments();
+        return ResponseEntity.ok(ApiResponse.<List<PaymentResponse>>builder()
+                .success(true)
+                .message("All payments fetched successfully")
+                .data(response)
+                .build());
+    }
+
     @GetMapping("/pending")
     public ResponseEntity<ApiResponse<List<PaymentResponse>>> getPendingPayments() {
         List<PaymentResponse> response = paymentService.getPendingPayments();

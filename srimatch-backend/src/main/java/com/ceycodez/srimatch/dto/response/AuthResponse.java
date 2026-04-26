@@ -12,7 +12,10 @@ import lombok.NoArgsConstructor;
 public class AuthResponse {
     private String accessToken;
     private String refreshToken;
+    private String role;
     private String email;
+    private String firstName;
+    private String lastName;
     private boolean isEmailVerified;
     private boolean isPhoneVerified;
     private boolean isProfileCompleted;

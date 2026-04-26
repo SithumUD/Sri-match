@@ -206,6 +206,8 @@ const AdminLoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
 
   useEffect(() => {
     if (isAdminAuthenticated) navigate("/admin");
@@ -216,11 +218,15 @@ const AdminLoginPage = () => {
     setError("");
     setLoading(true);
     try {
-      const { success, message } = await adminLogin(email, password);
-      if (success) {
+      const result = await adminLogin(email, password, mfaRequired ? totpCode : null);
+      
+      if (result.success) {
         navigate("/admin");
+      } else if (result.mfaRequired) {
+        setMfaRequired(true);
+        setError("Two-Factor Authentication is required.");
       } else {
-        setError(message || "Invalid credentials.");
+        setError(result.message || "Invalid credentials.");
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
@@ -291,6 +297,26 @@ const AdminLoginPage = () => {
                   </button>
                 </div>
               </div>
+
+              {/* MFA Field - only shown if required */}
+              {mfaRequired && (
+                <div className="alp-field" style={{ animation: 'alp-fade-in 0.3s ease-out' }}>
+                  <label htmlFor="totpCode" className="alp-label">Authenticator Code</label>
+                  <div className="alp-input-wrap">
+                    <ShieldCheck className="alp-icon-left" size={15} />
+                    <input
+                      id="totpCode" name="totpCode" type="text" inputMode="numeric" pattern="[0-9]*"
+                      autoComplete="one-time-code" required
+                      value={totpCode} onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="alp-input" placeholder="6-digit code"
+                      autoFocus
+                    />
+                  </div>
+                  <p style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.4rem' }}>
+                    Open your authenticator app to get the code.
+                  </p>
+                </div>
+              )}
 
               {/* Submit */}
               <button type="submit" disabled={loading} className="alp-submit">

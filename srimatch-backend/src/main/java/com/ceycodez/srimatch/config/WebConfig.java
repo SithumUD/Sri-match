@@ -11,6 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
     private final RateLimitInterceptor rateLimitInterceptor;
+    private final com.ceycodez.srimatch.interceptor.AdminAuditInterceptor adminAuditInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -20,5 +21,8 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/v1/auth/resend-verification")
                 .addPathPatterns("/v1/auth/forgot-password")
                 .addPathPatterns("/v1/auth/reset-password");
+
+        registry.addInterceptor(adminAuditInterceptor)
+                .addPathPatterns("/v1/admin/**");
     }
 }
