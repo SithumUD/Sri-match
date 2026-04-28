@@ -1,75 +1,57 @@
-# Implementation Plan - Real-time Chat System
+# Implementation Plan - HttpOnly Cookie-Based Authentication
 
-This plan details the implementation of a production-grade chat system for matched users in the SriMatch platform.
+Implement HttpOnly cookie-based authentication for the SriMatch platform to protect against XSS attacks and improve overall security.
 
 ## User Review Required
 
-> [!NOTE]
-> **Performance**: We will use Spring Boot's WebSocket support with STOMP. For production scale, it is recommended to use an external message broker like RabbitMQ or Redis, but we will start with the built-in broker and configuration that allows easy migration.
+> [!IMPORTANT]
+> **CSRF Protection**: Moving to cookies makes the application vulnerable to CSRF. I am proposing a custom header check (`X-Requested-With`) for all state-changing requests (POST, PUT, DELETE, PATCH). Since XSS is blocked by `HttpOnly` cookies, a malicious site cannot set custom headers for a cross-site request.
+> 
+> **Breaking Change**: The frontend will no longer receive tokens in the response body. It must be updated to use `withCredentials: true` in Axios/Fetch and include the `X-Requested-With: XMLHttpRequest` header.
 
 ## Proposed Changes
 
-### 1. Core Models & Persistence
+### 1. Authentication Core
 
-#### [MODIFY] [User.java](file:///d:/srimatch-main/srimatch/srimatch-backend/src/main/java/com/ceycodez/srimatch/model/User.java)
-- Add `online` (boolean) and `lastSeenAt` (LocalDateTime) fields.
+#### [MODIFY] [JwtService.java](file:///c:/Users/sithum/Documents/GitHub/ape-iskole-backend/srimatch-backend/src/main/java/com/ceycodez/srimatch/service/JwtService.java)
+- Ensure cookie attributes match: `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`.
+- Add `createEmptyCookie` for logout/token clearing.
 
-#### [MODIFY] [Message.java](file:///d:/srimatch-main/srimatch/srimatch-backend/src/main/java/com/ceycodez/srimatch/model/Message.java)
-- Ensure `content` column is sufficient for text, emojis, and media metadata.
-
-#### [NEW] [Migration Script](file:///d:/srimatch-main/srimatch/srimatch-backend/src/main/resources/db/migration/V16__add_chat_updates.sql)
-- Add columns to `users` table.
-
----
-
-### 2. WebSocket Infrastructure
-
-#### [NEW] [WebSocketConfig.java](file:///d:/srimatch-main/srimatch/srimatch-backend/src/main/java/com/ceycodez/srimatch/config/WebSocketConfig.java)
-- Enable WebSocket message handling with STOMP.
-- Configure endpoints (e.g., `/ws-chat`).
-- Configure message broker (destinations like `/topic`, `/queue`).
-
-#### [NEW] [WebSocketAuthInterceptor.java](file:///d:/srimatch-main/srimatch/srimatch-backend/src/main/java/com/ceycodez/srimatch/config/WebSocketAuthInterceptor.java)
-- Intercept WebSocket handshake to validate JWT tokens.
-- Update User online status on `CONNECT` and `DISCONNECT`.
+#### [MODIFY] [JwtAuthenticationFilter.java](file:///c:/Users/sithum/Documents/GitHub/ape-iskole-backend/srimatch-backend/src/main/java/com/ceycodez/srimatch/filter/JwtAuthenticationFilter.java)
+- Update to extract the JWT from the `accessToken` cookie.
+- Retain `Authorization: Bearer <token>` support for API-only clients if necessary, but prioritize cookies.
 
 ---
 
-### 3. Services & Controllers
+### 2. Web & Security Configuration
 
-#### [NEW] [ChatService.java](file:///d:/srimatch-main/srimatch/srimatch-backend/src/main/java/com/ceycodez/srimatch/service/ChatService.java)
-- `sendMessage(MessageRequest)`: Validates match, persistence, and WebSocket broadcast.
-- `markAsRead(Long messageId)`: Updates status and notifies sender.
-- `getChatHistory(Long matchId, Pageable)`: Paged history retrieval.
-- `updateUserStatus(Long userId, boolean online)`: Logic for status tracking.
-
-#### [NEW] [ChatController.java](file:///d:/srimatch-main/srimatch/srimatch-backend/src/main/java/com/ceycodez/srimatch/controller/ChatController.java)
-- REST endpoints for:
-    - GET `/api/v1/chat/history/{matchId}`
-    - PATCH `/api/v1/chat/messages/{messageId}/read`
+#### [MODIFY] [SecurityConfig.java](file:///c:/Users/sithum/Documents/GitHub/ape-iskole-backend/srimatch-backend/src/main/java/com/ceycodez/srimatch/config/SecurityConfig.java)
+- Implement a custom CSRF filter or configure Spring Security's CSRF to expect a custom header for SPAs.
+- Ensure CORS `allowCredentials` is `true` and origins are explicitly listed.
 
 ---
 
-### 4. Media & Assets
+### 3. API Endpoints
 
-#### [NEW] [ChatMediaController.java](file:///d:/srimatch-main/srimatch/srimatch-backend/src/main/controller/ChatMediaController.java)
-- Secure endpoint for uploading chat media (images/videos) to Cloudinary.
-- Returns the URL to be included in the encrypted message payload.
+#### [MODIFY] [AuthenticationController.java](file:///c:/Users/sithum/Documents/GitHub/ape-iskole-backend/srimatch-backend/src/main/java/com/ceycodez/srimatch/controller/AuthenticationController.java)
+- **Fix Corruption**: Restore the file content from git history.
+- **Set Cookies**: Update `login`, `socialLogin`, and `refreshToken` to add `accessToken` and `refreshToken` cookies to the `HttpServletResponse`.
+- **Clear Cookies**: Update `logout` to send empty cookies with `Max-Age=0`.
+- **Response Body**: Ensure tokens are not serialized (handled by `@JsonIgnore` in `AuthResponse`).
 
-## Open Questions
-
-1. **Stickers & Emojis**: Will these be custom SriMatch stickers (stored on server) or standard emojis (Unicode)? Emojis in text are handled naturally.(use best way and methods for better production use)
-2. **Notification Integration**: Should we send Push Notifications (Firebase/OneSignal) when a user receives a message while offline?(use firebase to it)
+---
 
 ## Verification Plan
 
 ### Automated Tests
-- Integration tests for `ChatService` to ensure messages are saved and linked to matches.
-- Security tests to ensure only matched users can fetch each other's history/keys.
+- **Cookie Presence**: Assert that `Set-Cookie` headers for `accessToken` and `refreshToken` are present on successful login.
+- **Authentication**: Verify that protected endpoints (e.g., `/v1/users/me`) return `200 OK` when a valid `accessToken` cookie is provided.
+- **CSRF Protection**: Verify that POST requests without the `X-Requested-With` header are rejected.
+- **Logout**: Verify that cookies are cleared on logout.
 
 ### Manual Verification
-- Use a WebSocket test client (like Postman or a custom HTML/JS test page) to:
-    1. Connect with JWT.
-    2. Send a dummy encrypted message.
-    3. Verify receipt on a second connected client.
-    4. Verify DB persistence.
+- Use Browser DevTools or Postman to:
+    1. Log in and check the "Cookies" tab.
+    2. Confirm `HttpOnly` and `Secure` flags are set.
+    3. Confirm tokens are NOT in the JSON response body.
+    4. Test a POST request with the cookie but without the custom header to ensure it fails.

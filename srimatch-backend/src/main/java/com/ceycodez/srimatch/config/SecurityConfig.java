@@ -1,5 +1,6 @@
 package com.ceycodez.srimatch.config;
 
+import com.ceycodez.srimatch.filter.CsrfHeaderFilter;
 import com.ceycodez.srimatch.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -35,7 +36,6 @@ public class SecurityConfig {
                 // ✅ Enable CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // ❌ Disable CSRF (not needed for JWT APIs)
                 .csrf(AbstractHttpConfigurer::disable)
 
                 // ✅ Authorization rules
@@ -82,7 +82,10 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider)
 
                 // ✅ JWT filter
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+
+                // 🛡️ CSRF Protection (Custom header check)
+                .addFilterBefore(new CsrfHeaderFilter(), JwtAuthenticationFilter.class);
 
         return http.build();
     }
@@ -108,7 +111,13 @@ public class SecurityConfig {
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
         ));
 
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Accept",
+                "Origin"
+        ));
 
         config.setExposedHeaders(List.of(
                 "Authorization",
