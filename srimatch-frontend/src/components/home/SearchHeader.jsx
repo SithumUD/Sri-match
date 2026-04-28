@@ -25,4 +25,4 @@ const SearchHeader = ({ searchTerm, onSearchChange }) => {
   );
 };
 
-export default SearchHeader;
+export default React.memo(SearchHeader);

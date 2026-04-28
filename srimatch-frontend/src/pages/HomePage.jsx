@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useSentLikes, useToggleLike } from "../hooks/useLikes";
 import { useSubscription } from "../hooks/useSubscription";
@@ -30,6 +30,14 @@ const PROFILE_OPTIONS = {
   incomeRanges: ["Less than 50k", "50k - 100k", "100k - 200k", "200k - 500k", "Above 500k"]
 };
 
+const SORT_OPTIONS = [
+  { key: "newest", label: "Newest" },
+  { key: "age_asc", label: "Age ↑" },
+  { key: "age_desc", label: "Age ↓" },
+  { key: "height_asc", label: "Height ↑" },
+  { key: "height_desc", label: "Height ↓" },
+];
+
 const HomePage = () => {
   const { user: currentUser } = useAuth();
   const { data: likedProfiles = [] } = useSentLikes();
@@ -37,8 +45,17 @@ const HomePage = () => {
   const { data: subscription = {} } = useSubscription();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [sortOrder, setSortOrder] = useState("newest");
+
+  // Debounce Search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
   
   const [filters, setFilters] = useState({
     ageFrom: 18, ageTo: 60, gender: "", maritalStatus: "", hasChildren: "",
@@ -55,7 +72,7 @@ const HomePage = () => {
     isFetchingNextPage,
     status,
     isLoading
-  } = useProfiles(filters, searchTerm, sortOrder);
+  } = useProfiles(filters, debouncedSearch, sortOrder);
 
   const profiles = useMemo(() => {
     return data?.pages.flatMap(page => page.content) || [];
@@ -70,31 +87,33 @@ const HomePage = () => {
   const lastElementRef = useCallback(node => {
     if (isLoading) return;
     if (observer.current) observer.current.disconnect();
+    
     observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasNextPage) {
+      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
         fetchNextPage();
       }
     });
+    
     if (node) observer.current.observe(node);
-  }, [isLoading, hasNextPage, fetchNextPage]);
+  }, [isLoading, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const handleFilterChange = (e) => {
+  const handleFilterChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
     setFilters(p => ({ ...p, [name]: type === "checkbox" ? checked : value }));
-  };
+  }, []);
 
-  const handleRange = (name, val, isMax) => {
+  const handleRange = useCallback((name, val, isMax) => {
     setFilters(p => ({ ...p, [isMax ? `${name}To` : `${name}From`]: val }));
-  };
+  }, []);
 
-  const toggleInterest = (interest) => {
+  const toggleInterest = useCallback((interest) => {
     setFilters(p => {
       const cur = p.interests || [];
       return { ...p, interests: cur.includes(interest) ? cur.filter(i => i !== interest) : [...cur, interest] };
     });
-  };
+  }, []);
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setFilters({
       ageFrom: 18, ageTo: 60, gender: "", maritalStatus: "", hasChildren: "",
       city: "", district: "", ethnicity: "", religion: "", education: "",
@@ -103,17 +122,10 @@ const HomePage = () => {
       verified: false, horoscopeSign: "", interests: [],
     });
     setSearchTerm("");
-  };
+  }, []);
 
-  const toggleLike = (profileId, type = 'NORMAL') => mutateToggleLike({ profileId, type });
+  const toggleLike = useCallback((profileId, type = 'NORMAL') => mutateToggleLike({ profileId, type }), [mutateToggleLike]);
 
-  const SORT_OPTIONS = [
-    { key: "newest", label: "Newest" },
-    { key: "age_asc", label: "Age ↑" },
-    { key: "age_desc", label: "Age ↓" },
-    { key: "height_asc", label: "Height ↑" },
-    { key: "height_desc", label: "Height ↓" },
-  ];
 
   return (
     <div className="min-h-screen bg-[#fdf8f4] px-4 pt-8 pb-16 font-['DM_Sans'] text-[#2d1810] sm:px-6">

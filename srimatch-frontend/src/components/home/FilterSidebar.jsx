@@ -312,4 +312,4 @@ const FilterSidebar = ({
   );
 };
 
-export default FilterSidebar;
+export default React.memo(FilterSidebar);

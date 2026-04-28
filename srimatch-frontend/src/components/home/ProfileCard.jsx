@@ -124,4 +124,4 @@ const ProfileCard = React.forwardRef(({ profile, likedProfiles, onToggleLike }, 
 
 ProfileCard.displayName = 'ProfileCard';
 
-export default ProfileCard;
+export default React.memo(ProfileCard);
