@@ -6,6 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,12 @@ public class JwtService {
 
     @Value("${application.security.jwt.remember-me.expiration}")
     private long rememberMeExpiration;
+
+    @Value("${application.security.jwt.refresh-token.expiration}")
+    private long refreshTokenExpiration;
+
+    @Value("${application.security.jwt.remember-me.refresh-token.expiration}")
+    private long rememberMeRefreshTokenExpiration;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -92,5 +99,37 @@ public class JwtService {
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public ResponseCookie createAccessTokenCookie(String token, boolean rememberMe) {
+        long duration = rememberMe ? rememberMeExpiration : jwtExpiration;
+        return ResponseCookie.from("accessToken", token)
+                .httpOnly(true)
+                .secure(true) // Should be true in production (HTTPS)
+                .path("/")
+                .maxAge(duration / 1000)
+                .sameSite("Lax")
+                .build();
+    }
+
+    public ResponseCookie createRefreshTokenCookie(String token, boolean rememberMe) {
+        long duration = rememberMe ? rememberMeRefreshTokenExpiration : refreshTokenExpiration;
+        return ResponseCookie.from("refreshToken", token)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(duration / 1000)
+                .sameSite("Lax")
+                .build();
+    }
+
+    public ResponseCookie createEmptyCookie(String name) {
+        return ResponseCookie.from(name, "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
     }
 }

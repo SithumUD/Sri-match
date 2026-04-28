@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSentLikes, useToggleLike } from "../hooks/useLikes";
+import { useSubscription } from "../hooks/useSubscription";
 import {
   Heart, Star, Check, MapPin, Briefcase, GraduationCap,
   BookOpen, Search, ChevronDown, ChevronRight,
@@ -389,13 +391,13 @@ const styles = `
 
 /* ─── Component ──────────────────────────────────────────────────────────── */
 const HomePage = () => {
-  const {
-    likedProfiles = [],
-    toggleLike,
-    subscription = {},
-    likesRemaining = 5,
-    user: currentUser
-  } = useAuth();
+  const { user: currentUser } = useAuth();
+  const { data: likedProfiles = [] } = useSentLikes();
+  const { mutate: mutateToggleLike } = useToggleLike();
+  const { data: subscription = {} } = useSubscription();
+
+  const toggleLike = (profileId, type = 'NORMAL') => mutateToggleLike({ profileId, type });
+  const likesRemaining = subscription?.remainingLikes ?? 5;
 
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(false);

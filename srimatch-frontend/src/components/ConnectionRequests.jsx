@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useAuth } from "../context/AuthContext";
 import { dummyProfiles } from "../data/dummyData";
 import {
   UserPlusIcon,
@@ -11,8 +10,9 @@ import {
 import { Link } from "react-router-dom";
 
 const ConnectionRequests = () => {
-  const { receivedRequests, acceptFriendRequest, rejectFriendRequest } =
-    useAuth();
+  const receivedRequests = [];
+  const acceptFriendRequest = () => {};
+  const rejectFriendRequest = () => {};
   const [showRequests, setShowRequests] = useState(false);
 
   // Get profile data for received requests

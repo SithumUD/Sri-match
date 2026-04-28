@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import useProfileStore from "../store/useProfileStore";
 import {
   Camera, BookOpen, Briefcase, Heart, Star, CheckCircle, User,
   FileText, Image as ImageIcon, MapPin, Home, Globe, GraduationCap, Building,
@@ -406,11 +407,11 @@ const INTEREST_ICONS = {
 /* ─── Component ─────────────────────────────────────────────────────────── */
 const ProfileCreationPage = () => {
   const navigate = useNavigate();
+  const { user, updateUserProfile } = useAuth();
   const {
-    user, updateUserProfile,
     profileCreationStep, setProfileCreationStep,
     profileCreationData, updateProfileCreationData,
-  } = useAuth();
+  } = useProfileStore();
 
   const [loading, setLoading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);

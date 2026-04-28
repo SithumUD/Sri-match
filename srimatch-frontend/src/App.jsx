@@ -1,53 +1,58 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import LandingPage from "./pages/LandingPage";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ProfileCreationPage from "./pages/ProfileCreationPage";
-import HomePage from "./pages/HomePage";
-import UserProfilePage from "./pages/UserProfilePage";
-import MyProfilePage from "./pages/MyProfilePage";
-import VerificationPage from "./pages/VerificationPage";
-import MessagesPage from "./pages/MessagesPage";
-import SettingsPage from "./pages/SettingsPage";
-import SubscriptionPage from "./pages/SubscriptionPage";
-import ConnectionsPage from "./pages/ConnectionsPage";
 import Layout from "./components/Layout";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import AboutUsPage from "./pages/AboutUsPage";
-import HowItWorksPage from "./pages/HowItWorksPage";
-import FAQPage from "./pages/FAQPage";
-import ContactUsPage from "./pages/ContactUsPage";
-import CustomerSupportPage from "./pages/CustomerSupportPage";
-import HelpCenterPage from "./pages/HelpCenterPage";
-import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
-import TermsConditionsPage from "./pages/TermsConditionsPage";
-import RefundPolicyPage from "./pages/RefundPolicyPage";
-import CookiePolicyPage from "./pages/CookiePolicyPage";
-import SafetyGuidelinesPage from "./pages/SafetyGuidelinesPage";
-import SuccessStoriesPage from "./pages/SuccessStoriesPage";
-import MobileSelfiePage from "./pages/MobileSelfiePage";
+import LoadingScreen from "./components/LoadingScreen";
 
-// Admin
-import AdminLoginPage from "./pages/Admin/AdminLoginPage";
-import AdminLayout from "./components/AdminLayout";
-import AdminProtectedRoute from "./components/AdminProtectedRoute";
-import AdminPanel from "./pages/Admin/AdminPanel";
-import AdminUsers from "./pages/AdminUsers";
-import AdminSettings from "./pages/AdminSettings";
-import AdminPayments from "./pages/AdminPayments";
-import AdminReports from "./pages/AdminReports";
-import AdminSupport from "./pages/AdminSupport";
-import AdminPackages from "./pages/AdminPackages";
-import AdminLocations from "./pages/AdminLocations";
-import AdminAudits from "./pages/AdminAudits";
-import AdminUserVerify from "./pages/AdminUserVerify";
+// Lazy-loaded Pages
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const ProfileCreationPage = lazy(() => import("./pages/ProfileCreationPage"));
+const HomePage = lazy(() => import("./pages/HomePage"));
+const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
+const MyProfilePage = lazy(() => import("./pages/MyProfilePage"));
+const VerificationPage = lazy(() => import("./pages/VerificationPage"));
+const MessagesPage = lazy(() => import("./pages/MessagesPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
+const ConnectionsPage = lazy(() => import("./pages/ConnectionsPage"));
+
+// Lazy-loaded Static Pages
+const AboutUsPage = lazy(() => import("./pages/AboutUsPage"));
+const HowItWorksPage = lazy(() => import("./pages/HowItWorksPage"));
+const FAQPage = lazy(() => import("./pages/FAQPage"));
+const ContactUsPage = lazy(() => import("./pages/ContactUsPage"));
+const CustomerSupportPage = lazy(() => import("./pages/CustomerSupportPage"));
+const HelpCenterPage = lazy(() => import("./pages/HelpCenterPage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const TermsConditionsPage = lazy(() => import("./pages/TermsConditionsPage"));
+const RefundPolicyPage = lazy(() => import("./pages/RefundPolicyPage"));
+const CookiePolicyPage = lazy(() => import("./pages/CookiePolicyPage"));
+const SafetyGuidelinesPage = lazy(() => import("./pages/SafetyGuidelinesPage"));
+const SuccessStoriesPage = lazy(() => import("./pages/SuccessStoriesPage"));
+const MobileSelfiePage = lazy(() => import("./pages/MobileSelfiePage"));
+
+// Lazy-loaded Admin Pages
+const AdminLoginPage = lazy(() => import("./pages/Admin/AdminLoginPage"));
+const AdminLayout = lazy(() => import("./components/AdminLayout"));
+const AdminProtectedRoute = lazy(() => import("./components/AdminProtectedRoute"));
+const AdminPanel = lazy(() => import("./pages/Admin/AdminPanel"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const AdminPayments = lazy(() => import("./pages/AdminPayments"));
+const AdminReports = lazy(() => import("./pages/AdminReports"));
+const AdminSupport = lazy(() => import("./pages/AdminSupport"));
+const AdminPackages = lazy(() => import("./pages/AdminPackages"));
+const AdminLocations = lazy(() => import("./pages/AdminLocations"));
+const AdminAudits = lazy(() => import("./pages/AdminAudits"));
+const AdminUserVerify = lazy(() => import("./pages/AdminUserVerify"));
 
 export function App() {
   return (
     <AuthProvider>
-      
+      <Suspense fallback={<LoadingScreen />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -159,7 +164,7 @@ export function App() {
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      
+      </Suspense>
     </AuthProvider>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSubscription, useUpgradeSubscription } from "../hooks/useSubscription";
 import {
   CheckIcon,
   XIcon,
@@ -482,7 +483,10 @@ const styles = `
 `;
 
 const SubscriptionPage = () => {
-  const { subscription, upgradeSubscription, cancelSubscription, activateBoost } = useAuth();
+  const { data: subscription = {} } = useSubscription();
+  const { mutateAsync: upgradeSubscription } = useUpgradeSubscription();
+  const cancelSubscription = () => {};
+  const activateBoost = () => {};
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [bankDetails, setBankDetails] = useState([]);

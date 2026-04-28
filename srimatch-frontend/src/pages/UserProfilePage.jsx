@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSentLikes, useToggleLike } from "../hooks/useLikes";
+import { useConnections } from "../hooks/useConnections";
 import ProfileService from "../services/profile.service";
 import HoroscopeService from "../services/horoscope.service";
 import LikeService from "../services/like.service";
@@ -325,7 +327,11 @@ const INTEREST_ICONS = {
 
 const UserProfilePage = () => {
   const { id } = useParams();
-  const { user: authUser, likedProfiles = [], connections = [], toggleLike } = useAuth();
+  const { user: authUser } = useAuth();
+  const { data: likedProfiles = [] } = useSentLikes();
+  const { data: connections = [] } = useConnections();
+  const { mutate: mutateToggleLike } = useToggleLike();
+  const toggleLike = (profileId, type = 'NORMAL') => mutateToggleLike({ profileId, type });
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);

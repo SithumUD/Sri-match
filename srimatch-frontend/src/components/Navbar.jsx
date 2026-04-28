@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSubscription } from "../hooks/useSubscription";
 import ConnectionRequests from "./ConnectionRequests";
 import NotificationsDropdown from "./NotificationsDropdown";
 import {
@@ -311,7 +312,8 @@ const NAV_LINKS = [
 
 /* ─── Component ──────────────────────────────────────────────────────────── */
 const Navbar = () => {
-  const { isAuthenticated, logout, user, subscription = {} } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
+  const { data: subscription = {} } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);

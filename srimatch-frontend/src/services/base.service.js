@@ -15,12 +15,8 @@ const API = axios.create({
 // ==============================
 API.interceptors.request.use(
     (config) => {
-        const token = CookieService.get('token');
-
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-
+        // With HttpOnly cookies, we don't need to manually set the Authorization header.
+        // The browser sends cookies automatically with { withCredentials: true }.
         return config;
     },
     (error) => Promise.reject(error)
@@ -43,34 +39,23 @@ API.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
-            const refreshToken = CookieService.get('refreshToken');
+            try {
+                // We call the refresh endpoint. The browser will automatically 
+                // include the HttpOnly refreshToken cookie.
+                await axios.post(
+                    `${API.defaults.baseURL}/auth/refresh-token`,
+                    {},
+                    { withCredentials: true }
+                );
 
-            if (refreshToken) {
-                try {
-                    const res = await axios.post(
-                        `${API.defaults.baseURL}/auth/refresh-token`,
-                        { refreshToken }
-                    );
+                // If refresh succeeds, the backend will have set a new accessToken cookie.
+                // We retry the original request.
+                return API(originalRequest);
 
-                    const { accessToken, refreshToken: newRefreshToken } = res.data.data;
-
-                    // Save new tokens
-                    CookieService.set('token', accessToken);
-                    CookieService.set('refreshToken', newRefreshToken);
-
-                    // Retry original request
-                    originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-                    return API(originalRequest);
-
-                } catch (refreshError) {
-                    // Refresh failed → logout
-                    CookieService.remove('token');
-                    CookieService.remove('refreshToken');
-                    CookieService.remove('user');
-
-                    window.location.href = '/login';
-                    return Promise.reject(refreshError);
-                }
+            } catch (refreshError) {
+                // Refresh failed → redirect to login
+                window.location.href = '/login';
+                return Promise.reject(refreshError);
             }
         }
 
