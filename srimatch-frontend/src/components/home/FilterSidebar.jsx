@@ -28,7 +28,7 @@ const FilterSidebar = ({
         </button>
       </div>
 
-      <div className="max-h-[calc(100vh-120px)] overflow-y-auto px-6 py-5 scrollbar-thin scrollbar-thumb-[#e8c9b8] scrollbar-track-transparent">
+      <div className="max-h-[calc(100vh-120px)] overflow-y-auto px-6 py-5">
         {!isPremium && (
           <div className="mb-5 rounded-xl border border-[#f0ddd5] bg-gradient-to-br from-[#fdf5ee] to-[#fdf0e8] p-4">
             <h4 className="mb-1.5 flex items-center gap-1.5 text-[0.82rem] font-semibold text-[#4a3028]">
@@ -275,7 +275,7 @@ const FilterSidebar = ({
               </select>
 
               <label className="mb-2 mt-4 block text-[0.77rem] font-medium text-[#4a3028]">Interests</label>
-              <div className="max-h-[110px] overflow-y-auto rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f4] p-2.5 scrollbar-thin scrollbar-thumb-[#e8c9b8]">
+              <div className="max-h-[110px] overflow-y-auto rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f4] p-2.5">
                 <div className="flex flex-wrap gap-1.5">
                   {options.interests.map(interest => (
                     <button 

@@ -26,6 +26,7 @@ const PROFILE_OPTIONS = {
 };
 
 import ProfileService from "../services/profile.service";
+import { getProfileImage } from "../utils/image.utils";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -746,7 +747,7 @@ const MyProfilePage = () => {
       >
         {images.slice(0, showCount).map((img, idx) => (
           <div key={idx} className="mp-col-item">
-            <img src={img} alt="" />
+            <img src={getProfileImage(img)} alt="" />
           </div>
         ))}
         {extraCount > 0 && (
@@ -820,7 +821,7 @@ const MyProfilePage = () => {
             <div className="mp-avatar-row">
               <div className="mp-avatar-wrap">
                 {user.primaryImageUrl || (user.profileImages || [])[0]
-                  ? <img src={user.primaryImageUrl || user.profileImages[0]} alt="Profile" className="mp-avatar" />
+                  ? <img src={getProfileImage(user.primaryImageUrl || user.profileImages[0])} alt="Profile" className="mp-avatar" />
                   : <div className="mp-avatar-ph"><User size={36} style={{ color: "#9a7060" }} /></div>}
                 <button className="mp-avatar-cam" onClick={() => setActiveTab("photos")}>
                   <Camera size={13} />

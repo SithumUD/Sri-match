@@ -18,6 +18,13 @@ const useAuthStore = create((set, get) => ({
 
     // Fetch current user session
     fetchUserSession: async () => {
+        // Only call if we have a hint that user is logged in
+        // This avoids 403 console errors for guest users
+        if (!localStorage.getItem('srimatch_is_logged_in')) {
+            set({ isAuthLoading: false, isAuthenticated: false });
+            return;
+        }
+
         set({ isAuthLoading: true });
         try {
             const response = await ProfileService.getMyProfile();
@@ -37,11 +44,13 @@ const useAuthStore = create((set, get) => ({
                         set({ isAuthenticated: false });
                     }
                 } catch (uErr) {
-                    console.error("Critical error fetching basic user info:", uErr);
+                    // console.error("Critical error fetching basic user info:", uErr);
+                    localStorage.removeItem('srimatch_is_logged_in');
                     set({ isAuthenticated: false });
                 }
             } else {
-                console.error("Error fetching user session:", error);
+                // console.error("Error fetching user session:", error);
+                localStorage.removeItem('srimatch_is_logged_in');
                 set({ isAuthenticated: false, user: null });
             }
         } finally {
@@ -49,17 +58,21 @@ const useAuthStore = create((set, get) => ({
         }
     },
 
-    login: async (email, password, captchaToken = null) => {
+    login: async (email, password, captchaToken = null, totpCode = null) => {
         try {
-            const response = await AuthService.login({ email, password, captchaToken });
+            const response = await AuthService.login({ email, password, captchaToken, totpCode });
             
             if (response.success && response.data) {
                 set({ accessToken: response.data.accessToken });
+                localStorage.setItem('srimatch_is_logged_in', 'true');
                 await get().fetchUserSession();
                 return { success: true, user: response.data };
             }
             return { success: false, message: response.message || "Invalid credentials" };
         } catch (error) {
+            if (error.message && error.message.includes("MFA_REQUIRED")) {
+                return { success: false, mfaRequired: true, message: error.message };
+            }
             console.error("Login error:", error);
             return { success: false, message: error.message || "An error occurred during login" };
         }
@@ -97,6 +110,7 @@ const useAuthStore = create((set, get) => ({
         } catch (error) {
             console.error("Logout error:", error);
         } finally {
+            localStorage.removeItem('srimatch_is_logged_in');
             set({ user: null, isAuthenticated: false });
             window.location.href = "/login";
         }
@@ -110,6 +124,7 @@ const useAuthStore = create((set, get) => ({
                 const userData = response.data;
                 if (userData.role === "ADMIN" || userData.role === "SUPER_ADMIN") {
                     set({ adminUser: userData, isAdminAuthenticated: true });
+                    localStorage.setItem('srimatch_is_logged_in', 'true');
                     return { success: true, user: userData };
                 }
                 return { success: false, message: "Insufficient privileges" };

@@ -173,15 +173,23 @@ const HomePage = () => {
             </div>
           ) : profiles.length > 0 ? (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {profiles.map((profile, index) => (
-                <ProfileCard 
-                  key={profile.id} 
-                  ref={index === profiles.length - 1 ? lastElementRef : null}
-                  profile={profile}
-                  likedProfiles={likedProfiles}
-                  onToggleLike={toggleLike}
-                />
-              ))}
+              {profiles.map((profile, index) => {
+                const isLiked = profile.interactionType === 'NORMAL' || likedProfiles.some(p => p.profileId === profile.id && p.type === 'NORMAL');
+                const isStarred = profile.interactionType === 'STAR' || likedProfiles.some(p => p.profileId === profile.id && p.type === 'STAR');
+                const hasInteraction = !!(profile.interactionType || likedProfiles.some(p => p.profileId === profile.id));
+
+                return (
+                  <ProfileCard 
+                    key={profile.id} 
+                    ref={index === profiles.length - 1 ? lastElementRef : null}
+                    profile={profile}
+                    isLiked={isLiked}
+                    isStarred={isStarred}
+                    hasInteraction={hasInteraction}
+                    onToggleLike={toggleLike}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-[20px] bg-white px-8 py-16 text-center shadow-[0_8px_28px_rgba(120,60,30,0.06)]">

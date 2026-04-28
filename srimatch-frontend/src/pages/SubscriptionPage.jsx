@@ -483,7 +483,7 @@ const styles = `
 `;
 
 const SubscriptionPage = () => {
-  const { data: subscription = {} } = useSubscription();
+  const { data: hookSubscription = {} } = useSubscription();
   const { mutateAsync: upgradeSubscription } = useUpgradeSubscription();
   const cancelSubscription = () => {};
   const activateBoost = () => {};
@@ -498,15 +498,16 @@ const SubscriptionPage = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [hasPendingApproval, setHasPendingApproval] = useState(false);
+  const [activeSub, setActiveSub] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [pkgRes, bankRes, pendingRes] = await Promise.all([
+        // 1. Fetch static data needed for the page
+        const [pkgRes, bankRes] = await Promise.all([
           PaymentService.getPackages(),
-          PaymentService.getBankDetails(),
-          PaymentService.checkPendingPayment()
+          PaymentService.getBankDetails()
         ]);
         
         if (pkgRes.success && pkgRes.data.length > 0) {
@@ -514,7 +515,21 @@ const SubscriptionPage = () => {
           setSelectedPlan(pkgRes.data[0].id);
         }
         if (bankRes.success) setBankDetails(bankRes.data);
-        if (pendingRes.success) setHasPendingApproval(pendingRes.data);
+
+        // 2. Check for active subscription first
+        const activeRes = await SubscriptionService.getMyActiveSubscription();
+        
+        if (activeRes.success && activeRes.data) {
+          // If user has an active subscription, we don't strictly need to check pending 
+          // unless they are in an upgrade flow. For this view, we hide pending alert.
+          setActiveSub(activeRes.data);
+          setHasPendingApproval(false);
+        } else {
+          // 3. Only check for pending payment if no active subscription exists
+          const pendingRes = await PaymentService.checkPendingPayment();
+          if (pendingRes.success) setHasPendingApproval(pendingRes.data);
+          setActiveSub(null);
+        }
       } catch (err) {
         console.error("Error fetching subscription data:", err);
       } finally {
@@ -620,7 +635,8 @@ const SubscriptionPage = () => {
     },
   ];
 
-  const isPremium = subscription?.status === "ACTIVE";
+  const isPremium = activeSub?.status === "ACTIVE";
+  const subscription = activeSub || {};
   const selectedPlanData = plans.find(p => p.id === selectedPlan);
 
   const boostActive =

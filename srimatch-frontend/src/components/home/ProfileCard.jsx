@@ -1,11 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Star, Check, MapPin, Briefcase, GraduationCap, BookOpen, Zap, ChevronRight } from 'lucide-react';
+import { getProfileImage } from '../../utils/image.utils';
 
-const ProfileCard = React.forwardRef(({ profile, likedProfiles, onToggleLike }, ref) => {
-  const isLiked = profile.interactionType === 'NORMAL' || likedProfiles.some(p => p.profileId === profile.id && p.type === 'NORMAL');
-  const isStarred = profile.interactionType === 'STAR' || likedProfiles.some(p => p.profileId === profile.id && p.type === 'STAR');
-  const hasInteraction = profile.interactionType || likedProfiles.some(p => p.profileId === profile.id);
+const ProfileCard = React.forwardRef(({ 
+  profile, 
+  isLiked, 
+  isStarred, 
+  hasInteraction, 
+  onToggleLike 
+}, ref) => {
 
   return (
     <div 
@@ -16,13 +20,14 @@ const ProfileCard = React.forwardRef(({ profile, likedProfiles, onToggleLike }, 
       <div className="relative h-[190px] overflow-hidden">
         <Link to={`/profile/${profile.id}`}>
           <img 
-            src={profile.profileImage || "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop"} 
+            src={getProfileImage(profile.profileImage)} 
             alt={profile.firstName} 
             className="h-full w-full object-cover transition-transform duration-400 group-hover:scale-105" 
+            loading="lazy"
           />
         </Link>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(30,10,5,0.58)] via-transparent to-transparent" />
-        
+
         {/* Badges */}
         <div className="absolute top-[0.65rem] left-[0.65rem] flex gap-2">
           {profile.verified && (
@@ -31,7 +36,7 @@ const ProfileCard = React.forwardRef(({ profile, likedProfiles, onToggleLike }, 
             </div>
           )}
         </div>
-        
+
         {profile.boosted && (
           <div className="absolute top-[0.65rem] right-[0.65rem] flex items-center gap-1 rounded-full bg-gradient-to-br from-[#e07a30] to-[#c93a1a] px-2.5 py-1 text-[0.67rem] font-semibold text-white">
             <Zap size={9} /> Boosted
@@ -40,7 +45,7 @@ const ProfileCard = React.forwardRef(({ profile, likedProfiles, onToggleLike }, 
 
         {/* Action Buttons */}
         <div className="absolute right-[0.7rem] bottom-[0.7rem] flex gap-1.5">
-          <button 
+          <button
             type="button"
             className={`flex h-[33px] w-[33px] items-center justify-center rounded-full border-none transition-all duration-200 backdrop-blur-md ${isLiked ? 'bg-[#f4c9d0] text-[#c03060]' : 'bg-white/90 text-[#b09080] hover:bg-white hover:text-[#c9856a]'}`}
             onClick={() => !hasInteraction && onToggleLike(profile.id, 'NORMAL')}
@@ -49,7 +54,7 @@ const ProfileCard = React.forwardRef(({ profile, likedProfiles, onToggleLike }, 
             <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
           </button>
 
-          <button 
+          <button
             type="button"
             className={`flex h-[33px] w-[33px] items-center justify-center rounded-full border-none transition-all duration-200 backdrop-blur-md ${isStarred ? 'bg-[#fff5d1] text-[#d4a017]' : 'bg-white/90 text-[#b09080] hover:bg-white hover:text-[#d4a017]'}`}
             onClick={() => !hasInteraction && onToggleLike(profile.id, 'STAR')}
@@ -65,7 +70,7 @@ const ProfileCard = React.forwardRef(({ profile, likedProfiles, onToggleLike }, 
         <Link to={`/profile/${profile.id}`} className="mb-1 block font-['Cormorant_Garamond'] text-[1.25rem] font-semibold leading-tight text-[#2d1810] decoration-none transition-colors duration-200 hover:text-[#8b4e2e]">
           {profile.firstName}, {profile.age}
         </Link>
-        
+
         <div className="mb-[0.6rem] flex items-center gap-1 text-[0.74rem] text-[#9a7060]">
           <MapPin size={10} /> {profile.city}, {profile.district}
         </div>

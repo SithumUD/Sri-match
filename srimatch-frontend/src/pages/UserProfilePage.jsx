@@ -14,6 +14,7 @@ import {
   Home, Sparkles, Zap, Camera, Music, Plane, Book,
   Film, Gamepad, Dumbbell, Smile, Target, Activity, User, Loader2, Info, Flag
 } from "lucide-react";
+import { sanitize } from "../utils/security.utils";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -461,7 +462,12 @@ const UserProfilePage = () => {
 
   const AboutTab = () => (
     <>
-      {profile.about && <p className="up-about-text">"{profile.about}"</p>}
+      {profile.about && (
+        <div 
+          className="up-about-text" 
+          dangerouslySetInnerHTML={{ __html: sanitize(profile.about) }}
+        />
+      )}
       <div className="up-subsection-title"><User size={11} />Basic Information</div>
       <div className="up-info-grid">
         {[
@@ -582,7 +588,10 @@ const UserProfilePage = () => {
         <>
           <div className="up-section-divider" />
           <div className="up-subsection-title"><Home size={11} />Daily Lifestyle</div>
-          <p style={{ fontSize: "0.85rem", color: "#4a3028", lineHeight: 1.65 }}>{profile.lifestyle}</p>
+          <p 
+            style={{ fontSize: "0.85rem", color: "#4a3028", lineHeight: 1.65 }}
+            dangerouslySetInnerHTML={{ __html: sanitize(profile.lifestyle) }}
+          />
         </>
       )}
     </>
@@ -744,7 +753,10 @@ const UserProfilePage = () => {
         <>
           <div className="up-section-divider" />
           <div className="up-subsection-title" style={{ color: "#c03060" }}><X size={11} />Dealbreakers</div>
-          <p style={{ fontSize: "0.85rem", color: "#4a3028", lineHeight: 1.65 }}>{profile.dealbreakers}</p>
+          <p 
+            style={{ fontSize: "0.85rem", color: "#4a3028", lineHeight: 1.65 }}
+            dangerouslySetInnerHTML={{ __html: sanitize(profile.dealbreakers) }}
+          />
         </>
       )}
     </>

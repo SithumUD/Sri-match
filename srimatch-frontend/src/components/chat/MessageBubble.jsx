@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check, Clock } from 'lucide-react';
+import { sanitize } from '../../utils/security.utils';
 
 const MessageBubble = ({ message, isMine }) => {
   const formatTime = (ts) => {
@@ -18,7 +19,10 @@ const MessageBubble = ({ message, isMine }) => {
             : "bg-white text-[#2d1810] border border-[#f0ddd5] rounded-bl-none"
         }`}
       >
-        <p className="text-[0.88rem] leading-relaxed break-words">{message.content}</p>
+        <p 
+          className="text-[0.88rem] leading-relaxed break-words"
+          dangerouslySetInnerHTML={{ __html: sanitize(message.content) }}
+        />
         <div className={`mt-1 flex items-center gap-1.5 ${isMine ? "justify-end" : "justify-start"}`}>
           <span className={`text-[0.65rem] ${isMine ? "text-white/60" : "text-[#b09080]"}`}>
             {formatTime(message.createdAt)}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight, Loader2, Shield as ShieldIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -84,6 +84,8 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
@@ -108,7 +110,7 @@ const LoginPage = () => {
 
     setLoading(true);
     try {
-      const result = await login(data.email, data.password, captchaToken);
+      const result = await login(data.email, data.password, captchaToken, totpCode);
       if (result.success) {
         toast.success("Welcome back!");
         if (result.user && !result.user.hasProfile) {
@@ -116,6 +118,9 @@ const LoginPage = () => {
         } else {
           navigate("/home");
         }
+      } else if (result.mfaRequired) {
+        setMfaRequired(true);
+        toast.info("Two-factor authentication required.");
       } else {
         toast.error(result.message || "Invalid email or password.");
       }
@@ -197,6 +202,26 @@ const LoginPage = () => {
               </div>
               {errors.password && <p className="mt-1 text-[0.75rem] text-red-500">{errors.password.message}</p>}
             </div>
+
+            {/* MFA Code (TOTP) */}
+            {mfaRequired && (
+              <div className="mb-[1.1rem] animate-in slide-in-from-top-2 duration-300">
+                <label htmlFor="totpCode" className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#8b4e2e]">Authentication Code</label>
+                <div className="relative">
+                  <ShieldIcon className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c9856a]" size={15} />
+                  <input
+                    id="totpCode" type="text"
+                    className="w-full rounded-xl border-[1.5px] border-[#c9856a] bg-[#fff5f0] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:bg-white focus:shadow-[0_0_0_3px_rgba(201,133,106,0.12)] placeholder:text-[#c4b0a5]"
+                    placeholder="6-digit code"
+                    maxLength={6}
+                    value={totpCode}
+                    onChange={(e) => setTotpCode(e.target.value)}
+                    required
+                  />
+                </div>
+                <p className="mt-1.5 text-[0.7rem] text-[#9a7060]">Enter the code from your authenticator app.</p>
+              </div>
+            )}
 
             {/* Remember / Forgot */}
             <div className="mb-6 flex items-center justify-between text-[0.8rem]">

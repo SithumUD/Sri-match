@@ -18,4 +18,16 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom', 'react-helmet-async'],
+          'vendor-data': ['@tanstack/react-query', 'axios', 'zustand'],
+          'vendor-ui': ['lucide-react', 'sonner'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
 });

@@ -2,6 +2,38 @@ import React from 'react';
 import { Search, MessageCircle, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+const ConversationItem = React.memo(({ conv, isActive, onSelect }) => {
+  return (
+    <div
+      className={`flex items-center gap-3 p-4 border-b border-[#fdf5f0] cursor-pointer transition-all ${
+        isActive ? "bg-gradient-to-br from-[#fdf0e8] to-[#faf0f8]" : "hover:bg-[#fdf8f5]"
+      }`}
+      onClick={() => onSelect(conv)}
+    >
+      <div className="relative flex-shrink-0">
+        <img 
+          src={conv.otherUser.profileImageUrl || "/default-avatar.png"} 
+          alt={conv.otherUser.name} 
+          className={`h-11 w-11 rounded-full object-cover border-2 ${isActive ? "border-[#c9856a]" : "border-[#f0ddd5]"}`} 
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between mb-0.5">
+          <span className="text-[0.84rem] font-semibold text-[#2d1810] truncate">{conv.otherUser.name}</span>
+          <span className="text-[0.68rem] text-[#b09080] flex-shrink-0">
+            {new Date(conv.matchedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+          </span>
+        </div>
+        <p className="text-[0.76rem] text-[#9a7060] truncate">
+          Click to chat with {conv.otherUser.firstName || conv.otherUser.name}
+        </p>
+      </div>
+    </div>
+  );
+});
+
+ConversationItem.displayName = 'ConversationItem';
+
 const ConversationList = ({ 
   conversations, 
   activeConversation, 
@@ -26,45 +58,21 @@ const ConversationList = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-[#e8c9b8]">
+      <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center p-8 text-[#9a7060]">
             <Loader2 size={24} className="animate-spin mb-2" />
             <p className="text-[0.8rem]">Loading conversations...</p>
           </div>
         ) : conversations.length > 0 ? (
-          conversations.map(conv => {
-            const isActive = activeConversation?.id === conv.id;
-            return (
-              <div
-                key={conv.id}
-                className={`flex items-center gap-3 p-4 border-b border-[#fdf5f0] cursor-pointer transition-all ${
-                  isActive ? "bg-gradient-to-br from-[#fdf0e8] to-[#faf0f8]" : "hover:bg-[#fdf8f5]"
-                }`}
-                onClick={() => onSelect(conv)}
-              >
-                <div className="relative flex-shrink-0">
-                  <img 
-                    src={conv.otherUser.profileImageUrl || "/default-avatar.png"} 
-                    alt={conv.otherUser.name} 
-                    className={`h-11 w-11 rounded-full object-cover border-2 ${isActive ? "border-[#c9856a]" : "border-[#f0ddd5]"}`} 
-                  />
-                  {/* Online status indicator could go here */}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between mb-0.5">
-                    <span className="text-[0.84rem] font-semibold text-[#2d1810] truncate">{conv.otherUser.name}</span>
-                    <span className="text-[0.68rem] text-[#b09080] flex-shrink-0">
-                      {new Date(conv.matchedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-                  <p className="text-[0.76rem] text-[#9a7060] truncate">
-                    Click to chat with {conv.otherUser.firstName || conv.otherUser.name}
-                  </p>
-                </div>
-              </div>
-            );
-          })
+          conversations.map(conv => (
+            <ConversationItem 
+              key={conv.id} 
+              conv={conv} 
+              isActive={activeConversation?.id === conv.id} 
+              onSelect={onSelect} 
+            />
+          ))
         ) : (
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <MessageCircle size={28} className="text-[#e8c9b8] mb-2" />

@@ -81,7 +81,7 @@ const ChatPane = ({
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-2 bg-[#fdf8f4] scrollbar-thin scrollbar-thumb-[#e8c9b8]">
+      <div className="flex-1 overflow-y-auto p-6 space-y-2 bg-[#fdf8f4]">
         {loadingMessages ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 size={32} className="animate-spin text-[#e8c9b8]" />
@@ -102,7 +102,9 @@ const ChatPane = ({
               <div className="flex-1 h-px bg-[#f0ddd5]" />
             </div>
             {messages.map(msg => (
-              <MessageBubble key={msg.id} message={msg} isMine={msg.senderId === currentUserId} />
+              <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+                <MessageBubble message={msg} isMine={msg.senderId === currentUserId} />
+              </div>
             ))}
           </>
         )}

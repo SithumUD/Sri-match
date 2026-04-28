@@ -70,8 +70,6 @@ const styles = `
     max-height: 380px;
     overflow-y: auto;
   }
-  .nd-list::-webkit-scrollbar { width: 3px; }
-  .nd-list::-webkit-scrollbar-thumb { background: #e8c9b8; border-radius: 99px; }
 
   /* ── Notification item ── */
   .nd-item {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Settings, Bell, Shield, Eye, CreditCard, HelpCircle,
   MessageCircleIcon, CheckCircle, ChevronDown, ChevronUp,
@@ -332,6 +332,7 @@ const AccordionSection = ({ title, icon, children, defaultOpen = false }) => {
 /* ─── SettingsPage ────────────────────────────────────────────────────────── */
 const SettingsPage = () => {
   const { logout, user, subscription = {} } = useAuth();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("account");
   const isPremium = subscription?.plan === "premium";
 
@@ -643,23 +644,32 @@ const SettingsPage = () => {
                   </div>
                   <div className="set-body">
 
-                    <div className="set-subsection-title"><Shield size={11} />Two-Factor Authentication</div>
-
                     <div className="set-toggle-row" style={{ marginBottom: "0.75rem" }}>
                       <div className="set-toggle-info">
-                        <p>Enable two-factor authentication</p>
-                        <span>Add an extra layer of security to your account</span>
+                        <p>Two-Factor Authentication (MFA)</p>
+                        <span>Protect your account with an extra verification step</span>
                       </div>
-                      <Toggle />
+                      <div style={{ fontSize: "0.75rem", fontWeight: 600, color: user?.mfaEnabled ? "#5aaa7a" : "#9a7060" }}>
+                        {user?.mfaEnabled ? "ENABLED" : "DISABLED"}
+                      </div>
                     </div>
 
-                    <div className="set-warning-box" style={{ marginBottom: "0.75rem" }}>
-                      <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1, color: "#c07030" }} />
-                      <span>Two-factor authentication requires a code from your phone on each login, in addition to your password.</span>
+                    <div className="set-info-box" style={{ marginBottom: "0.75rem" }}>
+                      <Shield size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                      <span>We use industry-standard TOTP (Time-based One-Time Password) for MFA. You'll need an authenticator app like Google Authenticator or Microsoft Authenticator.</span>
                     </div>
 
                     <div style={{ marginBottom: "1.25rem" }}>
-                      <button className="set-btn-ghost">Set Up Two-Factor Authentication</button>
+                      <button className="set-btn-primary" onClick={() => navigate("/security/mfa-setup")}>
+                        {user?.mfaEnabled ? "Manage MFA Settings" : "Enable MFA Protection"}
+                      </button>
+                    </div>
+
+                    <div className="set-divider" />
+                    <div className="set-subsection-title"><Lock size={11} />Session Security</div>
+                    <div className="set-info-box" style={{ marginBottom: "0.75rem", background: "#f0fdf4", borderColor: "#d0f4dc", color: "#2e7d32" }}>
+                      <CheckCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                      <span>Your session is protected by HttpOnly & Secure cookies, mitigating risks from XSS (Cross-Site Scripting) attacks.</span>
                     </div>
 
                     <div className="set-divider" />

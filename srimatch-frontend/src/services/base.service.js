@@ -18,8 +18,12 @@ const API = axios.create({
 // ==============================
 API.interceptors.request.use(
     (config) => {
-        // With HttpOnly cookies, we don't need to manually set the Authorization header.
-        // The browser sends cookies automatically with { withCredentials: true }.
+        // CSRF Protection: Manually extract XSRF token if Axios didn't 
+        // (Varies by browser and backend configuration)
+        const xsrfToken = CookieService.get('XSRF-TOKEN');
+        if (xsrfToken) {
+            config.headers['X-XSRF-TOKEN'] = xsrfToken;
+        }
         return config;
     },
     (error) => Promise.reject(error)
@@ -30,7 +34,6 @@ API.interceptors.request.use(
 // ==============================
 API.interceptors.response.use(
     (response) => {
-        // Return only API data
         return response.data;
     },
     async (error) => {
@@ -60,6 +63,14 @@ API.interceptors.response.use(
                 window.location.href = '/login';
                 return Promise.reject(refreshError);
             }
+        }
+
+        // ------------------------------
+        // HANDLE 403 (FORBIDDEN / CSRF)
+        // ------------------------------
+        if (error.response?.status === 403) {
+            // Silencing global log to avoid noise during session checks
+            // Components can still handle 403 via the rejected promise
         }
 
         // ------------------------------

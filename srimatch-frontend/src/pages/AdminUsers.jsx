@@ -6,6 +6,8 @@ import {
   CheckIcon, Loader2Icon,
 } from "lucide-react";
 import AdminService from "../services/admin.service";
+import UserRow from "../components/admin/UserRow";
+import UserRowSkeleton from "../components/skeletons/UserRowSkeleton";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -271,11 +273,11 @@ const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [newUser, setNewUser]   = useState({ firstName: "", lastName: "", email: "", password: "", role: "USER" });
   const [search, setSearch]     = useState("");
   const [viewUser, setViewUser] = useState(null);
   const [showAdd, setShowAdd]   = useState(false);
   const [confirm, setConfirm]   = useState(null); // { type, user }
-  const [newUser, setNewUser]   = useState({ firstName: "", lastName: "", email: "", password: "", role: "USER" });
 
   useEffect(() => {
     fetchUsers();
@@ -296,13 +298,10 @@ const AdminUsers = () => {
   };
 
   /* actions */
-  const doLockToggle = async (user) => {
+  const doLockToggle = React.useCallback(async (user) => {
     try {
-      // If lockedUntil is present, it's locked. If null and we want to lock, send null for permanent lock.
-      // If currently locked, we want to unlock (send a date in the past or handle via backend logic).
-      // Backend adminLockAccount takes LocalDateTime lockUntil.
       const isCurrentlyLocked = user.accountLockedUntil && new Date(user.accountLockedUntil) > new Date();
-      const lockUntil = isCurrentlyLocked ? new Date(0).toISOString() : null; // null for permanent lock in backend
+      const lockUntil = isCurrentlyLocked ? new Date(0).toISOString() : null;
       
       await AdminService.adminLockAccount(user.email, lockUntil);
       fetchUsers();
@@ -311,9 +310,9 @@ const AdminUsers = () => {
     } finally {
       setConfirm(null);
     }
-  };
+  }, []);
 
-  const doDelete = async (user) => {
+  const doDelete = React.useCallback(async (user) => {
     try {
       await AdminService.adminSoftDeleteUser(user.email);
       fetchUsers();
@@ -322,9 +321,9 @@ const AdminUsers = () => {
     } finally {
       setConfirm(null);
     }
-  };
+  }, []);
 
-  const doRoleChange = async (user) => {
+  const doRoleChange = React.useCallback(async (user) => {
     try {
       const next = user.role === "USER" ? "ADMIN" : "USER";
       await AdminService.adminChangeRole(user.email, next);
@@ -334,7 +333,15 @@ const AdminUsers = () => {
     } finally {
       setConfirm(null);
     }
-  };
+  }, []);
+
+  const handleView = React.useCallback((user) => {
+    setViewUser(user);
+  }, []);
+
+  const handleConfirmAction = React.useCallback((type, user) => {
+    setConfirm({ type, user });
+  }, []);
 
   const doAddUser = async (e) => {
     e.preventDefault();
@@ -435,14 +442,9 @@ const AdminUsers = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan="5">
-                    <div className="au2-empty">
-                      <div className="au2-empty-icon"><Loader2Icon size={20} className="animate-spin" style={{ color: "#c9856a" }} /></div>
-                      <div className="au2-empty-title">Loading members...</div>
-                    </div>
-                  </td>
-                </tr>
+                Array.from({ length: 8 }).map((_, i) => (
+                  <UserRowSkeleton key={i} />
+                ))
               ) : error ? (
                 <tr>
                   <td colSpan="5">
@@ -455,56 +457,17 @@ const AdminUsers = () => {
                   </td>
                 </tr>
               ) : filtered.length > 0 ? filtered.map((u) => (
-                <tr key={u.id}>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
-                      <div className="au2-avatar">{u.firstName[0]}{u.lastName[0]}</div>
-                      <div>
-                        <div className="au2-user-name">{u.firstName} {u.lastName}</div>
-                        <div className="au2-user-date">Joined {formatDate(u.createdAt)}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ color: "#9a7060", fontSize: "0.79rem" }}>{u.email}</td>
-                  <td>
-                    <span className={`au2-badge ${roleBadgeClass(u.role)}`}>
-                      {u.role === "SUPER_ADMIN" ? <><SparklesIcon size={9} /> Super Admin</> :
-                       u.role === "ADMIN" ? <><ShieldIcon size={9} /> Admin</> :
-                       <><UsersIcon size={9} /> Member</>}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`au2-badge ${isLocked(u) ? "red" : "green"}`}>
-                      {isLocked(u)
-                        ? <><LockIcon size={9} /> Locked</>
-                        : <><CheckIcon size={9} /> Active</>
-                      }
-                    </span>
-                  </td>
-                  <td>
-                    <div className="au2-actions">
-                      <button className="au2-action-btn" onClick={() => setViewUser(u)}>
-                        <EyeIcon size={11} /> View
-                      </button>
-                      {u.role !== "SUPER_ADMIN" && (
-                        <button className="au2-action-btn" onClick={() => setConfirm({ type: "role", user: u })}>
-                          <ShieldIcon size={11} /> Role
-                        </button>
-                      )}
-                      <button
-                        className={`au2-action-btn ${isLocked(u) ? "unlock" : "lock"}`}
-                        onClick={() => setConfirm({ type: "lock", user: u })}
-                      >
-                        {isLocked(u) ? <><UnlockIcon size={11} /> Unlock</> : <><LockIcon size={11} /> Lock</>}
-                      </button>
-                      {u.role !== "SUPER_ADMIN" && (
-                        <button className="au2-action-btn del" onClick={() => setConfirm({ type: "delete", user: u })}>
-                          <Trash2Icon size={11} /> Delete
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                <UserRow
+                  key={u.id}
+                  user={u}
+                  isLocked={isLocked}
+                  formatDate={formatDate}
+                  roleBadgeClass={roleBadgeClass}
+                  onView={handleView}
+                  onRoleChange={(u) => handleConfirmAction("role", u)}
+                  onLockToggle={(u) => handleConfirmAction("lock", u)}
+                  onDelete={(u) => handleConfirmAction("delete", u)}
+                />
               )) : (
                 <tr>
                   <td colSpan="5">
