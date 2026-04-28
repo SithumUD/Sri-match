@@ -1,249 +1,35 @@
-// RegisterPage.jsx - Enhanced Single-Step Version (Phone Number Removed)
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import {
-  Eye, EyeOff, Heart, Mail, Lock, User, Gift,
-  Shield, CheckCircle, XCircle, AlertCircle, ArrowRight, RefreshCw, Check
+import { 
+  Eye, EyeOff, Mail, Lock, User, Gift, 
+  Shield, AlertCircle, ArrowRight, Loader2, Check, RefreshCw 
 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { toast } from "sonner";
 
-/* ─── Inline styles for custom fonts & decorative elements ─────────────── */
-const globalStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+// Validation Schema
+const registerSchema = z.object({
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+  confirmPassword: z.string(),
+  referralCode: z.string().optional(),
+  agreeToTerms: z.boolean().refine(val => val === true, "You must agree to the terms"),
+  agreeToMarketing: z.boolean().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
 
-  .reg-page * { box-sizing: border-box; }
-
-  .reg-page {
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-    background: #fdf8f4;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .reg-bg-blob {
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.18;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .reg-bg-blob-1 { width: 520px; height: 520px; background: #c9856a; top: -120px; right: -120px; }
-  .reg-bg-blob-2 { width: 420px; height: 420px; background: #8b6248; bottom: -100px; left: -100px; }
-  .reg-bg-blob-3 { width: 280px; height: 280px; background: #e8b89a; top: 40%; left: 40%; }
-
-  .reg-card {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 480px;
-    background: #ffffff;
-    border-radius: 24px;
-    box-shadow: 0 32px 80px rgba(120,60,30,0.12), 0 8px 24px rgba(0,0,0,0.06);
-    overflow: hidden;
-  }
-
-  .reg-card-top {
-    background: linear-gradient(135deg, #3d1f12 0%, #6b3526 50%, #8b4e2e 100%);
-    padding: 2.5rem 2.5rem 2rem;
-    text-align: center;
-    position: relative;
-  }
-  .reg-card-top::after {
-    content: '';
-    position: absolute;
-    bottom: -1px; left: 0; right: 0;
-    height: 32px;
-    background: #ffffff;
-    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-  }
-
-  .reg-logo {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 2.2rem;
-    font-weight: 600;
-    color: #fff;
-    letter-spacing: 0.04em;
-    text-decoration: none;
-    display: block;
-    margin-bottom: 0.25rem;
-  }
-  .reg-logo span.gold { color: #e8c97a; }
-  .reg-logo span.heart { color: #f4a0a0; }
-
-  .reg-tagline {
-    font-size: 0.82rem;
-    color: rgba(255,255,255,0.65);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-weight: 300;
-  }
-
-  .reg-body { padding: 2rem 2.5rem 2.5rem; }
-
-  .reg-heading {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: #2d1810;
-    margin-bottom: 0.25rem;
-    line-height: 1.2;
-  }
-  .reg-subheading {
-    font-size: 0.85rem;
-    color: #9a7060;
-    margin-bottom: 1.75rem;
-  }
-
-  /* Social buttons */
-  .reg-social-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem; }
-  .reg-social-btn {
-    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    padding: 0.65rem 1rem;
-    border: 1.5px solid #e8ddd8;
-    border-radius: 10px;
-    background: #fdf8f5;
-    font-size: 0.82rem;
-    color: #4a3028;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .reg-social-btn:hover { border-color: #c9856a; background: #fff5f0; }
-
-  .reg-divider {
-    display: flex; align-items: center; gap: 0.75rem;
-    margin: 1.25rem 0;
-    color: #c4a99a; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
-  }
-  .reg-divider::before, .reg-divider::after { content: ''; flex: 1; height: 1px; background: #ede5e0; }
-
-  /* Form fields */
-  .reg-field { margin-bottom: 1.1rem; }
-  .reg-label {
-    display: block; font-size: 0.8rem; font-weight: 500;
-    color: #4a3028; margin-bottom: 0.4rem; letter-spacing: 0.02em;
-  }
-  .reg-label .req { color: #d9644a; margin-left: 2px; }
-  .reg-label .opt { color: #b09080; font-weight: 300; font-size: 0.72rem; margin-left: 4px; }
-
-  .reg-input-wrap { position: relative; }
-  .reg-input-icon {
-    position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%);
-    color: #c4a99a; width: 15px; height: 15px; pointer-events: none;
-  }
-  .reg-input-icon-right {
-    position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%);
-    color: #c4a99a; width: 15px; height: 15px; cursor: pointer;
-  }
-
-  .reg-input {
-    width: 100%; padding: 0.7rem 2.5rem 0.7rem 2.5rem;
-    border: 1.5px solid #e8ddd8; border-radius: 10px;
-    font-size: 0.88rem; color: #2d1810; background: #fdf8f5;
-    font-family: 'DM Sans', sans-serif;
-    transition: all 0.2s; outline: none;
-  }
-  .reg-input:focus { border-color: #c9856a; background: #fff; box-shadow: 0 0 0 3px rgba(201,133,106,0.1); }
-  .reg-input.error { border-color: #d9644a; background: #fff9f7; }
-  .reg-input.success { border-color: #6daa7a; }
-  .reg-input:disabled { background: #f5f0ed; color: #9a7060; }
-
-  .reg-input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-
-  .reg-error { font-size: 0.75rem; color: #d9644a; margin-top: 0.3rem; display: flex; align-items: center; gap: 4px; }
-  .reg-success-note { font-size: 0.75rem; color: #5d9e6a; margin-top: 0.3rem; display: flex; align-items: center; gap: 4px; }
-
-  /* Password strength */
-  .pw-strength-bars { display: flex; gap: 4px; height: 3px; margin-top: 0.5rem; }
-  .pw-strength-bar { flex: 1; border-radius: 99px; background: #ede5e0; transition: background 0.3s; }
-  .pw-strength-bar.active-0 { background: #d9644a; }
-  .pw-strength-bar.active-1 { background: #e09050; }
-  .pw-strength-bar.active-2 { background: #d4aa40; }
-  .pw-strength-bar.active-3 { background: #6daa7a; }
-  .pw-strength-text { font-size: 0.72rem; color: #9a7060; margin-top: 0.3rem; }
-
-  /* CAPTCHA */
-  .reg-captcha-box {
-    padding: 1rem; background: #fdf5f0; border: 1px solid #f0ddd5; border-radius: 10px;
-    margin-top: 0.75rem;
-  }
-  .reg-captcha-code {
-    font-family: monospace; font-size: 1.4rem; letter-spacing: 0.35em; font-weight: 700;
-    background: linear-gradient(135deg, #3d1f12, #6b3526);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text;
-    padding: 0.5rem 0;
-    user-select: none;
-  }
-  .reg-captcha-row { display: flex; align-items: center; gap: 0.75rem; }
-  .reg-captcha-refresh {
-    background: none; border: none; cursor: pointer;
-    font-size: 1.2rem; color: #9a7060; transition: transform 0.3s;
-  }
-  .reg-captcha-refresh:hover { transform: rotate(180deg); }
-
-  /* Checkbox */
-  .reg-checkbox-row { display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.75rem; }
-  .reg-checkbox {
-    width: 16px; height: 16px; accent-color: #8b4e2e;
-    margin-top: 2px; flex-shrink: 0; cursor: pointer;
-  }
-  .reg-checkbox-label { font-size: 0.8rem; color: #6b4a3a; line-height: 1.5; }
-  .reg-checkbox-label a { color: #8b4e2e; text-decoration: underline; text-underline-offset: 2px; }
-
-  /* Submit button */
-  .reg-submit-btn {
-    width: 100%; padding: 0.85rem;
-    background: linear-gradient(135deg, #3d1f12 0%, #8b4e2e 60%, #c9856a 100%);
-    color: #fff; border: none; border-radius: 12px;
-    font-size: 0.92rem; font-weight: 500; font-family: 'DM Sans', sans-serif;
-    letter-spacing: 0.04em;
-    cursor: pointer; transition: all 0.25s;
-    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    margin-top: 1.25rem;
-    box-shadow: 0 6px 20px rgba(139,78,46,0.28);
-  }
-  .reg-submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(139,78,46,0.36); }
-  .reg-submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-
-  .reg-signin-link {
-    text-align: center; margin-top: 1.25rem;
-    font-size: 0.82rem; color: #9a7060;
-  }
-  .reg-signin-link a { color: #8b4e2e; font-weight: 500; text-decoration: none; }
-  .reg-signin-link a:hover { text-decoration: underline; }
-
-  .reg-back-link {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 0.8rem; color: #9a7060; text-decoration: none; margin-bottom: 1rem;
-  }
-  .reg-back-link:hover { color: #8b4e2e; }
-
-  /* Alert */
-  .reg-alert {
-    padding: 0.75rem 1rem; border-radius: 10px;
-    background: #fef1ee; border: 1px solid #f5c4b8;
-    display: flex; align-items: flex-start; gap: 0.5rem;
-    font-size: 0.82rem; color: #8b3020; margin-bottom: 1rem;
-  }
-
-  .reg-referral-note { font-size: 0.73rem; color: #8b4e2e; margin-top: 0.3rem; }
-
-  @media (max-width: 520px) {
-    .reg-card { border-radius: 20px; }
-    .reg-body { padding: 1.5rem 1.5rem 2rem; }
-    .reg-card-top { padding: 2rem 1.5rem 1.75rem; }
-    .reg-input-grid { grid-template-columns: 1fr; }
-  }
-`;
-
-/* ─── Helper: SVG icons for social login ───────────────────────────────── */
+/* ─── Icon helpers ───────────────────────────────────────────────────────── */
 const GoogleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24">
     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -269,144 +55,77 @@ const TurnstileWidget = ({ onVerify }) => {
     if (!document.getElementById(scriptId)) {
       const script = document.createElement("script");
       script.id = scriptId;
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
       script.async = true;
       script.defer = true;
       document.body.appendChild(script);
     }
 
+    let isMounted = true;
     const interval = setInterval(() => {
       if (window.turnstile && containerRef.current && !widgetIdRef.current) {
-        clearInterval(interval);
-        widgetIdRef.current = window.turnstile.render(containerRef.current, {
-          sitekey: "0x4AAAAAADCRNcxH7bShZFVD", // Testing sitekey
-          callback: (token) => onVerify(token),
-        });
+        try {
+          widgetIdRef.current = window.turnstile.render(containerRef.current, {
+            sitekey: "0x4AAAAAADCRNcxH7bShZFVD", // Always Passes test key
+            callback: (token) => {
+              if (isMounted) onVerify(token);
+            }
+          });
+          clearInterval(interval);
+        } catch (e) {
+          console.warn("Turnstile render failed, retrying...");
+        }
       }
-    }, 100);
+    }, 250);
 
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [onVerify]);
 
-  return <div ref={containerRef} className="reg-turnstile" style={{ marginTop: '1rem', marginBottom: '1rem' }} />;
+  return <div ref={containerRef} className="mt-5 mb-4 flex min-h-[65px] justify-center" />;
 };
 
-/* ─── Main Component ────────────────────────────────────────────────────── */
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const { register, verifyEmail, login } = useAuth();
+  const { register: registerUser, verifyEmail, login } = useAuth();
+  
   const [showOtpStep, setShowOtpStep] = useState(false);
   const [otpValue, setOtpValue] = useState("");
-  const [verificationLoading, setVerificationLoading] = useState(false);
-  const [resendingOtp, setResendingOtp] = useState(false);
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
-  const [emailAvailable, setEmailAvailable] = useState(null);
-  const [checkingEmail, setCheckingEmail] = useState(false);
-  const [attempts, setAttempts] = useState(0);
-  const [showCaptcha, setShowCaptcha] = useState(false);
-  const [captchaInput, setCaptchaInput] = useState("");
-  const [captchaCode, setCaptchaCode] = useState("");
-  const [agreeToMarketing, setAgreeToMarketing] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState({});
+  const [verificationLoading, setVerificationLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    referralCode: "",
-    agreeToTerms: false,
-    agreeToMarketing: false,
-    captchaToken: "",
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      agreeToTerms: false,
+      agreeToMarketing: false,
+    }
   });
 
-  const generateCaptcha = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-    setCaptchaCode(Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""));
-  };
+  const formData = watch();
 
-  useEffect(() => { generateCaptcha(); }, []);
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (formData.email && /\S+@\S+\.\S+/.test(formData.email)) {
-        setCheckingEmail(true);
-        setTimeout(() => {
-          const taken = ["test@test.com", "admin@example.com"];
-          setEmailAvailable(!taken.includes(formData.email));
-          setCheckingEmail(false);
-        }, 500);
-      }
-    }, 500);
-    return () => clearTimeout(t);
-  }, [formData.email]);
-
-  const checkPasswordStrength = (pw) => {
-    let s = 0;
-    if (pw.length >= 8) s++;
-    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) s++;
-    if (/\d/.test(pw)) s++;
-    if (/[^a-zA-Z\d]/.test(pw)) s++;
-    setPasswordStrength(s);
-    return s;
-  };
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(p => ({ ...p, [name]: type === "checkbox" ? checked : value }));
-    if (errors[name]) setErrors(p => ({ ...p, [name]: "" }));
-    if (name === "password") checkPasswordStrength(value);
-  };
-
-  const handleBlur = (f) => setTouched(p => ({ ...p, [f]: true }));
-
-  const pwStrengthLabels = ["Very Weak", "Weak", "Fair", "Good", "Strong"];
-  const pwStrengthActiveClass = ["active-0", "active-1", "active-2", "active-3", "active-3"];
-
-  const validate = () => {
-    const e = {};
-    if (!formData.firstName.trim()) e.firstName = "First name is required";
-    if (!formData.lastName.trim()) e.lastName = "Last name is required";
-    if (!formData.email.trim()) e.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) e.email = "Invalid email address";
-    else if (emailAvailable === false) e.email = "Email already registered";
-    if (!formData.password) e.password = "Password is required";
-    else if (formData.password.length < 8) e.password = "Minimum 8 characters";
-    else if (passwordStrength < 2) e.password = "Password is too weak";
-    if (formData.password !== formData.confirmPassword) e.confirmPassword = "Passwords do not match";
-    if (!formData.agreeToTerms) e.agreeToTerms = "Please accept the terms to continue";
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setAttempts(a => a + 1);
-    
-    if (!validate()) return;
-    
-    if (!formData.captchaToken) {
-      setErrors({ form: "Please complete the security check." });
+  const onSubmit = async (data) => {
+    if (!captchaToken) {
+      toast.error("Please complete the security check.");
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-      const result = await register(formData);
+      const result = await registerUser({ ...data, captchaToken });
       if (result.success) {
-        if (formData.referralCode) localStorage.setItem("referralUsed", formData.referralCode);
+        toast.success("Account created! Please verify your email.");
         setShowOtpStep(true);
       } else {
-        setErrors({ form: result.message || "Registration failed. Please try again." });
+        toast.error(result.message || "Registration failed. Please try again.");
       }
     } catch (err) {
-      setErrors({ form: "An unexpected error occurred. Please try again." });
+      toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -415,325 +134,260 @@ const RegisterPage = () => {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (!otpValue || otpValue.length < 6) {
-      setErrors({ otp: "Please enter a valid 6-digit OTP" });
+      toast.error("Please enter a valid 6-digit code.");
       return;
     }
 
+    setVerificationLoading(true);
     try {
-      setVerificationLoading(true);
-      const verifyResult = await verifyEmail(formData.email, otpValue);
-      
-      if (verifyResult.success) {
-        // Automatically login the user
-        const loginResult = await login(formData.email, formData.password);
+      const result = await verifyEmail(formData.email, otpValue);
+      if (result.success) {
+        toast.success("Email verified successfully!");
+        // Attempt automatic login
+        const loginResult = await login(formData.email, formData.password, captchaToken);
         if (loginResult.success) {
-            navigate("/profile-creation");
+          navigate("/profile-creation");
         } else {
-            setErrors({ otp: "Verification successful, but automatic login failed. Please login manually." });
-            setTimeout(() => navigate("/login"), 3000);
+          navigate("/login");
         }
       } else {
-        setErrors({ otp: verifyResult.message || "Invalid OTP. Please try again." });
+        toast.error(result.message || "Invalid code. Please try again.");
       }
     } catch (err) {
-      setErrors({ otp: "An error occurred during verification." });
+      toast.error("Verification failed. Please try again.");
     } finally {
       setVerificationLoading(false);
     }
   };
 
-  const handleResendOtp = async () => {
-     // Assuming resendVerification exists in AuthContext or adding it
-     setResendingOtp(true);
-     try {
-       // We need to be logged in to resend verification if it uses 'authentication.getName()'
-       // But usually for signup, you can resend by email. 
-       // For now, let's just show a notification or placeholder.
-       // Actually, resendVerification in controller requires auth.
-       // We'll skip implementation of resend for now or just show a message.
-       alert("A new OTP has been sent to your email.");
-     } finally {
-       setResendingOtp(false);
-     }
-  };
-
   return (
-    <>
-      <style>{globalStyles}</style>
-      <div className="reg-page">
-        <div className="reg-bg-blob reg-bg-blob-1" />
-        <div className="reg-bg-blob reg-bg-blob-2" />
-        <div className="reg-bg-blob reg-bg-blob-3" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#fdf8f4] px-4 py-12 font-['DM_Sans']">
+      {/* Decorative Blobs */}
+      <div className="fixed top-[-120px] right-[-120px] z-0 h-[520px] w-[520px] rounded-full bg-[#c9856a] opacity-15 blur-[90px] pointer-events-none" />
+      <div className="fixed bottom-[-100px] left-[-100px] z-0 h-[420px] w-[420px] rounded-full bg-[#8b6248] opacity-15 blur-[90px] pointer-events-none" />
 
-        <div className="reg-card">
-          {/* Top brand area */}
-          <div className="reg-card-top">
-            <Link to="/" className="reg-logo">
-              <span className="gold">Sri</span>Match<span className="heart"> ♥</span>
-            </Link>
-            <p className="reg-tagline">Where traditions meet forever</p>
-          </div>
+      <div className="relative z-10 w-full max-w-[480px] overflow-hidden rounded-[24px] bg-white shadow-[0_32px_80px_rgba(120,60,30,0.12),0_8px_24px_rgba(0,0,0,0.05)]">
+        {/* Brand Header */}
+        <div className="relative bg-gradient-to-br from-[#3d1f12] via-[#6b3526] to-[#8b4e2e] px-10 pt-10 pb-8 text-center after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-8 after:rounded-t-[50%] after:bg-white">
+          <Link to="/" className="mb-1 block font-['Cormorant_Garamond'] text-[2.2rem] font-semibold tracking-wide text-white no-underline transition-opacity hover:opacity-85">
+            <span className="text-[#e8c97a]">Sri</span>Match<span className="text-[#f4a0a0]"> ♥</span>
+          </Link>
+          <p className="text-[0.8rem] font-light tracking-[0.09em] uppercase text-white/60">Where traditions meet forever</p>
+        </div>
 
-          <div className="reg-body">
-            <Link to="/" className="reg-back-link">← Back to home</Link>
-            <h2 className="reg-heading">Begin your journey</h2>
-            <p className="reg-subheading">Create an account to find your perfect match</p>
+        <div className="px-10 pt-8 pb-10">
+          {!showOtpStep ? (
+            <>
+              <h2 className="mb-1 font-['Cormorant_Garamond'] text-[1.75rem] font-semibold leading-tight text-[#2d1810]">Begin your journey</h2>
+              <p className="mb-7 text-[0.85rem] text-[#9a7060]">Create an account to find your perfect match</p>
 
-            {/* Social login */}
-            <div className="reg-social-row">
-              <button type="button" className="reg-social-btn">
-                <GoogleIcon /> Continue with Google
-              </button>
-              <button type="button" className="reg-social-btn">
-                <FacebookIcon /> Continue with Facebook
-              </button>
-            </div>
-
-            <div className="reg-divider">or sign up with email</div>
-
-            {errors.form && (
-              <div className="reg-alert">
-                <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
-                {errors.form}
+              <div className="mb-6 grid grid-cols-2 gap-3">
+                <button type="button" className="flex items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] px-4 py-2.5 text-[0.82rem] font-medium text-[#4a3028] transition-all hover:border-[#c9856a] hover:bg-[#fff5f0]">
+                  <GoogleIcon /> Google
+                </button>
+                <button type="button" className="flex items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] px-4 py-2.5 text-[0.82rem] font-medium text-[#4a3028] transition-all hover:border-[#c9856a] hover:bg-[#fff5f0]">
+                  <FacebookIcon /> Facebook
+                </button>
               </div>
-            )}
 
-            {!showOtpStep ? (
-              <form onSubmit={handleSubmit} noValidate>
-                {/* Name row */}
-                <div className="reg-input-grid" style={{ marginBottom: "1.1rem" }}>
-                  <div className="reg-field" style={{ marginBottom: 0 }}>
-                    <label className="reg-label">First Name <span className="req">*</span></label>
-                    <div className="reg-input-wrap">
-                      <User className="reg-input-icon" size={15} />
+              <div className="relative my-5 flex items-center gap-3 text-[0.78rem] tracking-wide uppercase text-[#c4a99a] before:h-px before:flex-1 before:bg-[#ede5e0] after:h-px after:flex-1 after:bg-[#ede5e0]">
+                or sign up with email
+              </div>
+
+              <form onSubmit={handleSubmit(onSubmit)} noValidate>
+                <div className="mb-[1.1rem] grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#4a3028]">First Name</label>
+                    <div className="relative">
+                      <User className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c4a99a]" size={15} />
                       <input
-                        name="firstName" type="text" value={formData.firstName}
-                        onChange={handleChange} onBlur={() => handleBlur("firstName")}
-                        className={`reg-input${errors.firstName && touched.firstName ? " error" : ""}${formData.firstName && !errors.firstName ? " success" : ""}`}
+                        {...register("firstName")}
+                        className={`w-full rounded-xl border-[1.5px] bg-[#fdf8f5] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:bg-white focus:shadow-[0_0_0_3px_rgba(201,133,106,0.12)] placeholder:text-[#c4b0a5] ${errors.firstName ? 'border-red-300' : 'border-[#e8ddd8] focus:border-[#c9856a]'}`}
                         placeholder="Amara"
                       />
                     </div>
-                    {errors.firstName && touched.firstName && <p className="reg-error"><XCircle size={11} />{errors.firstName}</p>}
+                    {errors.firstName && <p className="mt-1 text-[0.75rem] text-red-500">{errors.firstName.message}</p>}
                   </div>
-                  <div className="reg-field" style={{ marginBottom: 0 }}>
-                    <label className="reg-label">Last Name <span className="req">*</span></label>
-                    <div className="reg-input-wrap">
-                      <User className="reg-input-icon" size={15} />
+                  <div>
+                    <label className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#4a3028]">Last Name</label>
+                    <div className="relative">
+                      <User className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c4a99a]" size={15} />
                       <input
-                        name="lastName" type="text" value={formData.lastName}
-                        onChange={handleChange} onBlur={() => handleBlur("lastName")}
-                        className={`reg-input${errors.lastName && touched.lastName ? " error" : ""}${formData.lastName && !errors.lastName ? " success" : ""}`}
+                        {...register("lastName")}
+                        className={`w-full rounded-xl border-[1.5px] bg-[#fdf8f5] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:bg-white focus:shadow-[0_0_0_3px_rgba(201,133,106,0.12)] placeholder:text-[#c4b0a5] ${errors.lastName ? 'border-red-300' : 'border-[#e8ddd8] focus:border-[#c9856a]'}`}
                         placeholder="Perera"
                       />
                     </div>
-                    {errors.lastName && touched.lastName && <p className="reg-error"><XCircle size={11} />{errors.lastName}</p>}
+                    {errors.lastName && <p className="mt-1 text-[0.75rem] text-red-500">{errors.lastName.message}</p>}
                   </div>
                 </div>
 
-                {/* Email */}
-                <div className="reg-field">
-                  <label className="reg-label">Email Address <span className="req">*</span></label>
-                  <div className="reg-input-wrap">
-                    <Mail className="reg-input-icon" size={15} />
+                <div className="mb-[1.1rem]">
+                  <label className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#4a3028]">Email Address</label>
+                  <div className="relative">
+                    <Mail className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c4a99a]" size={15} />
                     <input
-                      name="email" type="email" value={formData.email}
-                      onChange={handleChange} onBlur={() => handleBlur("email")}
-                      className={`reg-input${errors.email && touched.email ? " error" : ""}${emailAvailable === true ? " success" : ""}`}
-                      style={{ paddingRight: "2.5rem" }}
+                      {...register("email")}
+                      className={`w-full rounded-xl border-[1.5px] bg-[#fdf8f5] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:bg-white focus:shadow-[0_0_0_3px_rgba(201,133,106,0.12)] placeholder:text-[#c4b0a5] ${errors.email ? 'border-red-300' : 'border-[#e8ddd8] focus:border-[#c9856a]'}`}
                       placeholder="you@example.com"
                     />
-                    {checkingEmail && (
-                      <div className="reg-input-icon-right" style={{ animation: "spin 1s linear infinite" }}>
-                        <div style={{ width: 14, height: 14, border: "2px solid #c9856a", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                      </div>
-                    )}
-                    {!checkingEmail && emailAvailable === true && formData.email && <CheckCircle className="reg-input-icon-right" size={15} style={{ color: "#5d9e6a" }} />}
-                    {!checkingEmail && emailAvailable === false && formData.email && <XCircle className="reg-input-icon-right" size={15} style={{ color: "#d9644a" }} />}
                   </div>
-                  {errors.email && touched.email && <p className="reg-error"><XCircle size={11} />{errors.email}</p>}
-                  {emailAvailable === true && formData.email && <p className="reg-success-note"><CheckCircle size={11} />Email is available</p>}
+                  {errors.email && <p className="mt-1 text-[0.75rem] text-red-500">{errors.email.message}</p>}
                 </div>
 
-                {/* Password */}
-                <div className="reg-field">
-                  <label className="reg-label">Password <span className="req">*</span></label>
-                  <div className="reg-input-wrap">
-                    <Lock className="reg-input-icon" size={15} />
+                <div className="mb-[1.1rem]">
+                  <label className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#4a3028]">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c4a99a]" size={15} />
                     <input
-                      name="password" type={showPassword ? "text" : "password"} value={formData.password}
-                      onChange={handleChange} onBlur={() => handleBlur("password")}
-                      className={`reg-input${errors.password && touched.password ? " error" : ""}`}
+                      {...register("password")}
+                      type={showPassword ? "text" : "password"}
+                      className={`w-full rounded-xl border-[1.5px] bg-[#fdf8f5] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:bg-white focus:shadow-[0_0_0_3px_rgba(201,133,106,0.12)] placeholder:text-[#c4b0a5] ${errors.password ? 'border-red-300' : 'border-[#e8ddd8] focus:border-[#c9856a]'}`}
                       placeholder="Min. 8 characters"
                     />
-                    <button type="button" className="reg-input-icon-right" onClick={() => setShowPassword(v => !v)} style={{ background: "none", border: "none", padding: 0 }}>
+                    <button type="button" className="absolute top-1/2 right-[0.85rem] flex -translate-y-1/2 items-center bg-transparent text-[#c4a99a]" onClick={() => setShowPassword(v => !v)}>
                       {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
-                  {formData.password && (
-                    <>
-                      <div className="pw-strength-bars">
-                        {[1, 2, 3, 4].map(l => (
-                          <div key={l} className={`pw-strength-bar${passwordStrength >= l ? ` ${pwStrengthActiveClass[passwordStrength - 1]}` : ""}`} />
-                        ))}
-                      </div>
-                      <p className="pw-strength-text">Strength: {pwStrengthLabels[passwordStrength] || "Very Weak"}{passwordStrength < 2 ? " — add uppercase, numbers & symbols" : ""}</p>
-                    </>
-                  )}
-                  {errors.password && touched.password && <p className="reg-error"><XCircle size={11} />{errors.password}</p>}
+                  {errors.password && <p className="mt-1 text-[0.75rem] text-red-500">{errors.password.message}</p>}
                 </div>
 
-                {/* Confirm Password */}
-                <div className="reg-field">
-                  <label className="reg-label">Confirm Password <span className="req">*</span></label>
-                  <div className="reg-input-wrap">
-                    <Lock className="reg-input-icon" size={15} />
+                <div className="mb-[1.1rem]">
+                  <label className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#4a3028]">Confirm Password</label>
+                  <div className="relative">
+                    <Lock className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c4a99a]" size={15} />
                     <input
-                      name="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={formData.confirmPassword}
-                      onChange={handleChange} onBlur={() => handleBlur("confirmPassword")}
-                      className={`reg-input${errors.confirmPassword && touched.confirmPassword ? " error" : ""}${formData.confirmPassword && formData.password === formData.confirmPassword ? " success" : ""}`}
+                      {...register("confirmPassword")}
+                      type={showConfirmPassword ? "text" : "password"}
+                      className={`w-full rounded-xl border-[1.5px] bg-[#fdf8f5] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:bg-white focus:shadow-[0_0_0_3px_rgba(201,133,106,0.12)] placeholder:text-[#c4b0a5] ${errors.confirmPassword ? 'border-red-300' : 'border-[#e8ddd8] focus:border-[#c9856a]'}`}
                       placeholder="Repeat password"
                     />
-                    <button type="button" className="reg-input-icon-right" onClick={() => setShowConfirmPassword(v => !v)} style={{ background: "none", border: "none", padding: 0 }}>
+                    <button type="button" className="absolute top-1/2 right-[0.85rem] flex -translate-y-1/2 items-center bg-transparent text-[#c4a99a]" onClick={() => setShowConfirmPassword(v => !v)}>
                       {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
-                  {errors.confirmPassword && touched.confirmPassword && <p className="reg-error"><XCircle size={11} />{errors.confirmPassword}</p>}
-                  {formData.confirmPassword && formData.password === formData.confirmPassword && <p className="reg-success-note"><CheckCircle size={11} />Passwords match</p>}
+                  {errors.confirmPassword && <p className="mt-1 text-[0.75rem] text-red-500">{errors.confirmPassword.message}</p>}
                 </div>
 
-                {/* Referral */}
-                <div className="reg-field">
-                  <label className="reg-label">Referral Code <span className="opt">(optional)</span></label>
-                  <div className="reg-input-wrap">
-                    <Gift className="reg-input-icon" size={15} />
+                <div className="mb-6">
+                  <label className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#4a3028]">Referral Code <span className="text-[#b09080] font-light">(optional)</span></label>
+                  <div className="relative">
+                    <Gift className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c4a99a]" size={15} />
                     <input
-                      name="referralCode" type="text" value={formData.referralCode}
-                      onChange={handleChange}
-                      className="reg-input"
-                      placeholder="Enter code for 30 days free premium"
+                      {...register("referralCode")}
+                      className="w-full rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:bg-white focus:border-[#c9856a] placeholder:text-[#c4b0a5]"
+                      placeholder="Unlock 30 days free premium"
                     />
                   </div>
-                  <p className="reg-referral-note">✦ Valid referral codes unlock 30 days of Premium for free</p>
                 </div>
 
-                {/* CAPTCHA - Real Turnstile Integration */}
-                <TurnstileWidget onVerify={(token) => setFormData(p => ({ ...p, captchaToken: token }))} />
+                <TurnstileWidget onVerify={setCaptchaToken} />
 
-
-                {/* Checkboxes */}
-                <div style={{ marginTop: "1.25rem" }}>
-                  <div className="reg-checkbox-row">
-                    <input id="agreeToTerms" name="agreeToTerms" type="checkbox"
-                      checked={formData.agreeToTerms} onChange={handleChange} className="reg-checkbox" />
-                    <label htmlFor="agreeToTerms" className="reg-checkbox-label">
-                      I agree to the <a href="#">Terms & Conditions</a> and <a href="#">Privacy Policy</a>
-                      {errors.agreeToTerms && <span style={{ display: "block", color: "#d9644a", fontSize: "0.73rem", marginTop: "0.2rem" }}>{errors.agreeToTerms}</span>}
+                <div className="mb-6 space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <input 
+                      {...register("agreeToTerms")}
+                      id="agreeToTerms" type="checkbox" 
+                      className="mt-1 h-[15px] w-[15px] cursor-pointer accent-[#8b4e2e]" 
+                    />
+                    <label htmlFor="agreeToTerms" className="text-[0.8rem] leading-relaxed text-[#6b4a3a]">
+                      I agree to the <a href="#" className="font-medium text-[#8b4e2e] underline underline-offset-2">Terms & Conditions</a> and <a href="#" className="font-medium text-[#8b4e2e] underline underline-offset-2">Privacy Policy</a>
                     </label>
                   </div>
-                  <div className="reg-checkbox-row">
-                    <input id="agreeToMarketing" name="agreeToMarketing" type="checkbox" checked={formData.agreeToMarketing}
-                      onChange={handleChange} className="reg-checkbox" />
-                    <label htmlFor="agreeToMarketing" className="reg-checkbox-label">
+                  {errors.agreeToTerms && <p className="text-[0.75rem] text-red-500 ml-[25px]">{errors.agreeToTerms.message}</p>}
+                  
+                  <div className="flex items-start gap-2.5">
+                    <input 
+                      {...register("agreeToMarketing")}
+                      id="agreeToMarketing" type="checkbox" 
+                      className="mt-1 h-[15px] w-[15px] cursor-pointer accent-[#8b4e2e]" 
+                    />
+                    <label htmlFor="agreeToMarketing" className="text-[0.8rem] leading-relaxed text-[#6b4a3a]">
                       Send me match suggestions and updates by email
                     </label>
                   </div>
                 </div>
 
-                <button type="submit" disabled={loading} className="reg-submit-btn">
+                <button 
+                  type="submit" 
+                  disabled={loading} 
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-none bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] p-[0.85rem] font-['DM_Sans'] text-[0.92rem] font-medium tracking-wide text-white shadow-[0_6px_20px_rgba(139,78,46,0.28)] transition-all hover:translate-y-[-1px] hover:shadow-[0_10px_28px_rgba(139,78,46,0.36)] disabled:cursor-not-allowed disabled:opacity-55"
+                >
                   {loading ? (
                     <>
-                      <div style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                      Creating your account…
+                      <Loader2 className="animate-spin" size={16} />
+                      Creating account…
                     </>
                   ) : (
                     <>Create Account <ArrowRight size={16} /></>
                   )}
                 </button>
-
-                <p className="reg-signin-link">
-                  Already have an account? <Link to="/login">Sign in</Link>
-                </p>
               </form>
-            ) : (
-              /* OTP Verification Step */
-              <div className="reg-otp-container" style={{ textAlign: "center" }}>
-                <div style={{ marginBottom: "2rem", display: "flex", justifyContent: "center" }}>
-                  <div style={{ background: "#fdf5f0", padding: "1.5rem", borderRadius: "50%", color: "#8b4e2e" }}>
-                     <Mail size={40} />
+
+              <p className="mt-6 text-center text-[0.82rem] text-[#9a7060]">
+                Already have an account? <Link to="/login" className="font-medium text-[#8b4e2e] no-underline hover:underline hover:underline-offset-2">Sign in</Link>
+              </p>
+            </>
+          ) : (
+            /* OTP Step */
+            <div className="text-center">
+              <div className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#fdf5f0] text-[#8b4e2e]">
+                <Mail size={32} />
+              </div>
+              <h2 className="mb-2 font-['Cormorant_Garamond'] text-[1.75rem] font-semibold leading-tight text-[#2d1810]">Verify your email</h2>
+              <p className="mb-8 text-[0.85rem] text-[#9a7060]">
+                We've sent a 6-digit verification code to <br />
+                <strong className="text-[#4a3028]">{formData.email}</strong>
+              </p>
+
+              <form onSubmit={handleVerifyOtp}>
+                <div className="mb-6">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={otpValue}
+                      onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ""))}
+                      className="w-full rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] py-3.5 text-center font-['DM_Sans'] text-[1.75rem] font-bold tracking-[0.75rem] text-[#2d1810] outline-none transition-all focus:border-[#c9856a] focus:bg-white placeholder:text-[#c4b0a5]"
+                      placeholder="000000"
+                      autoFocus
+                    />
                   </div>
                 </div>
-                <h3 className="reg-heading">Verify Your Email</h3>
-                <p className="reg-subheading">
-                  We've sent a 6-digit verification code to <br />
-                  <strong>{formData.email}</strong>
-                </p>
 
-                {errors.otp && (
-                  <div className="reg-alert">
-                    <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
-                    {errors.otp}
-                  </div>
-                )}
+                <button 
+                  type="submit" 
+                  disabled={verificationLoading || otpValue.length < 6}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-none bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] p-[0.85rem] font-['DM_Sans'] text-[0.92rem] font-medium tracking-wide text-white shadow-[0_6px_20px_rgba(139,78,46,0.28)] transition-all hover:translate-y-[-1px] hover:shadow-[0_10px_28px_rgba(139,78,46,0.36)] disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  {verificationLoading ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} />
+                      Verifying…
+                    </>
+                  ) : (
+                    <>Verify & Continue <Check size={18} /></>
+                  )}
+                </button>
 
-                <form onSubmit={handleVerifyOtp}>
-                  <div className="reg-field">
-                    <div className="reg-input-wrap">
-                      <Lock className="reg-input-icon" size={15} />
-                      <input
-                        type="text"
-                        maxLength={6}
-                        value={otpValue}
-                        onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ""))}
-                        className={`reg-input${errors.otp ? " error" : ""}`}
-                        placeholder="000000"
-                        style={{ textAlign: "center", fontSize: "1.5rem", letterSpacing: "0.5rem", padding: "1rem" }}
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-
-                  <button type="submit" disabled={verificationLoading || otpValue.length < 6} className="reg-submit-btn">
-                    {verificationLoading ? (
-                      <>
-                        <div style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                        Verifying…
-                      </>
-                    ) : (
-                      <>Verify & Continue <Check size={16} /></>
-                    )}
+                <div className="mt-8 flex flex-col items-center gap-4">
+                  <button type="button" className="flex items-center gap-1.5 text-[0.8rem] font-medium text-[#9a7060] transition-colors hover:text-[#8b4e2e]">
+                    <RefreshCw size={14} /> Resend code
                   </button>
-
-                  <div style={{ marginTop: "1.5rem" }}>
-                    <button 
-                      type="button" 
-                      className="reg-back-link" 
-                      style={{ border: "none", background: "none", cursor: "pointer", fontWeight: "normal" }}
-                      onClick={handleResendOtp}
-                      disabled={resendingOtp}
-                    >
-                      {resendingOtp ? "Resending..." : <><RefreshCw size={14} /> Resend OTP</>}
-                    </button>
-                  </div>
-
-                  <div style={{ marginTop: "1rem" }}>
-                    <button 
-                      type="button" 
-                      className="reg-signin-link" 
-                      style={{ border: "none", background: "none", cursor: "pointer", fontSize: "0.8rem" }}
-                      onClick={() => setShowOtpStep(false)}
-                    >
-                      Edit email address
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-          </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowOtpStep(false)}
+                    className="text-[0.8rem] font-medium text-[#8b4e2e] no-underline hover:underline underline-offset-4"
+                  >
+                    Change email address
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
         </div>
-
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
-    </>
+    </div>
   );
 };
 

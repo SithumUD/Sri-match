@@ -1,236 +1,19 @@
-// LoginPage.jsx - Redesigned to match SriMatch luxury aesthetic
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { toast } from "sonner";
+import { Helmet } from 'react-helmet-async';
 
-/* ─── Styles ─────────────────────────────────────────────────────────────── */
-const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap');
-
-  .lp-root * { box-sizing: border-box; }
-
-  .lp-root {
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-    background: #fdf8f4;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* Decorative blobs */
-  .lp-blob {
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(90px);
-    opacity: 0.16;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .lp-blob-1 { width: 480px; height: 480px; background: #c9856a; top: -100px; right: -80px; }
-  .lp-blob-2 { width: 380px; height: 380px; background: #8b6248; bottom: -80px; left: -80px; }
-  .lp-blob-3 { width: 240px; height: 240px; background: #e8b89a; top: 50%; left: 35%; }
-
-  /* Card */
-  .lp-card {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 440px;
-    background: #ffffff;
-    border-radius: 24px;
-    box-shadow: 0 32px 80px rgba(120,60,30,0.12), 0 8px 24px rgba(0,0,0,0.05);
-    overflow: hidden;
-  }
-
-  /* Top brand strip */
-  .lp-top {
-    background: linear-gradient(135deg, #3d1f12 0%, #6b3526 50%, #8b4e2e 100%);
-    padding: 2.5rem 2.5rem 2rem;
-    text-align: center;
-    position: relative;
-  }
-  .lp-top::after {
-    content: '';
-    position: absolute;
-    bottom: -1px; left: 0; right: 0;
-    height: 32px;
-    background: #ffffff;
-    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-  }
-
-  .lp-logo {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 2.2rem;
-    font-weight: 600;
-    color: #fff;
-    letter-spacing: 0.04em;
-    text-decoration: none;
-    display: block;
-    margin-bottom: 0.25rem;
-    transition: opacity 0.2s;
-  }
-  .lp-logo:hover { opacity: 0.85; }
-  .lp-logo .gold { color: #e8c97a; }
-  .lp-logo .heart { color: #f4a0a0; }
-
-  .lp-tagline {
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.6);
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    font-weight: 300;
-  }
-
-  /* Body */
-  .lp-body { padding: 2rem 2.5rem 2.5rem; }
-
-  .lp-heading {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: #2d1810;
-    margin-bottom: 0.25rem;
-    line-height: 1.2;
-  }
-  .lp-sub {
-    font-size: 0.85rem;
-    color: #9a7060;
-    margin-bottom: 1.75rem;
-  }
-
-  /* Social row */
-  .lp-social-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem; }
-  .lp-social-btn {
-    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    padding: 0.65rem 1rem;
-    border: 1.5px solid #e8ddd8;
-    border-radius: 10px;
-    background: #fdf8f5;
-    font-size: 0.82rem;
-    color: #4a3028;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .lp-social-btn:hover { border-color: #c9856a; background: #fff5f0; }
-
-  /* Divider */
-  .lp-divider {
-    display: flex; align-items: center; gap: 0.75rem;
-    margin: 1.25rem 0;
-    color: #c4a99a; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
-  }
-  .lp-divider::before, .lp-divider::after {
-    content: ''; flex: 1; height: 1px; background: #ede5e0;
-  }
-
-  /* Alert */
-  .lp-alert {
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    background: #fef1ee;
-    border: 1px solid #f5c4b8;
-    display: flex; align-items: flex-start; gap: 0.5rem;
-    font-size: 0.82rem; color: #8b3020;
-    margin-bottom: 1.25rem;
-    line-height: 1.5;
-  }
-
-  /* Fields */
-  .lp-field { margin-bottom: 1.1rem; }
-  .lp-label {
-    display: block;
-    font-size: 0.8rem; font-weight: 500;
-    color: #4a3028; margin-bottom: 0.4rem; letter-spacing: 0.02em;
-  }
-  .lp-input-wrap { position: relative; }
-  .lp-icon-left {
-    position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%);
-    color: #c4a99a; pointer-events: none;
-  }
-  .lp-icon-right {
-    position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%);
-    color: #c4a99a; cursor: pointer; background: none; border: none; padding: 0;
-    display: flex; align-items: center;
-  }
-  .lp-input {
-    width: 100%;
-    padding: 0.7rem 2.5rem;
-    border: 1.5px solid #e8ddd8; border-radius: 10px;
-    font-size: 0.88rem; color: #2d1810; background: #fdf8f5;
-    font-family: 'DM Sans', sans-serif;
-    transition: all 0.2s; outline: none;
-  }
-  .lp-input:focus {
-    border-color: #c9856a; background: #fff;
-    box-shadow: 0 0 0 3px rgba(201,133,106,0.12);
-  }
-  .lp-input::placeholder { color: #c4b0a5; }
-
-  /* Remember / forgot row */
-  .lp-meta-row {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 1.5rem; font-size: 0.8rem;
-  }
-  .lp-remember { display: flex; align-items: center; gap: 0.45rem; color: #6b4a3a; cursor: pointer; }
-  .lp-remember input { accent-color: #8b4e2e; width: 15px; height: 15px; cursor: pointer; }
-  .lp-forgot { color: #8b4e2e; text-decoration: none; font-weight: 500; }
-  .lp-forgot:hover { text-decoration: underline; text-underline-offset: 2px; }
-
-  /* Submit */
-  .lp-submit {
-    width: 100%;
-    padding: 0.85rem;
-    background: linear-gradient(135deg, #3d1f12 0%, #8b4e2e 60%, #c9856a 100%);
-    color: #fff; border: none; border-radius: 12px;
-    font-size: 0.92rem; font-weight: 500; font-family: 'DM Sans', sans-serif;
-    letter-spacing: 0.04em;
-    cursor: pointer; transition: all 0.25s;
-    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    box-shadow: 0 6px 20px rgba(139,78,46,0.28);
-  }
-  .lp-submit:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 28px rgba(139,78,46,0.36);
-  }
-  .lp-submit:disabled { opacity: 0.55; cursor: not-allowed; }
-
-  /* Spinner */
-  .lp-spinner {
-    width: 16px; height: 16px;
-    border: 2px solid rgba(255,255,255,0.35);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: lp-spin 0.75s linear infinite;
-  }
-  @keyframes lp-spin { to { transform: rotate(360deg); } }
-
-  /* Footer links */
-  .lp-footer {
-    text-align: center; margin-top: 1.5rem;
-    font-size: 0.82rem; color: #9a7060;
-  }
-  .lp-footer a { color: #8b4e2e; font-weight: 500; text-decoration: none; }
-  .lp-footer a:hover { text-decoration: underline; text-underline-offset: 2px; }
-
-  /* Decorative bottom ornament */
-  .lp-ornament {
-    text-align: center; margin-top: 1.25rem;
-    font-size: 0.72rem; color: #d4b8a8; letter-spacing: 0.15em;
-  }
-
-  @media (max-width: 480px) {
-    .lp-card { border-radius: 20px; }
-    .lp-body { padding: 1.5rem 1.5rem 2rem; }
-    .lp-top { padding: 2rem 1.5rem 1.75rem; }
-  }
-`;
+// Validation Schema
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  rememberMe: z.boolean().optional(),
+});
 
 /* ─── Icon helpers ───────────────────────────────────────────────────────── */
 const GoogleIcon = () => (
@@ -287,44 +70,28 @@ const TurnstileWidget = ({ onVerify }) => {
     return () => {
       isMounted = false;
       clearInterval(interval);
-      if (widgetIdRef.current && window.turnstile) {
-        // window.turnstile.remove(widgetIdRef.current);
-      }
     };
   }, [onVerify]);
 
   return (
-    <div 
-      ref={containerRef} 
-      className="lp-turnstile" 
-      style={{ 
-        marginTop: '1.25rem', 
-        marginBottom: '1rem',
-        minHeight: '65px',
-        display: 'flex',
-        justifyContent: 'center'
-      }} 
-    />
+    <div ref={containerRef} className="mt-5 mb-4 flex min-h-[65px] justify-center" />
   );
 };
 
-/* ─── Component ──────────────────────────────────────────────────────────── */
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated, user } = useAuth();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [error, setError] = useState("");
-const [loading, setLoading] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { rememberMe: false }
+  });
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      // If user is authenticated but has no profile, send to creation
       if (user.hasProfile === false || (!user.id && !user.userId)) {
         navigate("/profile-creation");
       } else {
@@ -333,135 +100,143 @@ const [loading, setLoading] = useState(false);
     }
   }, [isAuthenticated, user, navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     if (!captchaToken) {
-      setError("Please complete the security check.");
+      toast.error("Please complete the security check.");
       return;
     }
-    setError("");
+
     setLoading(true);
     try {
-      const result = await login(email, password, captchaToken);
+      const result = await login(data.email, data.password, captchaToken);
       if (result.success) {
+        toast.success("Welcome back!");
         if (result.user && !result.user.hasProfile) {
           navigate("/profile-creation");
         } else {
           navigate("/home");
         }
       } else {
-        setError(result.message || "Invalid email or password.");
+        toast.error(result.message || "Invalid email or password.");
       }
     } catch (err) {
-      setError("An unexpected error occurred. Please try again.");
-      console.error(err);
+      toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <>
-      <style>{styles}</style>
-      <div className="lp-root">
-        {/* Ambient blobs */}
-        <div className="lp-blob lp-blob-1" />
-        <div className="lp-blob lp-blob-2" />
-        <div className="lp-blob lp-blob-3" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#fdf8f4] px-4 py-8 font-['DM_Sans']">
+      <Helmet>
+        <title>Login | SriMatch</title>
+        <meta name="description" content="Sign in to your SriMatch account to continue your journey to find love." />
+      </Helmet>
+      {/* Decorative Blobs */}
+      <div className="fixed top-[-100px] right-[-80px] z-0 h-[480px] w-[480px] rounded-full bg-[#c9856a] opacity-15 blur-[90px] pointer-events-none" />
+      <div className="fixed bottom-[-80px] left-[-80px] z-0 h-[380px] w-[380px] rounded-full bg-[#8b6248] opacity-15 blur-[90px] pointer-events-none" />
+      <div className="fixed top-1/2 left-[35%] z-0 h-[240px] w-[240px] rounded-full bg-[#e8b89a] opacity-15 blur-[90px] pointer-events-none" />
 
-        <div className="lp-card">
-          {/* Brand header */}
-          <div className="lp-top">
-            <Link to="/" className="lp-logo">
-              <span className="gold">Sri</span>Match<span className="heart"> ♥</span>
-            </Link>
-            <p className="lp-tagline">Where traditions meet forever</p>
+      <div className="relative z-10 w-full max-w-[440px] overflow-hidden rounded-[24px] bg-white shadow-[0_32px_80px_rgba(120,60,30,0.12),0_8px_24px_rgba(0,0,0,0.05)]">
+        {/* Brand Header */}
+        <div className="relative bg-gradient-to-br from-[#3d1f12] via-[#6b3526] to-[#8b4e2e] px-10 pt-10 pb-8 text-center after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-8 after:rounded-t-[50%] after:bg-white">
+          <Link to="/" className="mb-1 block font-['Cormorant_Garamond'] text-[2.2rem] font-semibold tracking-wide text-white no-underline transition-opacity hover:opacity-85">
+            <span className="text-[#e8c97a]">Sri</span>Match<span className="text-[#f4a0a0]"> ♥</span>
+          </Link>
+          <p className="text-[0.8rem] font-light tracking-[0.09em] uppercase text-white/60">Where traditions meet forever</p>
+        </div>
+
+        <div className="px-10 pt-8 pb-10">
+          <h2 className="mb-1 font-['Cormorant_Garamond'] text-[1.75rem] font-semibold leading-tight text-[#2d1810]">Welcome back</h2>
+          <p className="mb-7 text-[0.85rem] text-[#9a7060]">Sign in to continue your journey to find love</p>
+
+          {/* Social login */}
+          <div className="mb-6 grid grid-cols-2 gap-3">
+            <button type="button" className="flex items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] px-4 py-2.5 text-[0.82rem] font-medium text-[#4a3028] transition-all hover:border-[#c9856a] hover:bg-[#fff5f0]">
+              <GoogleIcon /> Google
+            </button>
+            <button type="button" className="flex items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] px-4 py-2.5 text-[0.82rem] font-medium text-[#4a3028] transition-all hover:border-[#c9856a] hover:bg-[#fff5f0]">
+              <FacebookIcon /> Facebook
+            </button>
           </div>
 
-          <div className="lp-body">
-            <h2 className="lp-heading">Welcome back</h2>
-            <p className="lp-sub">Sign in to continue your journey to find love</p>
-
-            {/* Social login */}
-            <div className="lp-social-row">
-              <button type="button" className="lp-social-btn">
-                <GoogleIcon /> Google
-              </button>
-              <button type="button" className="lp-social-btn">
-                <FacebookIcon /> Facebook
-              </button>
-            </div>
-
-            <div className="lp-divider">or sign in with email</div>
-
-            {/* Error */}
-            {error && (
-              <div className="lp-alert">
-                <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} noValidate>
-              {/* Email */}
-              <div className="lp-field">
-                <label htmlFor="email" className="lp-label">Email Address</label>
-                <div className="lp-input-wrap">
-                  <Mail className="lp-icon-left" size={15} />
-                  <input
-                    id="email" name="email" type="email" autoComplete="email" required
-                    value={email} onChange={e => setEmail(e.target.value)}
-                    className="lp-input" placeholder="you@example.com"
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="lp-field">
-                <label htmlFor="password" className="lp-label">Password</label>
-                <div className="lp-input-wrap">
-                  <Lock className="lp-icon-left" size={15} />
-                  <input
-                    id="password" name="password" type={showPassword ? "text" : "password"}
-                    autoComplete="current-password" required
-                    value={password} onChange={e => setPassword(e.target.value)}
-                    className="lp-input" placeholder="Your password"
-                  />
-                  <button type="button" className="lp-icon-right" onClick={() => setShowPassword(v => !v)} aria-label="Toggle password">
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Remember / Forgot */}
-              <div className="lp-meta-row">
-                <label className="lp-remember">
-                  <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} />
-                  Remember me
-                </label>
-                <a href="#" className="lp-forgot">Forgot password?</a>
-              </div>
-
-              {/* Turnstile */}
-              <TurnstileWidget onVerify={setCaptchaToken} />
-
-              {/* Submit */}
-              <button type="submit" disabled={loading} className="lp-submit">
-                {loading
-                  ? <><div className="lp-spinner" /> Signing in…</>
-                  : <>Sign In <ArrowRight size={16} /></>}
-              </button>
-            </form>
-
-            <div className="lp-footer">
-              <p>Don't have an account? <Link to="/register">Create one</Link></p>
-            </div>
-
-            <div className="lp-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
+          <div className="relative my-5 flex items-center gap-3 text-[0.78rem] tracking-wide uppercase text-[#c4a99a] before:h-px before:flex-1 before:bg-[#ede5e0] after:h-px after:flex-1 after:bg-[#ede5e0]">
+            or sign in with email
           </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
+            {/* Email */}
+            <div className="mb-[1.1rem]">
+              <label htmlFor="email" className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#4a3028]">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c4a99a]" size={15} />
+                <input
+                  {...register("email")}
+                  id="email" type="email" autoComplete="email"
+                  className={`w-full rounded-xl border-[1.5px] bg-[#fdf8f5] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:bg-white focus:shadow-[0_0_0_3px_rgba(201,133,106,0.12)] placeholder:text-[#c4b0a5] ${errors.email ? 'border-red-300' : 'border-[#e8ddd8] focus:border-[#c9856a]'}`}
+                  placeholder="you@example.com"
+                />
+              </div>
+              {errors.email && <p className="mt-1 text-[0.75rem] text-red-500">{errors.email.message}</p>}
+            </div>
+
+            {/* Password */}
+            <div className="mb-[1.1rem]">
+              <label htmlFor="password" className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#4a3028]">Password</label>
+              <div className="relative">
+                <Lock className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c4a99a]" size={15} />
+                <input
+                  {...register("password")}
+                  id="password" type={showPassword ? "text" : "password"} autoComplete="current-password"
+                  className={`w-full rounded-xl border-[1.5px] bg-[#fdf8f5] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:bg-white focus:shadow-[0_0_0_3px_rgba(201,133,106,0.12)] placeholder:text-[#c4b0a5] ${errors.password ? 'border-red-300' : 'border-[#e8ddd8] focus:border-[#c9856a]'}`}
+                  placeholder="Your password"
+                />
+                <button type="button" className="absolute top-1/2 right-[0.85rem] flex -translate-y-1/2 items-center bg-transparent text-[#c4a99a]" onClick={() => setShowPassword(v => !v)}>
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+              {errors.password && <p className="mt-1 text-[0.75rem] text-red-500">{errors.password.message}</p>}
+            </div>
+
+            {/* Remember / Forgot */}
+            <div className="mb-6 flex items-center justify-between text-[0.8rem]">
+              <label className="flex cursor-pointer items-center gap-2 text-[#6b4a3a]">
+                <input {...register("rememberMe")} type="checkbox" className="h-[15px] w-[15px] cursor-pointer accent-[#8b4e2e]" />
+                Remember me
+              </label>
+              <Link to="/forgot-password" title="Coming Soon" className="font-medium text-[#8b4e2e] no-underline hover:underline hover:underline-offset-2">Forgot password?</Link>
+            </div>
+
+            {/* Turnstile */}
+            <TurnstileWidget onVerify={setCaptchaToken} />
+
+            {/* Submit */}
+            <button 
+              type="submit" 
+              disabled={loading} 
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-none bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] p-[0.85rem] font-['DM_Sans'] text-[0.92rem] font-medium tracking-wide text-white shadow-[0_6px_20px_rgba(139,78,46,0.28)] transition-all hover:translate-y-[-1px] hover:shadow-[0_10px_28px_rgba(139,78,46,0.36)] disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="animate-spin" size={16} />
+                  Signing in…
+                </>
+              ) : (
+                <>
+                  Sign In <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center text-[0.82rem] text-[#9a7060]">
+            <p>Don't have an account? <Link to="/register" className="font-medium text-[#8b4e2e] no-underline hover:underline hover:underline-offset-2">Create one</Link></p>
+          </div>
+
+          <div className="mt-5 text-center text-[0.72rem] tracking-[0.15em] text-[#d4b8a8]">✦ &nbsp; ✦ &nbsp; ✦</div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
