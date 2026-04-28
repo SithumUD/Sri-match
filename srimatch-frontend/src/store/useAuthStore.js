@@ -5,6 +5,7 @@ import ProfileService from '../services/profile.service';
 
 const useAuthStore = create((set, get) => ({
     user: null,
+    accessToken: null,
     isAuthenticated: false,
     isAuthLoading: true,
     adminUser: null,
@@ -53,6 +54,7 @@ const useAuthStore = create((set, get) => ({
             const response = await AuthService.login({ email, password, captchaToken });
             
             if (response.success && response.data) {
+                set({ accessToken: response.data.accessToken });
                 await get().fetchUserSession();
                 return { success: true, user: response.data };
             }
