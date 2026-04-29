@@ -20,6 +20,12 @@ public class CsrfHeaderFilter extends OncePerRequestFilter {
 
     private static final List<String> STATE_CHANGING_METHODS = Arrays.asList("POST", "PUT", "DELETE", "PATCH");
 
+    // Skip CSRF check for these paths (internal Spring error dispatches, auth, etc.)
+    private static final List<String> EXCLUDED_PATHS = Arrays.asList(
+            "/v1/auth/",
+            "/error"
+    );
+
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -28,15 +34,21 @@ public class CsrfHeaderFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String method = request.getMethod();
+        String path = request.getServletPath();
 
-        if (STATE_CHANGING_METHODS.contains(method)) {
+        // Skip check for excluded paths
+        boolean excluded = EXCLUDED_PATHS.stream().anyMatch(path::startsWith);
+
+        if (!excluded && STATE_CHANGING_METHODS.contains(method)) {
             String requestedWith = request.getHeader("X-Requested-With");
-            
-            // If the header is missing, block the request
+
+            // If the header is missing, reject with a proper JSON error response
             if (requestedWith == null || requestedWith.isEmpty()) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json;charset=UTF-8");
                 response.getWriter().write("{\"success\": false, \"message\": \"CSRF protection: X-Requested-With header is missing\"}");
-                return;
+                response.getWriter().flush();
+                return; // Do NOT call filterChain — response is already committed
             }
         }
 

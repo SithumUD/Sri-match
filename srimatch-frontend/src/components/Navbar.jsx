@@ -197,8 +197,9 @@ const styles = `
     font-size: 0.7rem; font-weight: 600; color: #3d1f12;
     letter-spacing: 0.3px;
   }
-  @media (max-width: 768px) { 
-    .nb-sub-badge { display: none; }
+  @media (max-width: 480px) {
+    .nb-sub-text { display: none; }
+    .nb-sub-badge { padding: 0.4rem 0.6rem; margin-right: 0.1rem; }
   }
 
   /* ── Hamburger ── */
@@ -305,9 +306,9 @@ const styles = `
 
 /* ─── Nav links config ─────────────────────────────────────────────────── */
 const NAV_LINKS = [
-  { to: "/home",        icon: Search,        label: "Browse"      },
-  { to: "/messages",    icon: MessageCircle, label: "Messages"    },
-  { to: "/connections", icon: Users,         label: "Connections" },
+  { to: "/home", icon: Search, label: "Browse" },
+  { to: "/messages", icon: MessageCircle, label: "Messages" },
+  { to: "/connections", icon: Users, label: "Connections" },
 ];
 
 /* ─── Component ──────────────────────────────────────────────────────────── */
@@ -321,7 +322,7 @@ const Navbar = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const notificationsRef = useRef(null);
-  const isPremium = subscription?.plan === "premium";
+  const isPremium = subscription?.plan === "premium" || user?.premium;
 
   const handleLogout = () => {
     setIsDrawerOpen(false);
@@ -389,7 +390,7 @@ const Navbar = () => {
                 <Link to="/subscription" className="nb-sub-badge">
                   <Crown size={12} style={{ color: "#3d1f12" }} />
                   <span className="nb-sub-text">
-                    {isPremium ? 'Premium' : 'Upgrade'}
+                    {isPremium ? 'Premium Member' : 'Go Premium'}
                   </span>
                 </Link>
 
@@ -400,8 +401,8 @@ const Navbar = () => {
 
                 {/* Notifications */}
                 <div className="nb-notifications-wrapper" ref={notificationsRef}>
-                  <button 
-                    className="nb-icon-btn" 
+                  <button
+                    className="nb-icon-btn"
                     onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                     title="Notifications"
                   >
@@ -466,7 +467,7 @@ const Navbar = () => {
             ) : (
               <div className="nb-auth">
                 <Link to="/login" className="nb-login">Sign In</Link>
-                <Link to="/register" className="nb-join">Join Free ✦</Link>
+                <Link to="/register" className="nb-join">Join Now ✦</Link>
               </div>
             )}
           </div>
@@ -499,7 +500,7 @@ const Navbar = () => {
                 : <div className="nb-drawer-avatar-ph"><User size={20} style={{ color: "#9a7060" }} /></div>}
               <div>
                 <div className="nb-drawer-uname">{user?.firstName} {user?.lastName}</div>
-                <div className="nb-drawer-usub">{isPremium ? "✦ Premium Member" : "Free Account"}</div>
+                <div className="nb-drawer-usub">{isPremium ? "✦ Premium Member" : "Basic Account"}</div>
               </div>
             </div>
 

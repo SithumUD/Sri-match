@@ -4,7 +4,7 @@ import {
   CheckIcon, XIcon, Loader2Icon, RefreshCwIcon,
   AlertCircleIcon, ShieldCheckIcon, Edit3Icon,
   ChevronRightIcon, BuildingIcon, CreditCardIcon,
-  SparklesIcon, TrashIcon,
+  SparklesIcon, TrashIcon, TrendingUpIcon,
 } from "lucide-react";
 import AdminService from "../services/admin.service";
 
@@ -141,6 +141,7 @@ const styles = `
 const AdminPackages = () => {
   const [activeTab, setActiveTab] = useState("packages");
   const [packages, setPackages] = useState([]);
+  const [boostPackages, setBoostPackages] = useState([]);
   const [bankDetails, setBankDetails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -154,11 +155,13 @@ const AdminPackages = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [pkgRes, bankRes] = await Promise.all([
+      const [pkgRes, boostPkgRes, bankRes] = await Promise.all([
         AdminService.getAdminPackages(),
+        AdminService.getAdminBoostPackages(),
         AdminService.getBankDetails()
       ]);
       setPackages(pkgRes.data || []);
+      setBoostPackages(boostPkgRes.data || []);
       setBankDetails(bankRes.data || []);
     } catch (err) {
       console.error("Fetch error:", err);
@@ -181,10 +184,20 @@ const AdminPackages = () => {
     } catch (err) { alert("Failed to toggle status"); }
   };
 
+  const handleToggleBoost = async (pkg) => {
+    try {
+      const updated = { ...pkg, active: !pkg.active };
+      await AdminService.updateBoostPackage(pkg.id, updated);
+      setBoostPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, active: !p.active } : p));
+    } catch (err) { alert("Failed to toggle status"); }
+  };
+
   const openModal = (type, item = null) => {
     setEditingItem(item);
     if (type === "package") {
       setFormData(item ? { ...item } : { title: "", description: "", price: "", timelineMonths: 1, offerPercentage: 0, active: true });
+    } else if (type === "boost") {
+      setFormData(item ? { ...item } : { name: "", description: "", price: "", boostCount: 1, active: true });
     } else {
       setFormData(item ? { ...item } : { bankName: "", branchName: "", accountNumber: "", accountHolderName: "", active: true });
     }
@@ -198,6 +211,9 @@ const AdminPackages = () => {
       if (showModal === "package") {
         if (editingItem) await AdminService.updatePackage(editingItem.id, formData);
         else await AdminService.createPackage(formData);
+      } else if (showModal === "boost") {
+        if (editingItem) await AdminService.updateBoostPackage(editingItem.id, formData);
+        else await AdminService.createBoostPackage(formData);
       } else {
         if (editingItem) await AdminService.updateBankDetail(editingItem.id, formData);
         else await AdminService.addBankDetail(formData);
@@ -220,8 +236,8 @@ const AdminPackages = () => {
             <h1 className="ap2-page-title">Revenue <span>Management</span></h1>
             <p className="ap2-page-sub">Configure subscription packages and manage bank details for manual payments.</p>
           </div>
-          <button className="ap2-btn-primary" onClick={() => openModal(activeTab === "packages" ? "package" : "bank")}>
-            <PlusIcon size={16} /> Add {activeTab === "packages" ? "Package" : "Bank Detail"}
+          <button className="ap2-btn-primary" onClick={() => openModal(activeTab === "packages" ? "package" : activeTab === "boost" ? "boost" : "bank")}>
+            <PlusIcon size={16} /> Add {activeTab === "packages" ? "Package" : activeTab === "boost" ? "Boost Package" : "Bank Detail"}
           </button>
         </div>
 
@@ -230,12 +246,15 @@ const AdminPackages = () => {
           <div className={`ap2-tab ${activeTab === "packages" ? "active" : ""}`} onClick={() => setActiveTab("packages")}>
             <CrownIcon size={15} /> Subscription Packages
           </div>
+          <div className={`ap2-tab ${activeTab === "boost" ? "active" : ""}`} onClick={() => setActiveTab("boost")}>
+            <TrendingUpIcon size={15} /> Boost Packages
+          </div>
           <div className={`ap2-tab ${activeTab === "bank" ? "active" : ""}`} onClick={() => setActiveTab("bank")}>
             <BuildingIcon size={15} /> Bank Details
           </div>
         </div>
 
-        {loading && packages.length === 0 ? (
+        {loading && packages.length === 0 && boostPackages.length === 0 ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem' }}>
             <Loader2Icon size={32} className="animate-spin" color="#8b4e2e" />
           </div>
@@ -274,6 +293,33 @@ const AdminPackages = () => {
                   </div>
                 </div>
               ))
+            ) : activeTab === "boost" ? (
+              boostPackages.map(pkg => (
+                <div key={pkg.id} className={`ap2-card ${!pkg.active ? 'inactive' : ''}`}>
+                  <span className={`ap2-card-badge ${pkg.active ? 'active' : 'inactive'}`}>
+                    {pkg.active ? "Active" : "Disabled"}
+                  </span>
+                  <div className="ap2-card-hdr">
+                    <h3 className="ap2-card-title">{pkg.name}</h3>
+                    <div className="ap2-card-duration">
+                      <TrendingUpIcon size={12} /> {pkg.boostCount} {pkg.boostCount === 1 ? 'Boost' : 'Boosts'}
+                    </div>
+                  </div>
+                  <div className="ap2-card-price-row">
+                    <span className="ap2-card-price">Rs {pkg.price.toLocaleString()}</span>
+                  </div>
+                  <p className="ap2-card-desc">{pkg.description}</p>
+                  <div className="ap2-card-footer">
+                    <label className="ap2-toggle">
+                      <input type="checkbox" checked={pkg.active} onChange={() => handleToggleBoost(pkg)} />
+                      <span className="ap2-slider"><span className="ap2-knob" /></span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="ap2-btn-icon" onClick={() => openModal("boost", pkg)}><Edit3Icon size={14} /></button>
+                    </div>
+                  </div>
+                </div>
+              ))
             ) : (
               bankDetails.map(bank => (
                 <div key={bank.id} className="ap2-bank-card">
@@ -295,8 +341,8 @@ const AdminPackages = () => {
                   </div>
                 </div>
               ))
-            )}
-          </div>
+            )
+          }</div>
         )}
 
         {/* ── MODALS ── */}
@@ -334,6 +380,27 @@ const AdminPackages = () => {
                       <div className="ap2-form-group">
                         <label className="ap2-label">Description / Features</label>
                         <textarea className="ap2-input ap2-textarea" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="List features here..." />
+                      </div>
+                    </>
+                  ) : showModal === "boost" ? (
+                    <>
+                      <div className="ap2-form-group">
+                        <label className="ap2-label">Boost Package Name</label>
+                        <input className="ap2-input" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. 10 Profile Boosts" required />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className="ap2-form-group">
+                          <label className="ap2-label">Price (LKR)</label>
+                          <input type="number" className="ap2-input" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required />
+                        </div>
+                        <div className="ap2-form-group">
+                          <label className="ap2-label">Boost Count</label>
+                          <input type="number" className="ap2-input" value={formData.boostCount} onChange={e => setFormData({...formData, boostCount: e.target.value})} required />
+                        </div>
+                      </div>
+                      <div className="ap2-form-group">
+                        <label className="ap2-label">Description</label>
+                        <textarea className="ap2-input ap2-textarea" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Describe this package..." />
                       </div>
                     </>
                   ) : (

@@ -89,7 +89,7 @@ const TurnstileWidget = ({ onVerify }) => {
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const { register: registerUser, verifyEmail, login } = useAuth();
+  const { register: registerUser, verifyEmail, login, resendVerification } = useAuth();
   
   const [showOtpStep, setShowOtpStep] = useState(false);
   const [otpValue, setOtpValue] = useState("");
@@ -157,6 +157,19 @@ const RegisterPage = () => {
       toast.error("Verification failed. Please try again.");
     } finally {
       setVerificationLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      const result = await resendVerification();
+      if (result.success) {
+        toast.success("New verification code sent!");
+      } else {
+        toast.error(result.message || "Failed to resend code.");
+      }
+    } catch (err) {
+      toast.error("Error resending code.");
     }
   };
 
@@ -371,7 +384,11 @@ const RegisterPage = () => {
                 </button>
 
                 <div className="mt-8 flex flex-col items-center gap-4">
-                  <button type="button" className="flex items-center gap-1.5 text-[0.8rem] font-medium text-[#9a7060] transition-colors hover:text-[#8b4e2e]">
+                  <button 
+                    type="button" 
+                    onClick={handleResendOtp}
+                    className="flex items-center gap-1.5 text-[0.8rem] font-medium text-[#9a7060] transition-colors hover:text-[#8b4e2e]"
+                  >
                     <RefreshCw size={14} /> Resend code
                   </button>
                   <button 

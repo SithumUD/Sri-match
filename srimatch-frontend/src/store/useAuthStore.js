@@ -29,7 +29,14 @@ const useAuthStore = create((set, get) => ({
         try {
             const response = await ProfileService.getMyProfile();
             if (response && response.success && response.data) {
-                set({ user: response.data, isAuthenticated: true });
+                const userData = response.data;
+                const isAdmin = userData.role === "ADMIN" || userData.role === "SUPER_ADMIN";
+                set({ 
+                    user: userData, 
+                    isAuthenticated: true,
+                    adminUser: isAdmin ? userData : null,
+                    isAdminAuthenticated: isAdmin
+                });
             } else {
                 set({ isAuthenticated: false });
             }
@@ -39,19 +46,26 @@ const useAuthStore = create((set, get) => ({
                 try {
                     const userRes = await UserService.getMyUserData();
                     if (userRes && userRes.success) {
-                        set({ user: userRes.data, isAuthenticated: true });
+                        const userData = userRes.data;
+                        const isAdmin = userData.role === "ADMIN" || userData.role === "SUPER_ADMIN";
+                        set({ 
+                            user: userData, 
+                            isAuthenticated: true,
+                            adminUser: isAdmin ? userData : null,
+                            isAdminAuthenticated: isAdmin
+                        });
                     } else {
                         set({ isAuthenticated: false });
                     }
                 } catch (uErr) {
                     // console.error("Critical error fetching basic user info:", uErr);
                     localStorage.removeItem('srimatch_is_logged_in');
-                    set({ isAuthenticated: false });
+                    set({ isAuthenticated: false, user: null, adminUser: null, isAdminAuthenticated: false });
                 }
             } else {
                 // console.error("Error fetching user session:", error);
                 localStorage.removeItem('srimatch_is_logged_in');
-                set({ isAuthenticated: false, user: null });
+                set({ isAuthenticated: false, user: null, adminUser: null, isAdminAuthenticated: false });
             }
         } finally {
             set({ isAuthLoading: false });
@@ -104,15 +118,35 @@ const useAuthStore = create((set, get) => ({
         }
     },
 
-    logout: async () => {
+    resendVerification: async () => {
+        try {
+            const response = await AuthService.resendVerification();
+            if (response.success) {
+                return { success: true, message: response.message || "Verification email resent" };
+            }
+            return { success: false, message: response.message || "Failed to resend email" };
+        } catch (error) {
+            console.error("Resend error:", error);
+            return { success: false, message: error.message || "An error occurred" };
+        }
+    },
+
+    logout: async (redirectTo = "/login") => {
         try {
             await AuthService.logout();
         } catch (error) {
             console.error("Logout error:", error);
         } finally {
             localStorage.removeItem('srimatch_is_logged_in');
-            set({ user: null, isAuthenticated: false });
-            window.location.href = "/login";
+            set({ 
+                user: null, 
+                isAuthenticated: false, 
+                adminUser: null, 
+                isAdminAuthenticated: false 
+            });
+            if (redirectTo) {
+                window.location.href = redirectTo;
+            }
         }
     },
 
@@ -139,8 +173,8 @@ const useAuthStore = create((set, get) => ({
         }
     },
 
-    adminLogout: () => {
-        set({ adminUser: null, isAdminAuthenticated: false });
+    adminLogout: async () => {
+        await get().logout("/admin/login");
     },
 
     updateUserProfile: async (data) => {

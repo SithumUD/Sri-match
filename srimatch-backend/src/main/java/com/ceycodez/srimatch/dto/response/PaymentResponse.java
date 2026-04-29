@@ -1,5 +1,6 @@
 package com.ceycodez.srimatch.dto.response;
 
+import com.ceycodez.srimatch.model.Payment;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +18,9 @@ public class PaymentResponse {
     private Long userId;
     private String userEmail;
     private Long subscriptionId;
+    private Long boostPackageId;
     private String packageName;
+    private String paymentType;
     private BigDecimal amount;
     private String paymentMethod;
     private String receiptUrl;
@@ -27,13 +30,27 @@ public class PaymentResponse {
     private LocalDateTime reviewedAt;
     private String rejectionReason;
 
-    public static PaymentResponse fromEntity(com.ceycodez.srimatch.model.Payment payment) {
+    public static PaymentResponse fromEntity(Payment payment) {
+        String pkgName = null;
+        Long subId = null;
+        Long boostPkgId = null;
+
+        if (payment.getSubscription() != null) {
+            subId = payment.getSubscription().getId();
+            pkgName = payment.getSubscription().getPremiumPackage().getTitle();
+        } else if (payment.getBoostPackage() != null) {
+            boostPkgId = payment.getBoostPackage().getId();
+            pkgName = payment.getBoostPackage().getName();
+        }
+
         return PaymentResponse.builder()
                 .id(payment.getId())
                 .userId(payment.getUser().getId())
                 .userEmail(payment.getUser().getEmail())
-                .subscriptionId(payment.getSubscription().getId())
-                .packageName(payment.getSubscription().getPremiumPackage().getTitle())
+                .subscriptionId(subId)
+                .boostPackageId(boostPkgId)
+                .packageName(pkgName)
+                .paymentType(payment.getPaymentType())
                 .amount(payment.getAmount())
                 .paymentMethod(payment.getPaymentMethod().name())
                 .receiptUrl(payment.getReceiptUrl())

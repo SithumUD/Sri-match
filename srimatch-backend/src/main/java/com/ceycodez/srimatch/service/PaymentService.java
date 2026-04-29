@@ -2,12 +2,14 @@ package com.ceycodez.srimatch.service;
 
 import com.ceycodez.srimatch.dto.request.PaymentReviewRequest;
 import com.ceycodez.srimatch.dto.response.PaymentResponse;
+import com.ceycodez.srimatch.model.BoostPackage;
 import com.ceycodez.srimatch.model.Payment;
 import com.ceycodez.srimatch.model.Subscription;
 import com.ceycodez.srimatch.model.User;
 import com.ceycodez.srimatch.model.enums.PaymentMethod;
 import com.ceycodez.srimatch.model.enums.PaymentStatus;
 import com.ceycodez.srimatch.model.enums.SubscriptionStatus;
+import com.ceycodez.srimatch.repository.BoostPackageRepository;
 import com.ceycodez.srimatch.repository.PaymentRepository;
 import com.ceycodez.srimatch.repository.SubscriptionRepository;
 import com.ceycodez.srimatch.repository.UserRepository;
@@ -32,6 +34,7 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final CloudinaryService cloudinaryService;
     private final SubscriptionService subscriptionService;
+    private final BoostPackageRepository boostPackageRepository;
 
     @Transactional
     public PaymentResponse submitBankReceipt(Long userId, Long subscriptionId, MultipartFile receipt) throws IOException {
@@ -77,7 +80,7 @@ public class PaymentService {
     public PaymentResponse reviewPayment(Long adminId, Long paymentId, PaymentReviewRequest request) {
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new RuntimeException("Admin not found"));
-        
+
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
 
@@ -87,22 +90,57 @@ public class PaymentService {
 
         payment.setReviewedBy(admin);
         payment.setReviewedAt(LocalDateTime.now());
-        
+
         if (request.isApproved()) {
-            payment.setPaymentStatus(PaymentStatus.COMPLETED); // Mapping COMPLETED to Approved
+            payment.setPaymentStatus(PaymentStatus.COMPLETED);
             payment.setTransactionId(request.getTransactionId());
-            
-            // Activate subscription
-            subscriptionService.activateSubscription(payment.getSubscription().getId());
+
+            if ("BOOST_PACKAGE".equals(payment.getPaymentType()) && payment.getBoostPackage() != null) {
+                // Add boosts to user's balance
+                User user = payment.getUser();
+                user.setBoostCount(user.getBoostCount() + payment.getBoostPackage().getBoostCount());
+                userRepository.save(user);
+            } else if (payment.getSubscription() != null) {
+                // Activate subscription
+                subscriptionService.activateSubscription(payment.getSubscription().getId());
+            }
         } else {
-            payment.setPaymentStatus(PaymentStatus.FAILED); // Mapping FAILED to Rejected
+            payment.setPaymentStatus(PaymentStatus.FAILED);
             payment.setRejectionReason(request.getRejectionReason());
-            
-            // Mark subscription as cancelled/failed
-            Subscription sub = payment.getSubscription();
-            sub.setStatus(SubscriptionStatus.CANCELLED);
-            subscriptionRepository.save(sub);
+
+            if (payment.getSubscription() != null) {
+                Subscription sub = payment.getSubscription();
+                sub.setStatus(SubscriptionStatus.CANCELLED);
+                subscriptionRepository.save(sub);
+            }
         }
+
+        return PaymentResponse.fromEntity(paymentRepository.save(payment));
+    }
+
+    @Transactional
+    public PaymentResponse submitBoostBankReceipt(Long userId, Long packageId, MultipartFile receipt) throws IOException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        BoostPackage boostPackage = boostPackageRepository.findById(packageId)
+                .orElseThrow(() -> new RuntimeException("Boost package not found"));
+
+        if (!boostPackage.isActive()) {
+            throw new RuntimeException("This boost package is no longer available");
+        }
+
+        String receiptUrl = cloudinaryService.uploadImage(receipt);
+
+        Payment payment = Payment.builder()
+                .user(user)
+                .boostPackage(boostPackage)
+                .paymentType("BOOST_PACKAGE")
+                .amount(boostPackage.getPrice())
+                .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                .receiptUrl(receiptUrl)
+                .paymentStatus(PaymentStatus.PENDING)
+                .build();
 
         return PaymentResponse.fromEntity(paymentRepository.save(payment));
     }

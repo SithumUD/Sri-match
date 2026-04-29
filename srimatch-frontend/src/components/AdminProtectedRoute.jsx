@@ -4,14 +4,21 @@ import { useAuth } from "../context/AuthContext";
 import LoadingScreen from "./LoadingScreen";
 
 const AdminProtectedRoute = ({ children }) => {
-  const { isAdminAuthenticated, isAuthLoading } = useAuth();
+  const { user, adminUser, isAuthenticated, isAdminAuthenticated, isAuthLoading } = useAuth();
 
   if (isAuthLoading) {
     return <LoadingScreen />;
   }
 
-  if (!isAdminAuthenticated) {
+  const currentUser = adminUser || user;
+  const isActuallyAdmin = isAdminAuthenticated || (isAuthenticated && (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN"));
+
+  if (!currentUser) {
     return <Navigate to="/admin/login" replace />;
+  }
+
+  if (!isActuallyAdmin) {
+    return <Navigate to="/" replace />;
   }
 
   return children ? <>{children}</> : <Outlet />;

@@ -438,7 +438,12 @@ const AdminPayments = () => {
                   </td>
                   <td>
                     <div style={{ fontWeight: 500, fontSize: "0.82rem", color: "#2d1810" }}>{p.userEmail}</div>
-                    <div style={{ fontSize: "0.69rem", color: "#c4a898" }}>{p.packageName}</div>
+                    <div style={{ fontSize: "0.69rem", color: "#c4a898", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                      {p.packageName} 
+                      <span style={{ fontSize: "0.6rem", padding: "1px 6px", borderRadius: "4px", background: p.paymentType === "BOOST" ? "#fdf4ff" : "#f0f9ff", color: p.paymentType === "BOOST" ? "#701a75" : "#075985", fontWeight: 600 }}>
+                        {p.paymentType}
+                      </span>
+                    </div>
                   </td>
                   <td>
                     <span className="apm-amount">Rs {p.amount.toLocaleString()}</span>
@@ -516,6 +521,14 @@ const AdminPayments = () => {
                   <div>
                     <div className="apm-detail-label">Submitted</div>
                     <div className="apm-detail-value">{formatDate(modal.submittedAt)}</div>
+                  </div>
+                  <div>
+                    <div className="apm-detail-label">Type</div>
+                    <div className="apm-detail-value">
+                      <span className={`apm-badge ${modal.paymentType === 'BOOST' ? 'gray' : 'green'}`} style={{ fontSize: '0.65rem' }}>
+                        {modal.paymentType}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import SubscriptionService from "../services/subscription.service";
 import PaymentService from "../services/payment.service";
+import BoostService from "../services/boost.service";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -472,6 +473,77 @@ const styles = `
     letter-spacing: 0.15em; margin-top: 1rem;
   }
 
+  /* ── Boost Section ── */
+  .sp-boost-card {
+    background: #fff;
+    border-radius: 22px;
+    box-shadow: 0 16px 48px rgba(120,60,30,0.09), 0 4px 12px rgba(0,0,0,0.04);
+    overflow: hidden;
+    margin-bottom: 1.75rem;
+  }
+  .sp-boost-section-header {
+    background: linear-gradient(135deg, #1a0a00 0%, #4a1c08 50%, #c93a1a 100%);
+    padding: 1.25rem 2rem;
+  }
+  .sp-boost-packages-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem; padding: 2rem;
+  }
+  @media (max-width: 640px) { .sp-boost-packages-grid { grid-template-columns: 1fr; } }
+
+  .sp-boost-pkg-card {
+    border: 1.5px solid #e8ddd8; border-radius: 16px;
+    padding: 1.5rem 1.25rem 1.25rem;
+    text-align: center; cursor: pointer;
+    transition: all 0.2s; background: #fff; position: relative;
+  }
+  .sp-boost-pkg-card:hover { border-color: #c93a1a; box-shadow: 0 8px 24px rgba(201,58,26,0.12); }
+  .sp-boost-pkg-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.05rem; font-weight: 600; color: #2d1810; margin-bottom: 0.75rem;
+  }
+  .sp-boost-pkg-count {
+    font-size: 2rem; font-weight: 700;
+    background: linear-gradient(135deg, #c93a1a, #e07a30);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    line-height: 1; margin-bottom: 0.25rem;
+  }
+  .sp-boost-pkg-count-label { font-size: 0.75rem; color: #9a7060; margin-bottom: 0.75rem; }
+  .sp-boost-pkg-price {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem; font-weight: 600; color: #2d1810; margin-bottom: 0.3rem;
+  }
+  .sp-boost-pkg-desc { font-size: 0.75rem; color: #9a7060; margin-bottom: 1rem; line-height: 1.5; }
+  .sp-boost-pkg-btn {
+    width: 100%; padding: 0.55rem;
+    background: linear-gradient(135deg, #c93a1a, #e07a30);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: 0.8rem; font-weight: 500; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+  }
+  .sp-boost-pkg-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(201,58,26,0.28); }
+  .sp-boost-pkg-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .sp-boost-status-bar {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+    background: linear-gradient(135deg, #fff5f0, #fff0e8);
+    border: 1px solid #f5ddd5; border-radius: 14px;
+    padding: 1rem 1.5rem; margin: 0 2rem 1.5rem;
+  }
+  .sp-boost-stat { display: flex; flex-direction: column; gap: 0.2rem; }
+  .sp-boost-stat-label { font-size: 0.72rem; color: #9a7060; text-transform: uppercase; letter-spacing: 0.06em; }
+  .sp-boost-stat-value { font-size: 1.2rem; font-weight: 600; color: #c93a1a; }
+  .sp-boost-stat-sub { font-size: 0.72rem; color: #9a7060; }
+
+  .sp-boost-active-pill {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    background: linear-gradient(135deg, #c93a1a, #e07a30);
+    color: #fff; font-size: 0.78rem; font-weight: 500;
+    padding: 0.35rem 0.9rem; border-radius: 99px;
+    animation: sp-pulse 2s ease-in-out infinite;
+  }
+  @keyframes sp-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(201,58,26,0.4); } 50% { box-shadow: 0 0 0 6px rgba(201,58,26,0); } }
+
   @media (max-width: 640px) {
     .sp-root { padding: 1.25rem 1rem 4rem; }
     .sp-page-title { font-size: 1.65rem; }
@@ -479,6 +551,8 @@ const styles = `
     .sp-current-body { padding: 1.25rem; }
     .sp-modal-body { padding: 1.25rem; }
     .sp-modal-header { padding: 1.25rem; }
+    .sp-boost-status-bar { margin: 0 1.25rem 1.25rem; }
+    .sp-boost-packages-grid { padding: 1.25rem; }
   }
 `;
 
@@ -486,7 +560,6 @@ const SubscriptionPage = () => {
   const { data: hookSubscription = {} } = useSubscription();
   const { mutateAsync: upgradeSubscription } = useUpgradeSubscription();
   const cancelSubscription = () => {};
-  const activateBoost = () => {};
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [bankDetails, setBankDetails] = useState([]);
@@ -500,28 +573,41 @@ const SubscriptionPage = () => {
   const [hasPendingApproval, setHasPendingApproval] = useState(false);
   const [activeSub, setActiveSub] = useState(null);
 
+  // ── Boost state ──
+  const [boostStatus, setBoostStatus] = useState(null);
+  const [boostPackages, setBoostPackages] = useState([]);
+  const [activatingBoost, setActivatingBoost] = useState(false);
+  const [purchasingBoostPkg, setPurchasingBoostPkg] = useState(null);
+
+  // ── Boost purchase modal state ──
+  const [showBoostModal, setShowBoostModal] = useState(false);
+  const [selectedBoostPkg, setSelectedBoostPkg] = useState(null);
+  const [boostPaymentMethod, setBoostPaymentMethod] = useState("manual");
+  const [boostReceiptFile, setBoostReceiptFile] = useState(null);
+  const [submittingBoostReceipt, setSubmittingBoostReceipt] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         // 1. Fetch static data needed for the page
-        const [pkgRes, bankRes] = await Promise.all([
+        const [pkgRes, bankRes, boostPkgRes] = await Promise.all([
           PaymentService.getPackages(),
-          PaymentService.getBankDetails()
+          PaymentService.getBankDetails(),
+          BoostService.getBoostPackages(),
         ]);
-        
+
         if (pkgRes.success && pkgRes.data.length > 0) {
           setPlans(pkgRes.data);
           setSelectedPlan(pkgRes.data[0].id);
         }
         if (bankRes.success) setBankDetails(bankRes.data);
+        if (boostPkgRes.success) setBoostPackages(boostPkgRes.data);
 
         // 2. Check for active subscription first
         const activeRes = await SubscriptionService.getMyActiveSubscription();
-        
+
         if (activeRes.success && activeRes.data) {
-          // If user has an active subscription, we don't strictly need to check pending 
-          // unless they are in an upgrade flow. For this view, we hide pending alert.
           setActiveSub(activeRes.data);
           setHasPendingApproval(false);
         } else {
@@ -530,6 +616,13 @@ const SubscriptionPage = () => {
           if (pendingRes.success) setHasPendingApproval(pendingRes.data);
           setActiveSub(null);
         }
+
+        // 4. Fetch boost status for the logged-in user
+        try {
+          const bstRes = await BoostService.getBoostStatus();
+          if (bstRes.success) setBoostStatus(bstRes.data);
+        } catch (_) { /* non-critical */ }
+
       } catch (err) {
         console.error("Error fetching subscription data:", err);
       } finally {
@@ -639,17 +732,65 @@ const SubscriptionPage = () => {
   const subscription = activeSub || {};
   const selectedPlanData = plans.find(p => p.id === selectedPlan);
 
-  const boostActive =
-    subscription?.features?.boostExpiresAt &&
-    new Date(subscription.features.boostExpiresAt) > new Date();
+  // Determine active boost from live API data
+  const boostActive = boostStatus?.isBoosted === true || boostStatus?.boosted === true;
+  const boostExpiresAt = boostStatus?.boostExpiresAt ? new Date(boostStatus.boostExpiresAt) : null;
+  const remainingBoosts = boostStatus?.remainingBoosts ?? 0;
+  const nextRenewalAt = boostStatus?.nextRenewalAt ? new Date(boostStatus.nextRenewalAt) : null;
 
-  const handleActivateBoost = () => {
+  const handleActivateBoost = async () => {
     if (boostActive) {
-      alert(`You already have an active boost that expires on ${new Date(subscription.features.boostExpiresAt).toLocaleDateString()}`);
+      alert(`Your boost is already active until ${boostExpiresAt?.toLocaleTimeString()}.`);
       return;
     }
-    activateBoost();
-    alert("Your profile boost has been activated! Your profile will be featured at the top of browse results for the next 5 days.");
+    if (remainingBoosts <= 0) {
+      alert("You have no boosts remaining. Purchase a boost package below!");
+      return;
+    }
+    try {
+      setActivatingBoost(true);
+      const res = await BoostService.activateBoost();
+      if (res.success) {
+        setBoostStatus(res.data);
+        alert("🚀 Profile boost activated! You'll appear at the top of results for the next hour.");
+      } else {
+        alert(res.message || "Failed to activate boost.");
+      }
+    } catch (err) {
+      alert(err?.message || "Failed to activate boost.");
+    } finally {
+      setActivatingBoost(false);
+    }
+  };
+
+  const handlePurchaseBoostPackage = (pkg) => {
+    setSelectedBoostPkg(pkg);
+    setBoostReceiptFile(null);
+    setBoostPaymentMethod("manual");
+    setShowBoostModal(true);
+  };
+
+  const handleSubmitBoostReceipt = async (e) => {
+    e.preventDefault();
+    if (!boostReceiptFile || !selectedBoostPkg) return;
+    try {
+      setSubmittingBoostReceipt(true);
+      const formData = new FormData();
+      formData.append("receipt", boostReceiptFile);
+      const res = await BoostService.submitBoostReceipt(selectedBoostPkg.id, formData);
+      if (res.success) {
+        alert("✅ Receipt submitted! Your boost credits will be added once the admin approves your payment.");
+        setShowBoostModal(false);
+        setSelectedBoostPkg(null);
+        setBoostReceiptFile(null);
+      } else {
+        alert(res.message || "Failed to submit receipt.");
+      }
+    } catch (err) {
+      alert(err?.message || "Failed to submit receipt.");
+    } finally {
+      setSubmittingBoostReceipt(false);
+    }
   };
 
   const handleCancel = () => {
@@ -817,10 +958,10 @@ const SubscriptionPage = () => {
                     <button
                       onClick={handleActivateBoost}
                       className="sp-btn-boost"
-                      disabled={boostActive}
+                      disabled={boostActive || activatingBoost || remainingBoosts <= 0}
                     >
                       <ZapIcon size={14} />
-                      {boostActive ? "Boost Active" : "Activate Boost"}
+                      {activatingBoost ? "Activating…" : boostActive ? "Boost Active ✓" : `Activate Boost (${remainingBoosts})`}
                     </button>
                     <button onClick={handleCancel} className="sp-btn-cancel">
                       Cancel Plan
@@ -837,6 +978,66 @@ const SubscriptionPage = () => {
               </div>
             </div>
           </div>
+
+          {/* ── Boost Status Bar (shown to all authenticated users) ── */}
+          {boostStatus && (
+            <div className="sp-boost-card">
+              <div className="sp-boost-section-header">
+                <div className="sp-section-title">⚡ Profile Boost</div>
+                <div className="sp-section-sub">Appear at the top of browse results for 1 hour</div>
+              </div>
+              <div className="sp-boost-status-bar">
+                <div className="sp-boost-stat">
+                  <span className="sp-boost-stat-label">Remaining Boosts</span>
+                  <span className="sp-boost-stat-value">{remainingBoosts}</span>
+                  {isPremium && nextRenewalAt && (
+                    <span className="sp-boost-stat-sub">+3 on {nextRenewalAt.toLocaleDateString("en-LK", { month: "short", day: "numeric" })}</span>
+                  )}
+                </div>
+                <div className="sp-boost-stat">
+                  <span className="sp-boost-stat-label">Status</span>
+                  {boostActive ? (
+                    <span className="sp-boost-active-pill"><ZapIcon size={12} /> Active</span>
+                  ) : (
+                    <span style={{ fontSize: "0.85rem", color: "#9a7060" }}>Inactive</span>
+                  )}
+                  {boostActive && boostExpiresAt && (
+                    <span className="sp-boost-stat-sub">Expires at {boostExpiresAt.toLocaleTimeString("en-LK", { hour: "2-digit", minute: "2-digit" })}</span>
+                  )}
+                </div>
+                <button
+                  className="sp-btn-boost"
+                  onClick={handleActivateBoost}
+                  disabled={boostActive || activatingBoost || remainingBoosts <= 0}
+                >
+                  <ZapIcon size={14} />
+                  {activatingBoost ? "Activating…" : boostActive ? "Active" : "Boost Now"}
+                </button>
+              </div>
+
+              {/* Boost Packages */}
+              {boostPackages.length > 0 && (
+                <div className="sp-boost-packages-grid">
+                  {boostPackages.map(pkg => (
+                    <div key={pkg.id} className="sp-boost-pkg-card">
+                      <div className="sp-boost-pkg-name">{pkg.name}</div>
+                      <div className="sp-boost-pkg-count">{pkg.boostCount}</div>
+                      <div className="sp-boost-pkg-count-label">{pkg.boostCount === 1 ? "boost" : "boosts"}</div>
+                      <div className="sp-boost-pkg-price">Rs. {pkg.price}</div>
+                      <div className="sp-boost-pkg-desc">{pkg.description}</div>
+                      <button
+                        className="sp-boost-pkg-btn"
+                        onClick={() => handlePurchaseBoostPackage(pkg)}
+                        disabled={purchasingBoostPkg === pkg.id}
+                      >
+                        Buy Now
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── Why Premium ── */}
           <div className="sp-why-card">
@@ -899,58 +1100,60 @@ const SubscriptionPage = () => {
           </div>
 
           {/* ── Plans ── */}
-          <div className="sp-plans-card">
-            <div className="sp-section-header">
-              <div className="sp-section-title">Choose Your Plan</div>
-              <div className="sp-section-sub">Longer plans offer greater savings</div>
-            </div>
-            <div className="sp-plans-grid">
-              {plans.map(plan => (
-                <div
-                  key={plan.id}
-                  className={`sp-plan-card${selectedPlan === plan.id ? " selected" : ""}`}
-                  onClick={() => setSelectedPlan(plan.id)}
-                >
-                  {plan.offerPercentage > 0 && <div className="sp-popular-badge">{plan.offerPercentage}% OFF</div>}
-
-                  <div className="sp-plan-name">{plan.title}</div>
-                  <div className="sp-plan-price-wrap">
-                    <span className="sp-plan-currency">Rs.</span>
-                    <span className="sp-plan-price">{plan.price}</span>
-                  </div>
-                  <div className="sp-plan-per">
-                    {plan.timelineMonths} {plan.timelineMonths === 1 ? 'Month' : 'Months'}
-                  </div>
-                  {plan.offerPercentage > 0 ? (
-                    <div className="sp-plan-save">Save {plan.offerPercentage}%</div>
-                  ) : (
-                    <div style={{ height: "1.2rem", marginBottom: "1.1rem" }} />
-                  )}
-
-                  <button
-                    className={`sp-plan-btn${selectedPlan === plan.id ? " selected" : ""}`}
-                    onClick={e => { e.stopPropagation(); setSelectedPlan(plan.id); handleInitiateSubscription(plan.id); }}
+          {!isPremium && (
+            <div className="sp-plans-card">
+              <div className="sp-section-header">
+                <div className="sp-section-title">Choose Your Plan</div>
+                <div className="sp-section-sub">Longer plans offer greater savings</div>
+              </div>
+              <div className="sp-plans-grid">
+                {plans.map(plan => (
+                  <div
+                    key={plan.id}
+                    className={`sp-plan-card${selectedPlan === plan.id ? " selected" : ""}`}
+                    onClick={() => setSelectedPlan(plan.id)}
                   >
-                    {selectedPlan === plan.id ? "Selected ✓" : "Choose Plan"}
-                  </button>
-                </div>
-              ))}
-            </div>
+                    {plan.offerPercentage > 0 && <div className="sp-popular-badge">{plan.offerPercentage}% OFF</div>}
 
-            {/* CTA below grid */}
-            <div style={{ padding: "0 2rem 2rem", textAlign: "center" }}>
-              <button
-                className="sp-btn-upgrade"
-                style={{ display: "inline-flex" }}
-                onClick={() => handleInitiateSubscription(selectedPlan)}
-              >
-                <CrownIcon size={14} /> Get Premium — Rs. {selectedPlanData?.price} ✦
-              </button>
-              <p style={{ fontSize: "0.72rem", color: "#b09080", marginTop: "0.65rem" }}>
-                No auto-renewal · One-time payment · Cancel anytime
-              </p>
+                    <div className="sp-plan-name">{plan.title}</div>
+                    <div className="sp-plan-price-wrap">
+                      <span className="sp-plan-currency">Rs.</span>
+                      <span className="sp-plan-price">{plan.price}</span>
+                    </div>
+                    <div className="sp-plan-per">
+                      {plan.timelineMonths} {plan.timelineMonths === 1 ? 'Month' : 'Months'}
+                    </div>
+                    {plan.offerPercentage > 0 ? (
+                      <div className="sp-plan-save">Save {plan.offerPercentage}%</div>
+                    ) : (
+                      <div style={{ height: "1.2rem", marginBottom: "1.1rem" }} />
+                    )}
+
+                    <button
+                      className={`sp-plan-btn${selectedPlan === plan.id ? " selected" : ""}`}
+                      onClick={e => { e.stopPropagation(); setSelectedPlan(plan.id); handleInitiateSubscription(plan.id); }}
+                    >
+                      {selectedPlan === plan.id ? "Selected ✓" : "Choose Plan"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA below grid */}
+              <div style={{ padding: "0 2rem 2rem", textAlign: "center" }}>
+                <button
+                  className="sp-btn-upgrade"
+                  style={{ display: "inline-flex" }}
+                  onClick={() => handleInitiateSubscription(selectedPlan)}
+                >
+                  <CrownIcon size={14} /> Get Premium — Rs. {selectedPlanData?.price} ✦
+                </button>
+                <p style={{ fontSize: "0.72rem", color: "#b09080", marginTop: "0.65rem" }}>
+                  No auto-renewal · One-time payment · Cancel anytime
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ── Testimonials ── */}
           <div className="sp-testimonials-card">
@@ -1102,6 +1305,122 @@ const SubscriptionPage = () => {
                 <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
                   <CardIcon size={48} color="#e8ddd8" style={{ marginBottom: '1rem' }} />
                   <p style={{ color: '#9a7060', fontSize: '0.9rem' }}>Online card payments are currently being integrated. Please use Manual Transfer for now.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Boost Purchase Modal ── */}
+      {showBoostModal && selectedBoostPkg && (
+        <div className="sp-modal-overlay" onClick={() => setShowBoostModal(false)}>
+          <div className="sp-modal" onClick={e => e.stopPropagation()}>
+
+            <div className="sp-modal-header">
+              <div className="sp-modal-title">⚡ Purchase Boost Package</div>
+              <button className="sp-modal-close" onClick={() => setShowBoostModal(false)}>
+                <XIcon size={15} />
+              </button>
+            </div>
+
+            <div className="sp-modal-body">
+              {/* Order Summary */}
+              <div className="sp-order-summary">
+                <div>
+                  <div className="sp-order-plan-name">
+                    <ZapIcon size={13} style={{ color: "#c93a1a", display: "inline", verticalAlign: "middle", marginRight: 5 }} />
+                    {selectedBoostPkg.name}
+                  </div>
+                  <div className="sp-order-plan-sub">
+                    {selectedBoostPkg.boostCount} boost{selectedBoostPkg.boostCount > 1 ? 's' : ''} · 1 hour each
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div className="sp-order-price-big">Rs. {selectedBoostPkg.price}</div>
+                  <div className="sp-order-price-note">one-time</div>
+                </div>
+              </div>
+
+              {/* Active Boost Warning */}
+              {boostActive && boostExpiresAt && (
+                <div style={{ background: '#fff5f0', border: '1px solid #f5ddd5', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.8rem', color: '#8b4e2e', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ZapIcon size={14} />
+                  You currently have an active boost (expires at {boostExpiresAt.toLocaleTimeString("en-LK", { hour: "2-digit", minute: "2-digit" })}). Purchased boosts will be added to your balance.
+                </div>
+              )}
+
+              {/* Payment Method Toggle */}
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                <button
+                  className="sp-btn-cancel"
+                  style={{ flex: 1, border: boostPaymentMethod === 'manual' ? '2px solid #8b4e2e' : '1px solid #e8ddd8', background: boostPaymentMethod === 'manual' ? '#fdf5ee' : 'none' }}
+                  onClick={() => setBoostPaymentMethod('manual')}
+                >
+                  <BanknoteIcon size={14} /> Manual Transfer
+                </button>
+                <button
+                  className="sp-btn-cancel"
+                  style={{ flex: 1, opacity: 0.5, cursor: 'not-allowed' }}
+                  disabled
+                  title="Coming Soon"
+                >
+                  <CardIcon size={14} /> Online Card (Soon)
+                </button>
+              </div>
+
+              {boostPaymentMethod === 'manual' ? (
+                <div>
+                  {/* Bank Details */}
+                  <div style={{ background: '#fdf8f5', padding: '1rem', borderRadius: '12px', border: '1px solid #f0ddd5', marginBottom: '1.5rem' }}>
+                    <h4 style={{ fontSize: '0.85rem', color: '#8b4e2e', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <BanknoteIcon size={16} /> Bank Transfer Details
+                    </h4>
+                    {bankDetails.map(bank => (
+                      <div key={bank.id} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px dashed #e8ddd8' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#4a3028' }}><strong>Bank:</strong> {bank.bankName}</p>
+                        <p style={{ fontSize: '0.8rem', color: '#4a3028' }}><strong>Branch:</strong> {bank.branchName}</p>
+                        <p style={{ fontSize: '0.8rem', color: '#4a3028' }}><strong>Account:</strong> {bank.accountNumber}</p>
+                        <p style={{ fontSize: '0.8rem', color: '#4a3028' }}><strong>Name:</strong> {bank.accountHolderName}</p>
+                      </div>
+                    ))}
+                    <p style={{ fontSize: '0.75rem', color: '#9a7060', fontStyle: 'italic' }}>
+                      Transfer Rs. {selectedBoostPkg.price} and upload your receipt. Boosts are credited after admin approval.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleSubmitBoostReceipt}>
+                    <div className="sp-form-group">
+                      <label className="sp-form-label">Upload Receipt (Image/PDF)</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={(e) => setBoostReceiptFile(e.target.files[0])}
+                          style={{ opacity: 0, position: 'absolute', inset: 0, cursor: 'pointer' }}
+                          required
+                        />
+                        <div className="sp-input" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: boostReceiptFile ? '#2d1810' : '#c4b0a5' }}>
+                          <UploadIcon size={16} /> {boostReceiptFile ? boostReceiptFile.name : 'Select receipt file...'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button type="submit" className="sp-pay-btn" disabled={submittingBoostReceipt}>
+                      {submittingBoostReceipt ? 'Submitting...' : (
+                        <><CheckCircleIcon size={16} /> Submit Receipt</>
+                      )}
+                    </button>
+
+                    <div className="sp-modal-footer" style={{ marginTop: '1rem', fontSize: '0.75rem', color: '#9a7060', textAlign: 'center' }}>
+                      Your boosts will be credited within 24 hours of payment verification.
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                  <CardIcon size={48} color="#e8ddd8" style={{ marginBottom: '1rem' }} />
+                  <p style={{ color: '#9a7060', fontSize: '0.9rem' }}>Online card payments are coming soon. Please use Manual Transfer for now.</p>
                 </div>
               )}
             </div>

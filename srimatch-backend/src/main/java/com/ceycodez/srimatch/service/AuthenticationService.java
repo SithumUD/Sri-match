@@ -145,11 +145,12 @@ public class AuthenticationService {
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
-                .isEmailVerified(user.isEmailVerified())
-                .isPhoneVerified(user.isPhoneVerified())
-                .isProfileCompleted(user.isProfileCompleted())
+                .emailVerified(user.isEmailVerified())
+                .phoneVerified(user.isPhoneVerified())
+                .profileCompleted(user.isProfileCompleted())
                 .hasProfile(hasProfile)
                 .profileCompletionScore(completionScore)
+                .rememberMe(request.isRememberMe())
                 .build();
     }
 
@@ -207,11 +208,12 @@ public class AuthenticationService {
                 .refreshToken(refreshToken)
                 .role(user.getRole().name())
                 .email(user.getEmail())
-                .isEmailVerified(user.isEmailVerified())
-                .isPhoneVerified(user.isPhoneVerified())
-                .isProfileCompleted(user.isProfileCompleted())
+                .emailVerified(user.isEmailVerified())
+                .phoneVerified(user.isPhoneVerified())
+                .profileCompleted(user.isProfileCompleted())
                 .hasProfile(hasProfile)
                 .profileCompletionScore(hasProfile ? user.getProfile().getCompletionScore() : null)
+                .rememberMe(false)
                 .build();
     }
 
@@ -317,21 +319,23 @@ public class AuthenticationService {
         }
 
         User user = refreshToken.getUser();
+        boolean rememberMe = refreshToken.isRememberMe();
         refreshToken.setUsed(true);
         refreshToken.setUsedAt(LocalDateTime.now());
         refreshTokenRepository.save(refreshToken);
 
-        String jwtToken = jwtService.generateToken(user);
-        String newRefreshToken = generateAndSaveRefreshToken(user, false);
+        String jwtToken = jwtService.generateToken(user, rememberMe);
+        String newRefreshToken = generateAndSaveRefreshToken(user, rememberMe);
 
         return AuthResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(newRefreshToken)
                 .role(user.getRole().name())
                 .email(user.getEmail())
-                .isEmailVerified(user.isEmailVerified())
-                .isPhoneVerified(user.isPhoneVerified())
-                .isProfileCompleted(user.isProfileCompleted())
+                .emailVerified(user.isEmailVerified())
+                .phoneVerified(user.isPhoneVerified())
+                .profileCompleted(user.isProfileCompleted())
+                .rememberMe(rememberMe)
                 .build();
     }
 
@@ -434,6 +438,7 @@ public class AuthenticationService {
                 .user(user)
                 .token(UUID.randomUUID().toString())
                 .expiresAt(LocalDateTime.now().plusSeconds(expirationTime / 1000))
+                .rememberMe(rememberMe)
                 .build();
         refreshTokenRepository.save(refreshToken);
         return refreshToken.getToken();

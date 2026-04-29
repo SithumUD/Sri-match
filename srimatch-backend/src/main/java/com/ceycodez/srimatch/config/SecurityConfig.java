@@ -50,6 +50,7 @@ public class SecurityConfig {
                                 "/v1/profiles/**",
                                 "/v1/packages/**",
                                 "/v1/locations/**",
+                                "/v1/boost/packages",
 
                                 // Swagger / Docs
                                 "/v2/api-docs",

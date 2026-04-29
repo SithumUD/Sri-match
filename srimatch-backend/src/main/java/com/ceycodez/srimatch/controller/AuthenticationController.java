@@ -147,13 +147,39 @@ public class AuthenticationController {
 
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
-            @RequestBody @Valid RefreshTokenRequest request,
+            @RequestBody(required = false) RefreshTokenRequest request,
+            HttpServletRequest httpRequest,
             HttpServletResponse httpResponse
     ) {
-        AuthResponse response = authenticationService.refreshToken(request);
+        String refreshToken = null;
+
+        // 1. Try to get from request body
+        if (request != null && request.getRefreshToken() != null && !request.getRefreshToken().isBlank()) {
+            refreshToken = request.getRefreshToken();
+        } 
+        // 2. Try to get from HttpOnly cookie
+        else if (httpRequest.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : httpRequest.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(401).body(new ApiResponse<>(false, "Refresh token is missing", null));
+        }
+
+        AuthResponse response = authenticationService.refreshToken(new RefreshTokenRequest(refreshToken));
         
-        // Update Cookies with new tokens
-        setAuthCookies(httpResponse, response, false); // Default to no remember me for refresh
+        // Check if the old token was a 'remember me' token to maintain persistence
+        // For simplicity, we can check the cookie or let the service handle it.
+        // For now, let's assume if they have a refresh token, we should give them a new one with 
+        // the same 'remember me' status if we can determine it.
+        // IMPROVEMENT: We'll modify AuthenticationService to return if it was rememberMe.
+        
+        setAuthCookies(httpResponse, response, response.isRememberMe());
         
         return ResponseEntity.ok(new ApiResponse<>(true, "Token refreshed successfully", response));
     }

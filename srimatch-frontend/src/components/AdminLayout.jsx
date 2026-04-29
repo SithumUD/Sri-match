@@ -351,9 +351,8 @@ const AdminLayout = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const handleLogout = () => {
-    adminLogout();
-    navigate("/admin/login");
+  const handleLogout = async () => {
+    await adminLogout();
   };
 
   const closeSidebar = () => setSidebarOpen(false);

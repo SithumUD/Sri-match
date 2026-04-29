@@ -231,6 +231,9 @@ public class Profile {
     @Builder.Default
     private boolean isBoosted = false;
 
+    @Column(name = "boost_expires_at")
+    private LocalDateTime boostExpiresAt;
+
     @Column(name = "id_verified")
     @Builder.Default
     private boolean idVerified = false;

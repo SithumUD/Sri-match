@@ -199,7 +199,8 @@ const styles = `
 
 const AdminLoginPage = () => {
   const navigate = useNavigate();
-  const { adminLogin, isAdminAuthenticated } = useAuth();
+  const { adminLogin, isAdminAuthenticated, user, isAuthenticated } = useAuth();
+  const isActuallyAdmin = isAdminAuthenticated || (isAuthenticated && (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN"));
 
   const [email, setEmail] = useState("admin@admin.com");
   const [password, setPassword] = useState("admin");
@@ -210,8 +211,8 @@ const AdminLoginPage = () => {
   const [totpCode, setTotpCode] = useState("");
 
   useEffect(() => {
-    if (isAdminAuthenticated) navigate("/admin");
-  }, [isAdminAuthenticated, navigate]);
+    if (isActuallyAdmin) navigate("/admin");
+  }, [isActuallyAdmin, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

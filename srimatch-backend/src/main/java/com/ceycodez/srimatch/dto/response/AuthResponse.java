@@ -19,9 +19,10 @@ public class AuthResponse {
     private String email;
     private String firstName;
     private String lastName;
-    private boolean isEmailVerified;
-    private boolean isPhoneVerified;
-    private boolean isProfileCompleted;
+    private boolean emailVerified;
+    private boolean phoneVerified;
+    private boolean profileCompleted;
     private boolean hasProfile;
     private Integer profileCompletionScore;
+    private boolean rememberMe;
 }

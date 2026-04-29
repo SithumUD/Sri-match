@@ -49,6 +49,10 @@ public class RefreshToken {
     @Column(name = "used_at")
     private LocalDateTime usedAt;
 
+    @Column(name = "remember_me")
+    @Builder.Default
+    private boolean rememberMe = false;
+
     @Column(name = "user_agent", length = 255)
     private String userAgent;
 

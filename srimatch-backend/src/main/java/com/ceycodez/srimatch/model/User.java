@@ -119,6 +119,13 @@ public class User implements UserDetails {
     @Column(name = "last_like_reset")
     private LocalDateTime lastLikeReset;
 
+    @Column(name = "boost_count")
+    @Builder.Default
+    private Integer boostCount = 0;
+
+    @Column(name = "last_boost_renew_at")
+    private LocalDateTime lastBoostRenewAt;
+
     @Column(name = "is_online")
     @Builder.Default
     private boolean online = false;

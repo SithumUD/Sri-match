@@ -31,9 +31,17 @@ public class Payment {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subscription_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subscription_id", nullable = true)
     private Subscription subscription;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "boost_package_id", nullable = true)
+    private BoostPackage boostPackage;
+
+    @Column(name = "payment_type", length = 30)
+    @Builder.Default
+    private String paymentType = "SUBSCRIPTION";
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;

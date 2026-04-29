@@ -109,6 +109,19 @@ const AdminService = {
         return API.patch(`/admin/packages/${id}/toggle`);
     },
 
+    // Boost Packages
+    getAdminBoostPackages: () => {
+        return API.get('/admin/boost/packages');
+    },
+
+    createBoostPackage: (data) => {
+        return API.post('/admin/boost/packages', data);
+    },
+
+    updateBoostPackage: (id, data) => {
+        return API.put(`/admin/boost/packages/${id}`, data);
+    },
+
     // Bank Details
     getBankDetails: () => {
         return API.get('/admin/bank-details');

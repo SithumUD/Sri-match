@@ -22,6 +22,7 @@ public class UserResponse {
     private boolean emailVerified;
     private boolean phoneVerified;
     private boolean profileCompleted;
+    private boolean hasProfile;
     private boolean premium;
     private LocalDateTime premiumExpiryDate;
     private LocalDateTime lastLoginAt;

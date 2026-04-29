@@ -32,6 +32,10 @@ public class SubscriptionService {
         PremiumPackage pkg = packageRepository.findById(packageId)
                 .orElseThrow(() -> new RuntimeException("Package not found"));
 
+        if (user.isPremium() && user.getPremiumExpiryDate() != null && user.getPremiumExpiryDate().isAfter(LocalDateTime.now())) {
+            throw new RuntimeException("You already have an active premium package.");
+        }
+
         // Check if there's already a pending subscription for this user
         subscriptionRepository.findTopByUserAndStatusOrderByCreatedAtDesc(user, SubscriptionStatus.PENDING)
                 .ifPresent(sub -> {

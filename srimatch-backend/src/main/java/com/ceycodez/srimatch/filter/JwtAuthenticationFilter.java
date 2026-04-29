@@ -33,9 +33,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // Skip filtering for auth endpoints or if path doesn't contain /v1 (public/static resources)
+        // Skip filtering for paths that don't contain /v1 (public/static resources)
         String path = request.getServletPath();
-        if (path.contains("/v1/auth") || !path.contains("/v1/")) {
+        if (!path.contains("/v1/")) {
             filterChain.doFilter(request, response);
             return;
         }
