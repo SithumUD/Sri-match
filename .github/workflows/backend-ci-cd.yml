@@ -187,12 +187,12 @@ jobs:
             # Health Check Verification
             echo "⏳ Waiting for backend healthcheck..."
             sleep 15
-            for i in {1..15}; do
-              if curl -s -f http://localhost:8080/api/actuator/health | grep -q "UP"; then
+            for i in {1..20}; do
+              if curl -s -f http://127.0.0.1:8080/api/actuator/health | grep -q "UP" || docker exec srimatch-backend wget -qO- http://localhost:8080/api/actuator/health | grep -q "UP"; then
                 echo "✅ Backend is healthy and UP!"
                 exit 0
               fi
-              echo "Waiting for healthcheck ($i/15)..."
+              echo "Waiting for healthcheck ($i/20)..."
               sleep 5
             done
 
