@@ -87,8 +87,8 @@ public class Profile {
     @Enumerated(EnumType.STRING)
     private Ethnicity ethnicity;
 
-    @Convert(converter = JsonListConverter.class)
-    @Column(columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "languages", columnDefinition = "jsonb")
     @Builder.Default
     private List<String> languages = new ArrayList<>();
 
