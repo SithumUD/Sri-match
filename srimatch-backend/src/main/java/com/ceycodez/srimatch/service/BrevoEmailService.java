@@ -1,20 +1,21 @@
 package com.ceycodez.srimatch.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import sendinblue.ApiClient;
-import sendinblue.Configuration;
-import sendinblue.auth.ApiKeyAuth;
-import sibApi.TransactionalEmailsApi;
-import sibModel.SendSmtpEmail;
-import sibModel.SendSmtpEmailSender;
-import sibModel.SendSmtpEmailTo;
-
-import jakarta.annotation.PostConstruct;
-import org.springframework.scheduling.annotation.Async;
-import java.util.Collections;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -29,96 +30,98 @@ public class BrevoEmailService {
     @Value("${brevo.sender.name:SriMatch}")
     private String senderName;
 
-    private TransactionalEmailsApi apiInstance;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 
     @PostConstruct
     public void init() {
         if (brevoApiKey != null && !brevoApiKey.isBlank()) {
-            try {
-                ApiClient defaultClient = Configuration.getDefaultApiClient();
-                ApiKeyAuth apiKey = (ApiKeyAuth) defaultClient.getAuthentication("api-key");
-                if (apiKey != null) {
-                    apiKey.setApiKey(brevoApiKey.trim());
-                } else {
-                    defaultClient.setApiKey(brevoApiKey.trim());
-                }
-                apiInstance = new TransactionalEmailsApi(defaultClient);
-                log.info("Brevo Transactional Emails API initialized successfully (Sender: {})", senderEmail);
-            } catch (Exception e) {
-                log.warn("Failed to set Brevo API key: {}", e.getMessage());
-                apiInstance = new TransactionalEmailsApi();
-            }
+            String maskedKey = brevoApiKey.length() > 8
+                    ? brevoApiKey.substring(0, 4) + "..." + brevoApiKey.substring(brevoApiKey.length() - 4)
+                    : "***";
+            log.info("Brevo Transactional Emails API initialized (Key: {}, Sender: {} <{}>)",
+                    maskedKey, senderName, senderEmail);
         } else {
-            apiInstance = new TransactionalEmailsApi();
-            log.warn("No Brevo API key configured. Emails will be logged locally.");
+            log.warn("⚠️ No Brevo API key configured. Check environment variable BREVO_API_KEY.");
         }
     }
 
     @Async
     public void sendVerificationEmail(String toEmail, String toName, String otp) {
         String displayName = (toName != null && !toName.isBlank()) ? toName : "User";
-
-        SendSmtpEmail email = new SendSmtpEmail();
-
-        SendSmtpEmailSender sender = new SendSmtpEmailSender();
-        sender.setEmail(senderEmail != null && !senderEmail.isBlank() ? senderEmail.trim() : "sithumudayangaofficial@gmail.com");
-        sender.setName(senderName != null && !senderName.isBlank() ? senderName.trim() : "SriMatch");
-        email.setSender(sender);
-
-        SendSmtpEmailTo to = new SendSmtpEmailTo();
-        to.setEmail(toEmail);
-        to.setName(displayName);
-        email.setTo(Collections.singletonList(to));
-
-        email.setSubject("💍 SriMatch - Verify Your Email Address (OTP: " + otp + ")");
-        email.setHtmlContent(buildVerificationEmailHtml(displayName, otp));
+        String subject = "💍 SriMatch - Verify Your Email Address (OTP: " + otp + ")";
+        String htmlContent = buildVerificationEmailHtml(displayName, otp);
 
         log.info("\n========================================================\n"
                 + "📧 [EMAIL OTP DISPATCH]\n"
                 + "To: {}\n"
-                + "Subject: SriMatch - Verify Your Email Address\n"
+                + "Subject: {}\n"
                 + "OTP CODE: {}\n"
-                + "========================================================", toEmail, otp);
+                + "========================================================", toEmail, subject, otp);
 
-        try {
-            apiInstance.sendTransacEmail(email);
-            log.info("Verification email successfully dispatched via Brevo to: {}", toEmail);
-        } catch (Exception e) {
-            log.error("Brevo delivery failed for {}: {}. (Use OTP: {} from server log)", toEmail, e.getMessage(), otp);
-        }
+        sendViaDirectRestApi(toEmail, displayName, subject, htmlContent, otp);
     }
 
     @Async
     public void sendPasswordResetEmail(String toEmail, String toName, String otp) {
         String displayName = (toName != null && !toName.isBlank()) ? toName : "User";
-
-        SendSmtpEmail email = new SendSmtpEmail();
-
-        SendSmtpEmailSender sender = new SendSmtpEmailSender();
-        sender.setEmail(senderEmail != null && !senderEmail.isBlank() ? senderEmail.trim() : "sithumudayangaofficial@gmail.com");
-        sender.setName(senderName != null && !senderName.isBlank() ? senderName.trim() : "SriMatch");
-        email.setSender(sender);
-
-        SendSmtpEmailTo to = new SendSmtpEmailTo();
-        to.setEmail(toEmail);
-        to.setName(displayName);
-        email.setTo(Collections.singletonList(to));
-
-        email.setSubject("🔐 SriMatch - Password Reset Request (OTP: " + otp + ")");
-        email.setHtmlContent(buildPasswordResetEmailHtml(displayName, otp));
+        String subject = "🔐 SriMatch - Password Reset Request (OTP: " + otp + ")";
+        String htmlContent = buildPasswordResetEmailHtml(displayName, otp);
 
         log.info("\n========================================================\n"
                 + "📧 [PASSWORD RESET OTP DISPATCH]\n"
                 + "To: {}\n"
-                + "Subject: SriMatch - Password Reset Request\n"
+                + "Subject: {}\n"
                 + "OTP CODE: {}\n"
-                + "========================================================", toEmail, otp);
+                + "========================================================", toEmail, subject, otp);
+
+        sendViaDirectRestApi(toEmail, displayName, subject, htmlContent, otp);
+    }
+
+    private void sendViaDirectRestApi(String toEmail, String toName, String subject, String htmlContent, String otp) {
+        if (brevoApiKey == null || brevoApiKey.isBlank()) {
+            log.warn("⚠️ Cannot send email via Brevo: brevo.api.key is blank. (Use OTP: {} from server log)", otp);
+            return;
+        }
 
         try {
-            apiInstance.sendTransacEmail(email);
-            log.info("Password reset email dispatched via Brevo to: {}", toEmail);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("sender", Map.of(
+                    "name", senderName != null && !senderName.isBlank() ? senderName.trim() : "SriMatch",
+                    "email", senderEmail != null && !senderEmail.isBlank() ? senderEmail.trim() : "sithumudayangaofficial@gmail.com"
+            ));
+            payload.put("to", List.of(Map.of(
+                    "email", toEmail.trim(),
+                    "name", toName != null && !toName.isBlank() ? toName.trim() : "User"
+            )));
+            payload.put("subject", subject);
+            payload.put("htmlContent", htmlContent);
+
+            String json = objectMapper.writeValueAsString(payload);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                    .header("accept", "application/json")
+                    .header("api-key", brevoApiKey.trim())
+                    .header("content-type", "application/json")
+                    .timeout(Duration.ofSeconds(15))
+                    .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                log.info("✅ Brevo email successfully dispatched to {} | HTTP {} | Response: {}",
+                        toEmail, response.statusCode(), response.body());
+            } else {
+                log.error("❌ Brevo API rejected email to {} | HTTP {}: {} | (Use OTP: {} from server log)",
+                        toEmail, response.statusCode(), response.body(), otp);
+            }
         } catch (Exception e) {
-            log.error("Brevo delivery failed for password reset {}: {}. (Use OTP: {} from server log)", toEmail, e.getMessage(), otp);
+            log.error("❌ Exception dispatching email to {} via Brevo: {} | (Use OTP: {} from server log)",
+                    toEmail, e.getMessage(), otp, e);
         }
     }
 
