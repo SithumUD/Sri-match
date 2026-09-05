@@ -63,7 +63,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: actions/docker-setup-buildx@v3
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -105,6 +105,15 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Copy Compose and Caddy configuration to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HETZNER_HOST_IP }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          source: "docker-compose.prod.yml,Caddyfile"
+          target: "/opt/srimatch"
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -138,7 +147,7 @@ jobs:
             R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}
             R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }}
             R2_BUCKET_NAME=${{ secrets.R2_BUCKET_NAME || 'srimatch-media' }}
-            R2_PUBLIC_CUSTOM_DOMAIN=${{ secrets.R2_PUBLIC_CUSTOM_DOMAIN || 'https://media.srimatch.lk' }}
+            R2_PUBLIC_CUSTOM_DOMAIN=${{ secrets.R2_PUBLIC_CUSTOM_DOMAIN || 'https://media.sithum-dev.online' }}
             CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
             CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
             CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
