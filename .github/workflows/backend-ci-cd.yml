@@ -105,15 +105,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Copy Compose and Caddy configuration to Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HETZNER_HOST_IP }}
-          username: root
-          key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
-          source: "docker-compose.prod.yml,Caddyfile"
-          target: "/opt/srimatch"
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -122,10 +113,25 @@ jobs:
           key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
           script: |
             set -e
-            echo "🚀 Starting deployment on Hetzner Cloud..."
+            echo "🚀 Connecting to Hetzner Cloud Server..."
             
+            # Ensure Docker is installed on fresh Ubuntu servers
+            if ! command -v docker &> /dev/null; then
+              echo "⚙️ Docker not found. Installing Docker Engine..."
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sh get-docker.sh
+              systemctl enable docker
+              systemctl start docker
+              rm -f get-docker.sh
+              echo "✅ Docker installed successfully."
+            fi
+
             mkdir -p /opt/srimatch
             cd /opt/srimatch
+
+            # Fetch latest docker-compose.prod.yml and Caddyfile
+            curl -fsSL -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.prod.yml" -o docker-compose.prod.yml
+            curl -fsSL -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://raw.githubusercontent.com/${{ github.repository }}/main/Caddyfile" -o Caddyfile
 
             # Write production environment variables from GitHub Secrets
             cat << 'EOF' > .env
