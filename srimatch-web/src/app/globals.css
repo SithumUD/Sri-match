@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@layer base {
+  /* Custom Scrollbar Styling - SriMatch Premium Theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #fdf8f4;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #d4b8a8; /* Soft terracotta-nude */
+    border-radius: 20px;
+    border: 2px solid #fdf8f4;
+    transition: all 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #c9856a; /* Richer terracotta */
+  }
+
+  /* Firefox support */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #d4b8a8 #fdf8f4;
+  }
+
+  /* Global Smooth Transitions */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #fdf8f4;
+    color: #2d1810;
+  }
+}
