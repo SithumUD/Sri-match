@@ -1,0 +1,26 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_PUBLIC_BACKEND_URL = "https://api.sithum-dev.online"
+  NEXT_PUBLIC_API_URL = "https://api.sithum-dev.online"
+  NEXT_PUBLIC_WS_URL = "wss://api.sithum-dev.online/ws-chat"
+
+# Netlify Edge / CDN Redirects & Reverse Proxy to Hetzner Backend
+[[redirects]]
+  from = "/api/*"
+  to = "https://api.sithum-dev.online/api/:splat"
+  status = 200
+  force = true
+  headers = { X-Forwarded-Host = "sithum-dev.online" }
+
+[[redirects]]
+  from = "/ws-chat/*"
+  to = "https://api.sithum-dev.online/ws-chat/:splat"
+  status = 200
+  force = true

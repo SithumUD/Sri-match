@@ -10,7 +10,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 
-
 // Validation Schema
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -35,9 +34,9 @@ const FacebookIcon = () => (
 );
 
 /* ─── Turnstile Widget ─────────────────────────────────────────────────── */
-const TurnstileWidget = ({ onVerify }) => {
-  const containerRef = React.useRef(null);
-  const widgetIdRef = React.useRef(null);
+const TurnstileWidget = ({ onVerify }: { onVerify: (token: string) => void }) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const widgetIdRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     const scriptId = "cf-turnstile-script";
@@ -52,11 +51,11 @@ const TurnstileWidget = ({ onVerify }) => {
 
     let isMounted = true;
     const interval = setInterval(() => {
-      if (window.turnstile && containerRef.current && !widgetIdRef.current) {
+      if ((window as any).turnstile && containerRef.current && !widgetIdRef.current) {
         try {
-          widgetIdRef.current = window.turnstile.render(containerRef.current, {
+          widgetIdRef.current = (window as any).turnstile.render(containerRef.current, {
             sitekey: "0x4AAAAAADCRNcxH7bShZFVD", // Always Passes test key
-            callback: (token) => {
+            callback: (token: string) => {
               if (isMounted) onVerify(token);
             },
             "error-callback": () => {
@@ -95,7 +94,7 @@ const LoginPage = () => {
   const [showUnverifiedBox, setShowUnverifiedBox] = useState(false);
   const [otpValue, setOtpValue] = useState("");
   const [verificationLoading, setVerificationLoading] = useState(false);
-  const [loginData, setLoginData] = useState(null);
+  const [loginData, setLoginData] = useState<{ email: string; password?: string } | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
@@ -116,9 +115,9 @@ const LoginPage = () => {
         router.push("/home");
       }
     }
-  }, [isAuthenticated, user, router, showOtpStep, resendVerification]);
+  }, [isAuthenticated, user, router, showOtpStep, showUnverifiedBox]);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: any) => {
     setLoading(true);
     try {
       const result = await login(data.email, data.password, captchaToken, totpCode);
@@ -141,14 +140,14 @@ const LoginPage = () => {
       } else {
         toast.error(result.message || "Invalid email or password.");
       }
-    } catch (err) {
+    } catch (err: any) {
       toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async (e) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpValue || otpValue.length < 6) {
       toast.error("Please enter a valid 6-digit code.");
@@ -157,7 +156,8 @@ const LoginPage = () => {
 
     setVerificationLoading(true);
     try {
-      const result = await verifyEmail(loginData.email, otpValue);
+      const emailToVerify = loginData?.email || user?.email || "";
+      const result = await verifyEmail(emailToVerify, otpValue);
       if (result.success) {
         toast.success("Email verified successfully!");
         // Refresh session to sync verified status
@@ -175,7 +175,8 @@ const LoginPage = () => {
 
   const handleResendOtp = async () => {
     try {
-      const result = await resendVerification();
+      const emailToResend = loginData?.email || user?.email;
+      const result = await resendVerification(emailToResend);
       if (result.success) {
         toast.success("New verification code sent!");
         if (showUnverifiedBox) {
@@ -268,7 +269,7 @@ const LoginPage = () => {
                       placeholder="you@example.com"
                     />
                   </div>
-                  {errors.email && <p className="mt-1 text-[0.75rem] text-red-500">{errors.email.message}</p>}
+                  {errors.email && <p className="mt-1 text-[0.75rem] text-red-500">{errors.email.message as string}</p>}
                 </div>
 
                 {/* Password */}
@@ -286,92 +287,88 @@ const LoginPage = () => {
                       {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
-                  {errors.password && <p className="mt-1 text-[0.75rem] text-red-500">{errors.password.message}</p>}
+                  {errors.password && <p className="mt-1 text-[0.75rem] text-red-500">{errors.password.message as string}</p>}
                 </div>
 
-                {/* MFA Code (TOTP) */}
+                {/* MFA Code if triggered */}
                 {mfaRequired && (
-                  <div className="mb-[1.1rem] animate-in slide-in-from-top-2 duration-300">
-                    <label htmlFor="totpCode" className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#8b4e2e]">Authentication Code</label>
+                  <div className="mb-[1.1rem]">
+                    <label htmlFor="totpCode" className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#4a3028]">Authenticator Code (2FA)</label>
                     <div className="relative">
-                      <ShieldIcon className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c9856a]" size={15} />
+                      <ShieldIcon className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c4a99a]" size={15} />
                       <input
-                        id="totpCode" type="text"
-                        className="w-full rounded-xl border-[1.5px] border-[#c9856a] bg-[#fff5f0] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:bg-white focus:shadow-[0_0_0_3px_rgba(201,133,106,0.12)] placeholder:text-[#c4b0a5]"
-                        placeholder="6-digit code"
-                        maxLength={6}
+                        id="totpCode"
+                        type="text"
                         value={totpCode}
                         onChange={(e) => setTotpCode(e.target.value)}
-                        required
+                        className="w-full rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:border-[#c9856a] focus:bg-white focus:shadow-[0_0_0_3px_rgba(201,133,106,0.12)] placeholder:text-[#c4b0a5]"
+                        placeholder="6-digit authenticator code"
+                        maxLength={6}
                       />
                     </div>
-                    <p className="mt-1.5 text-[0.7rem] text-[#9a7060]">Enter the code from your authenticator app.</p>
                   </div>
                 )}
 
-                {/* Remember / Forgot */}
-                <div className="mb-6 flex items-center justify-between text-[0.8rem]">
-                  <label className="flex cursor-pointer items-center gap-2 text-[#6b4a3a]">
-                    <input {...register("rememberMe")} type="checkbox" className="h-[15px] w-[15px] cursor-pointer accent-[#8b4e2e]" />
-                    Remember me
+                {/* Remember & Forgot */}
+                <div className="mb-5 flex items-center justify-between">
+                  <label className="flex cursor-pointer items-center gap-2 text-[0.8rem] text-[#7a5848]">
+                    <input type="checkbox" {...register("rememberMe")} className="accent-[#c9856a]" /> Remember me
                   </label>
-                  <Link href="/forgot-password" title="Coming Soon" className="font-medium text-[#8b4e2e] no-underline hover:underline hover:underline-offset-2">Forgot password?</Link>
+                  <Link href="/forgot-password" className="text-[0.8rem] font-medium text-[#c9856a] no-underline hover:underline">
+                    Forgot password?
+                  </Link>
                 </div>
 
+                {/* Cloudflare Turnstile */}
+                <TurnstileWidget onVerify={(token) => setCaptchaToken(token)} />
+
                 {/* Submit */}
-                <button 
-                  type="submit" 
-                  disabled={loading} 
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-none bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] p-[0.85rem] font-['DM_Sans'] text-[0.92rem] font-medium tracking-wide text-white shadow-[0_6px_20px_rgba(139,78,46,0.28)] transition-all hover:translate-y-[-1px] hover:shadow-[0_10px_28px_rgba(139,78,46,0.36)] disabled:cursor-not-allowed disabled:opacity-55"
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] py-3.5 text-[0.92rem] font-medium text-white shadow-[0_6px_20px_rgba(139,78,46,0.2)] transition-all hover:translate-y-[-1px] disabled:opacity-60"
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} />
-                      Signing in…
-                    </>
-                  ) : (
-                    <>
-                      Sign In <ArrowRight size={16} />
-                    </>
-                  )}
+                  {loading ? <Loader2 className="animate-spin" size={18} /> : <>Sign In <ArrowRight size={16} /></>}
                 </button>
               </form>
 
-              <div className="mt-6 text-center text-[0.82rem] text-[#9a7060]">
-                <p>Don't have an account? <Link href="/register" className="font-medium text-[#8b4e2e] no-underline hover:underline hover:underline-offset-2">Create one</Link></p>
-              </div>
+              <p className="mt-6 text-center text-[0.83rem] text-[#9a7060]">
+                Don&apos;t have an account?{" "}
+                <Link href="/register" className="font-semibold text-[#8b4e2e] no-underline hover:underline">
+                  Create one free
+                </Link>
+              </p>
             </>
           ) : (
-            /* OTP Step */
-            <div className="text-center animate-in fade-in zoom-in duration-300">
-              <div className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#fdf5f0] text-[#8b4e2e]">
-                <Mail size={32} />
+            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="mb-6 text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#fdf0e8] text-[#c9856a]">
+                  <Mail size={24} />
+                </div>
+                <h2 className="mb-1 font-['Cormorant_Garamond'] text-[1.75rem] font-semibold leading-tight text-[#2d1810]">Verify Email</h2>
+                <p className="text-[0.85rem] text-[#9a7060]">
+                  Enter the 6-digit verification code sent to <br />
+                  <strong className="text-[#4a3028]">{loginData?.email || user?.email}</strong>
+                </p>
               </div>
-              <h2 className="mb-2 font-['Cormorant_Garamond'] text-[1.75rem] font-semibold leading-tight text-[#2d1810]">Verify your email</h2>
-              <p className="mb-8 text-[0.85rem] text-[#9a7060]">
-                We've sent a 6-digit verification code to <br />
-                <strong className="text-[#4a3028]">{loginData?.email}</strong>
-              </p>
 
               <form onSubmit={handleVerifyOtp}>
                 <div className="mb-6">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={otpValue}
-                      onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ""))}
-                      className="w-full rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] py-3.5 text-center font-['DM_Sans'] text-[1.75rem] font-bold tracking-[0.75rem] text-[#2d1810] outline-none transition-all focus:border-[#c9856a] focus:bg-white placeholder:text-[#c4b0a5]"
-                      placeholder="000000"
-                      autoFocus
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={otpValue}
+                    onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ""))}
+                    placeholder="• • • • • •"
+                    className="w-full rounded-2xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] py-3 text-center font-mono text-[1.75rem] tracking-[0.4em] text-[#2d1810] outline-none transition-all focus:border-[#c9856a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(201,133,106,0.12)]"
+                    autoFocus
+                  />
                 </div>
 
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={verificationLoading || otpValue.length < 6}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-none bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] p-[0.85rem] font-['DM_Sans'] text-[0.92rem] font-medium tracking-wide text-white shadow-[0_6px_20px_rgba(139,78,46,0.28)] transition-all hover:translate-y-[-1px] hover:shadow-[0_10px_28px_rgba(139,78,46,0.36)] disabled:cursor-not-allowed disabled:opacity-55"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] py-3.5 text-[0.92rem] font-medium text-white shadow-[0_6px_20px_rgba(139,78,46,0.2)] transition-all hover:translate-y-[-1px] disabled:opacity-50"
                 >
                   {verificationLoading ? (
                     <>

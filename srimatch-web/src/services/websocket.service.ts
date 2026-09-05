@@ -10,7 +10,7 @@ class WebSocketService {
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
-        const brokerURL = `${protocol}//${host}/ws-chat`;
+        const brokerURL = process.env.NEXT_PUBLIC_WS_URL || `${protocol}//${host}/ws-chat`;
         
         this.client = new Client({
             brokerURL: brokerURL,

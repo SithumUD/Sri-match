@@ -5,19 +5,36 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'media.sithum-dev.online',
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+    ],
+  },
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.sithum-dev.online';
     return [
       {
         source: '/api/:path*',
-        destination: process.env.NEXT_PUBLIC_BACKEND_URL 
-          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/:path*`
-          : 'http://localhost:8080/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
       {
         source: '/ws-chat/:path*',
-        destination: process.env.NEXT_PUBLIC_BACKEND_URL 
-          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/ws-chat/:path*`
-          : 'http://localhost:8080/ws-chat/:path*',
+        destination: `${backendUrl}/ws-chat/:path*`,
       },
     ];
   },
