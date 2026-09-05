@@ -6,10 +6,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Immutable;
 
 import java.time.LocalDateTime;
 
 @Entity
+@Immutable
 @Table(name = "audit_logs",
         indexes = {
                 @Index(name = "idx_user_id", columnList = "user_id"),

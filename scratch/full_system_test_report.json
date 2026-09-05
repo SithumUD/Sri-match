@@ -1,0 +1,1724 @@
+{
+  "total": 35,
+  "passed": 35,
+  "failed": 0,
+  "passRate": "100.0%",
+  "results": [
+    {
+      "suite": "HEALTH",
+      "testName": "Spring Boot Actuator Health Probe (/actuator/health)",
+      "status": "PASSED",
+      "durationMs": 4982,
+      "details": {
+        "status": "DOWN",
+        "components": {
+          "db": {
+            "status": "UP",
+            "details": {
+              "database": "PostgreSQL",
+              "validationQuery": "isValid()"
+            }
+          },
+          "diskSpace": {
+            "status": "UP",
+            "details": {
+              "total": 509722226688,
+              "free": 12338151424,
+              "threshold": 10485760,
+              "path": "C:\\Users\\sithu\\OneDrive\\Documents\\GitHub\\Sri-match\\srimatch-backend\\.",
+              "exists": true
+            }
+          },
+          "livenessState": {
+            "status": "UP"
+          },
+          "mail": {
+            "status": "DOWN",
+            "details": {
+              "location": "smtp.mailtrap.io:2525",
+              "error": "jakarta.mail.AuthenticationFailedException: 535 5.7.0 Invalid credentials\n"
+            }
+          },
+          "ping": {
+            "status": "UP"
+          },
+          "readinessState": {
+            "status": "UP"
+          },
+          "redis": {
+            "status": "UP",
+            "details": {
+              "version": "7.4.11"
+            }
+          }
+        },
+        "groups": [
+          "liveness",
+          "readiness"
+        ]
+      }
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Register User A (Kasun Bandara - Male)",
+      "status": "PASSED",
+      "durationMs": 498,
+      "details": {
+        "success": true,
+        "message": "Registration successful. Please check your email for OTP."
+      }
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Verify Email for User A using Generated OTP",
+      "status": "PASSED",
+      "durationMs": 286,
+      "details": {
+        "verified": true,
+        "otp": "569068"
+      }
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Login with User A to get JWT Access Token",
+      "status": "PASSED",
+      "durationMs": 1056,
+      "details": {
+        "tokenLength": 177,
+        "userAId": 24
+      }
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Register User B (Sanduni Perera - Female)",
+      "status": "PASSED",
+      "durationMs": 495,
+      "details": {
+        "success": true,
+        "message": "Registration successful. Please check your email for OTP."
+      }
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Verify Email for User B using Generated OTP",
+      "status": "PASSED",
+      "durationMs": 296,
+      "details": {
+        "verified": true,
+        "otp": "362280"
+      }
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Login with User B to get JWT Access Token",
+      "status": "PASSED",
+      "durationMs": 913,
+      "details": {
+        "tokenLength": 179,
+        "userBId": 25
+      }
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Login Failure on Incorrect Password",
+      "status": "PASSED",
+      "durationMs": 630,
+      "details": {
+        "status": 400,
+        "message": "Invalid email or password. 4 attempt(s) remaining."
+      }
+    },
+    {
+      "suite": "PROFILE",
+      "testName": "Create / Update Profile for User A (Male, Buddhist, Colombo)",
+      "status": "PASSED",
+      "durationMs": 357,
+      "details": {
+        "id": 3,
+        "userId": 24,
+        "firstName": "Kasun",
+        "lastName": "Bandara",
+        "gender": "MALE",
+        "dateOfBirth": "1995-05-15",
+        "timeOfBirth": "08:30:00",
+        "age": 31,
+        "maritalStatus": "NEVER_MARRIED",
+        "hasChildren": false,
+        "numberOfChildren": 0,
+        "district": "COLOMBO",
+        "city": "Colombo",
+        "placeOfBirth": "Colombo",
+        "latitude": 6.9271,
+        "longitude": 79.8612,
+        "religion": "BUDDHIST",
+        "religiousPractices": "Observes Sil on Poya days",
+        "ethnicity": "SINHALESE",
+        "languages": [
+          "Sinhala",
+          "English"
+        ],
+        "horoscopeSign": "TAURUS",
+        "birthStar": "Rohini",
+        "horoscopeDetails": "Kethu 1st house, Guru 5th house auspicious placement",
+        "education": "BACHELORS",
+        "fieldOfStudy": "Computer Science",
+        "profession": "Senior Software Architect",
+        "industry": "Information Technology",
+        "employer": "Tech Global Ltd",
+        "workLocation": "Colombo 03",
+        "income": "LKR 450,000 / month",
+        "height": 178,
+        "bodyType": "ATHLETIC",
+        "complexion": "MEDIUM",
+        "smoking": "NEVER",
+        "drinking": "OCCASIONALLY",
+        "dietaryPreferences": "NON_VEGETARIAN",
+        "healthHabits": "Daily gym and cycling",
+        "lifestyle": "Active and balanced",
+        "familyBackground": "Father retired engineer, mother teacher",
+        "culturalValues": "Traditional Sri Lankan values with modern outlook",
+        "familyInvolvement": "Close family ties",
+        "weddingPreferences": "Traditional Poruwa ceremony",
+        "about": "Passionate software architect looking for an educated, kind-hearted life partner.",
+        "interests": [
+          "Coding",
+          "Photography",
+          "Travel",
+          "Badminton"
+        ],
+        "personalityTraits": "Caring, ambitious, humorous",
+        "partnerPreferences": {
+          "minAge": 23,
+          "maxAge": 30,
+          "religion": "BUDDHIST",
+          "ethnicity": "SINHALESE",
+          "education": "BACHELORS"
+        },
+        "profileImages": [],
+        "verificationStatus": {},
+        "completionScore": 80,
+        "visible": true,
+        "premium": false
+      }
+    },
+    {
+      "suite": "PROFILE",
+      "testName": "Get User A Own Profile (/v1/profile/me)",
+      "status": "PASSED",
+      "durationMs": 71,
+      "details": {
+        "id": 3,
+        "userId": 24,
+        "firstName": "Kasun",
+        "lastName": "Bandara",
+        "gender": "MALE",
+        "dateOfBirth": "1995-05-15",
+        "timeOfBirth": "08:30:00",
+        "age": 31,
+        "maritalStatus": "NEVER_MARRIED",
+        "hasChildren": false,
+        "numberOfChildren": 0,
+        "district": "COLOMBO",
+        "city": "Colombo",
+        "placeOfBirth": "Colombo",
+        "latitude": 6.9271,
+        "longitude": 79.8612,
+        "religion": "BUDDHIST",
+        "religiousPractices": "Observes Sil on Poya days",
+        "ethnicity": "SINHALESE",
+        "languages": [
+          "Sinhala",
+          "English"
+        ],
+        "horoscopeSign": "TAURUS",
+        "birthStar": "Rohini",
+        "horoscopeDetails": "Kethu 1st house, Guru 5th house auspicious placement",
+        "education": "BACHELORS",
+        "fieldOfStudy": "Computer Science",
+        "profession": "Senior Software Architect",
+        "industry": "Information Technology",
+        "employer": "Tech Global Ltd",
+        "workLocation": "Colombo 03",
+        "income": "LKR 450,000 / month",
+        "height": 178,
+        "bodyType": "ATHLETIC",
+        "complexion": "MEDIUM",
+        "smoking": "NEVER",
+        "drinking": "OCCASIONALLY",
+        "dietaryPreferences": "NON_VEGETARIAN",
+        "healthHabits": "Daily gym and cycling",
+        "lifestyle": "Active and balanced",
+        "familyBackground": "Father retired engineer, mother teacher",
+        "culturalValues": "Traditional Sri Lankan values with modern outlook",
+        "familyInvolvement": "Close family ties",
+        "weddingPreferences": "Traditional Poruwa ceremony",
+        "about": "Passionate software architect looking for an educated, kind-hearted life partner.",
+        "interests": [
+          "Coding",
+          "Photography",
+          "Travel",
+          "Badminton"
+        ],
+        "favoriteThings": {},
+        "personalityTraits": "Caring, ambitious, humorous",
+        "partnerPreferences": {
+          "maxAge": 30,
+          "minAge": 23,
+          "religion": "BUDDHIST",
+          "education": "BACHELORS",
+          "ethnicity": "SINHALESE"
+        },
+        "profileImages": [],
+        "quizAnswers": {},
+        "verificationStatus": {},
+        "completionScore": 80,
+        "visible": true,
+        "premium": false
+      }
+    },
+    {
+      "suite": "PROFILE",
+      "testName": "Create / Update Profile for User B (Female, Buddhist, Kandy)",
+      "status": "PASSED",
+      "durationMs": 81,
+      "details": {
+        "id": 4,
+        "userId": 25,
+        "firstName": "Sanduni",
+        "lastName": "Perera",
+        "gender": "FEMALE",
+        "dateOfBirth": "1997-08-20",
+        "timeOfBirth": "14:15:00",
+        "age": 29,
+        "maritalStatus": "NEVER_MARRIED",
+        "hasChildren": false,
+        "numberOfChildren": 0,
+        "district": "KANDY",
+        "city": "Kandy",
+        "placeOfBirth": "Kandy",
+        "latitude": 7.2906,
+        "longitude": 80.6337,
+        "religion": "BUDDHIST",
+        "religiousPractices": "Regular temple visits",
+        "ethnicity": "SINHALESE",
+        "languages": [
+          "Sinhala",
+          "English"
+        ],
+        "horoscopeSign": "LEO",
+        "birthStar": "Magha",
+        "horoscopeDetails": "Shukra and Budha in 4th house",
+        "education": "MASTERS",
+        "fieldOfStudy": "Medicine",
+        "profession": "Medical Doctor",
+        "industry": "Healthcare",
+        "employer": "Kandy Teaching Hospital",
+        "workLocation": "Kandy",
+        "income": "LKR 380,000 / month",
+        "height": 165,
+        "bodyType": "SLIM",
+        "complexion": "FAIR",
+        "smoking": "NEVER",
+        "drinking": "NEVER",
+        "dietaryPreferences": "VEGETARIAN",
+        "healthHabits": "Yoga and mindfulness",
+        "lifestyle": "Peaceful and healthy",
+        "familyBackground": "Respectable Kandyan family",
+        "culturalValues": "Values heritage and family unity",
+        "familyInvolvement": "Strong family bonds",
+        "weddingPreferences": "Traditional Kandyan wedding",
+        "about": "Doctor dedicated to patient care who values culture, family, and shared happiness.",
+        "interests": [
+          "Medicine",
+          "Reading",
+          "Gardening",
+          "Classical Music"
+        ],
+        "personalityTraits": "Gentle, empathetic, intelligent",
+        "partnerPreferences": {
+          "minAge": 26,
+          "maxAge": 33,
+          "religion": "BUDDHIST",
+          "ethnicity": "SINHALESE"
+        },
+        "profileImages": [],
+        "verificationStatus": {},
+        "completionScore": 80,
+        "visible": true,
+        "premium": false
+      }
+    },
+    {
+      "suite": "DISCOVERY",
+      "testName": "Get Public Discovery Feed (/v1/profiles)",
+      "status": "PASSED",
+      "durationMs": 229,
+      "details": {
+        "content": [
+          {
+            "id": 4,
+            "firstName": "Sanduni",
+            "age": 29,
+            "city": "Kandy",
+            "district": "KANDY",
+            "profession": "Medical Doctor",
+            "education": "MASTERS",
+            "religion": "BUDDHIST",
+            "about": "Doctor dedicated to patient care who values culture, family, and shared happiness.",
+            "interests": [
+              "Medicine",
+              "Reading",
+              "Gardening"
+            ],
+            "compatibilityScore": 70,
+            "boosted": false,
+            "verified": false
+          },
+          {
+            "id": 2,
+            "firstName": "Sanduni",
+            "age": 29,
+            "city": "Kandy",
+            "district": "KANDY",
+            "profession": "Medical Doctor",
+            "education": "MASTERS",
+            "religion": "BUDDHIST",
+            "about": "Doctor dedicated to patient care who values culture, family, and shared happiness.",
+            "interests": [
+              "Medicine",
+              "Reading",
+              "Gardening"
+            ],
+            "compatibilityScore": 70,
+            "boosted": false,
+            "verified": false
+          },
+          {
+            "id": 1,
+            "firstName": "Kasun",
+            "age": 31,
+            "city": "Colombo",
+            "district": "COLOMBO",
+            "profession": "Senior Software Architect",
+            "education": "BACHELORS",
+            "religion": "BUDDHIST",
+            "about": "Passionate software architect looking for an educated, kind-hearted life partner.",
+            "interests": [
+              "Coding",
+              "Photography",
+              "Travel"
+            ],
+            "compatibilityScore": 121,
+            "boosted": false,
+            "verified": false
+          }
+        ],
+        "pageable": {
+          "pageNumber": 0,
+          "pageSize": 20,
+          "sort": {
+            "sorted": false,
+            "unsorted": true,
+            "empty": true
+          },
+          "offset": 0,
+          "paged": true,
+          "unpaged": false
+        },
+        "totalPages": 1,
+        "totalElements": 3,
+        "last": true,
+        "numberOfElements": 3,
+        "first": true,
+        "size": 20,
+        "number": 0,
+        "sort": {
+          "sorted": false,
+          "unsorted": true,
+          "empty": true
+        },
+        "empty": false
+      }
+    },
+    {
+      "suite": "DISCOVERY",
+      "testName": "Search Profiles with Filters (district=KANDY, religion=BUDDHIST)",
+      "status": "PASSED",
+      "durationMs": 116,
+      "details": {
+        "content": [
+          {
+            "id": 4,
+            "firstName": "Sanduni",
+            "age": 29,
+            "city": "Kandy",
+            "district": "KANDY",
+            "profession": "Medical Doctor",
+            "education": "MASTERS",
+            "religion": "BUDDHIST",
+            "about": "Doctor dedicated to patient care who values culture, family, and shared happiness.",
+            "interests": [
+              "Medicine",
+              "Reading",
+              "Gardening"
+            ],
+            "compatibilityScore": 70,
+            "boosted": false,
+            "verified": false
+          },
+          {
+            "id": 2,
+            "firstName": "Sanduni",
+            "age": 29,
+            "city": "Kandy",
+            "district": "KANDY",
+            "profession": "Medical Doctor",
+            "education": "MASTERS",
+            "religion": "BUDDHIST",
+            "about": "Doctor dedicated to patient care who values culture, family, and shared happiness.",
+            "interests": [
+              "Medicine",
+              "Reading",
+              "Gardening"
+            ],
+            "compatibilityScore": 70,
+            "boosted": false,
+            "verified": false
+          }
+        ],
+        "pageable": {
+          "pageNumber": 0,
+          "pageSize": 20,
+          "sort": {
+            "sorted": true,
+            "unsorted": false,
+            "empty": false
+          },
+          "offset": 0,
+          "paged": true,
+          "unpaged": false
+        },
+        "totalPages": 1,
+        "totalElements": 2,
+        "last": true,
+        "numberOfElements": 2,
+        "first": true,
+        "size": 20,
+        "number": 0,
+        "sort": {
+          "sorted": true,
+          "unsorted": false,
+          "empty": false
+        },
+        "empty": false
+      }
+    },
+    {
+      "suite": "DISCOVERY",
+      "testName": "Get Single Public Profile by ID (/v1/profiles/{id})",
+      "status": "PASSED",
+      "durationMs": 163,
+      "details": {
+        "id": 4,
+        "userId": 25,
+        "firstName": "Sanduni",
+        "lastName": "Perera",
+        "age": 29,
+        "city": "Kandy",
+        "district": "KANDY",
+        "placeOfBirth": "Kandy",
+        "dateOfBirth": "1997-08-20",
+        "timeOfBirth": "14:15:00",
+        "latitude": 7.2906,
+        "longitude": 80.6337,
+        "profession": "Medical Doctor",
+        "education": "MASTERS",
+        "religion": "BUDDHIST",
+        "about": "Doctor dedicated to patient care who values culture, family, and shared happiness.",
+        "interests": [
+          "Medicine",
+          "Reading",
+          "Gardening",
+          "Classical Music"
+        ],
+        "profileImages": [],
+        "compatibilityScore": 70,
+        "height": 165,
+        "bodyType": "SLIM",
+        "complexion": "FAIR",
+        "smoking": "NEVER",
+        "drinking": "NEVER",
+        "dietaryPreferences": "VEGETARIAN",
+        "healthHabits": "Yoga and mindfulness",
+        "lifestyle": "Peaceful and healthy",
+        "industry": "Healthcare",
+        "employer": "Kandy Teaching Hospital",
+        "workLocation": "Kandy",
+        "income": "LKR 380,000 / month",
+        "educationLevel": "MASTERS",
+        "fieldOfStudy": "Medicine",
+        "relocationWillingness": "NOT_WILLING",
+        "ethnicity": "SINHALESE",
+        "languages": [
+          "Sinhala",
+          "English"
+        ],
+        "horoscopeSign": "LEO",
+        "birthStar": "Magha",
+        "horoscopeDetails": "Shukra and Budha in 4th house",
+        "religiousPractices": "Regular temple visits",
+        "familyBackground": "Respectable Kandyan family",
+        "familyType": "NUCLEAR",
+        "familyInvolvement": "Strong family bonds",
+        "weddingPreferences": "Traditional Kandyan wedding",
+        "favoriteThings": {},
+        "personalityTraits": "Gentle, empathetic, intelligent",
+        "partnerPreferences": {
+          "maxAge": 33,
+          "minAge": 26,
+          "religion": "BUDDHIST",
+          "ethnicity": "SINHALESE"
+        },
+        "quizAnswers": {},
+        "profileViews": 1,
+        "completionScore": 80,
+        "premium": false,
+        "boosted": false,
+        "verified": false
+      }
+    },
+    {
+      "suite": "LIKES",
+      "testName": "Check User A Daily Like Quota (/v1/likes/quota)",
+      "status": "PASSED",
+      "durationMs": 65,
+      "details": {
+        "likeLimit": 15,
+        "likesUsed": 0,
+        "likesRemaining": 15,
+        "resetsAt": "2026-09-04T10:51:27.9776017",
+        "canSendLike": true,
+        "message": "15/15 likes remaining. Resets every 5 days.",
+        "premium": false
+      }
+    },
+    {
+      "suite": "LIKES",
+      "testName": "User A Sends LIKE to User B (/v1/likes/send)",
+      "status": "PASSED",
+      "durationMs": 120,
+      "details": {
+        "success": true,
+        "message": "Like sent successfully"
+      }
+    },
+    {
+      "suite": "LIKES",
+      "testName": "User B Checks Received Likes (/v1/likes/received)",
+      "status": "PASSED",
+      "durationMs": 162,
+      "details": {
+        "totalLikesCount": 1,
+        "likes": [
+          {
+            "type": "NORMAL",
+            "createdAt": "2026-08-30T10:51:28.078682",
+            "sender": {
+              "firstName": "Hidden",
+              "interactionType": "NORMAL",
+              "interactionStatus": "PENDING",
+              "verified": false,
+              "boosted": false
+            },
+            "blurred": true
+          }
+        ],
+        "totalPages": 1,
+        "currentPage": 0
+      }
+    },
+    {
+      "suite": "LIKES",
+      "testName": "User B Sends LIKE to User A (Triggers MUTUAL MATCH)",
+      "status": "PASSED",
+      "durationMs": 193,
+      "details": {
+        "success": true,
+        "message": "Like sent successfully"
+      }
+    },
+    {
+      "suite": "MATCHES",
+      "testName": "User A Fetches Active Matches (/v1/matches)",
+      "status": "PASSED",
+      "durationMs": 104,
+      "details": {
+        "totalMatches": 1,
+        "match": {
+          "id": 2,
+          "status": "ACTIVE",
+          "compatibilityScore": 69,
+          "matchedAt": "2026-08-30T10:51:28.400034",
+          "otherUser": {
+            "id": 25,
+            "name": "Sanduni Perera",
+            "age": 29,
+            "profession": "Medical Doctor",
+            "district": "KANDY"
+          }
+        }
+      }
+    },
+    {
+      "suite": "CHAT",
+      "testName": "User A Sends Message to Match (/v1/chat/send)",
+      "status": "PASSED",
+      "durationMs": 147,
+      "details": {
+        "id": 2,
+        "matchId": 2,
+        "senderId": 24,
+        "receiverId": 25,
+        "content": "Ayubowan Sanduni! Wishing you a wonderful day. Shall we discuss our horoscopes?",
+        "type": "TEXT",
+        "status": "SENT",
+        "read": false,
+        "delivered": false,
+        "createdAt": "2026-08-30T10:51:28.660457"
+      }
+    },
+    {
+      "suite": "CHAT",
+      "testName": "User B Retrieves Chat History (/v1/chat/history/{matchId})",
+      "status": "PASSED",
+      "durationMs": 110,
+      "details": {
+        "messageCount": 1,
+        "latest": "Ayubowan Sanduni! Wishing you a wonderful day. Shall we discuss our horoscopes?"
+      }
+    },
+    {
+      "suite": "CHAT",
+      "testName": "User B Marks Message as Read (/v1/chat/messages/{id}/read)",
+      "status": "PASSED",
+      "durationMs": 129,
+      "details": {
+        "success": true,
+        "message": "Message marked as read"
+      }
+    },
+    {
+      "suite": "ASTROLOGY",
+      "testName": "Calculate Horoscope Compatibility (/v1/horoscope/match/{targetProfileId})",
+      "status": "PASSED",
+      "durationMs": 1683,
+      "details": {
+        "status": "ok",
+        "data": {
+          "girl_info": {
+            "nakshatra": {
+              "id": 24,
+              "name": "Purva Bhadrapada",
+              "lord": {
+                "id": 5,
+                "name": "Jupiter",
+                "vedic_name": "Guru"
+              },
+              "pada": 4
+            },
+            "rasi": {
+              "id": 11,
+              "name": "Meena",
+              "lord": {
+                "id": 5,
+                "name": "Jupiter",
+                "vedic_name": "Guru"
+              }
+            }
+          },
+          "boy_info": {
+            "nakshatra": {
+              "id": 16,
+              "name": "Anuradha",
+              "lord": {
+                "id": 6,
+                "name": "Saturn",
+                "vedic_name": "Shani"
+              },
+              "pada": 1
+            },
+            "rasi": {
+              "id": 7,
+              "name": "Vrischika",
+              "lord": {
+                "id": 4,
+                "name": "Mars",
+                "vedic_name": "Kuja"
+              }
+            }
+          },
+          "maximum_points": 10,
+          "total_points": 7.5,
+          "message": {
+            "type": "Excellent",
+            "description": "Marriage compatibility is Uthamaouthama. "
+          },
+          "matches": [
+            {
+              "id": 1,
+              "name": "Dina Porutham",
+              "has_porutham": true
+            },
+            {
+              "id": 2,
+              "name": "Gana Porutham",
+              "has_porutham": true
+            },
+            {
+              "id": 3,
+              "name": "Mahendra Porutham",
+              "has_porutham": false
+            },
+            {
+              "id": 4,
+              "name": "Stree Deergha Porutham",
+              "has_porutham": true
+            },
+            {
+              "id": 5,
+              "name": "Yoni Porutham",
+              "has_porutham": true
+            },
+            {
+              "id": 6,
+              "name": "Veda Porutham",
+              "has_porutham": true
+            },
+            {
+              "id": 7,
+              "name": "Rajju Porutham",
+              "has_porutham": true
+            },
+            {
+              "id": 8,
+              "name": "Rasi Porutham",
+              "has_porutham": true
+            },
+            {
+              "id": 9,
+              "name": "Rasi Lord Porutham",
+              "has_porutham": true
+            },
+            {
+              "id": 10,
+              "name": "Vasya Porutham",
+              "has_porutham": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "suite": "SUBSCRIPTION",
+      "testName": "Get All Active Membership Packages (/v1/packages)",
+      "status": "PASSED",
+      "durationMs": 61,
+      "details": [
+        {
+          "id": 1,
+          "title": "Silver Member",
+          "description": "1 Month Full Access, 30 Likes per day, Direct Messaging",
+          "price": 2500,
+          "originalPrice": 2500,
+          "timelineMonths": 1,
+          "offerPercentage": 0,
+          "active": true
+        },
+        {
+          "id": 2,
+          "title": "Gold Member",
+          "description": "3 Months Full Access, Unlimited Likes, Porutham Matching",
+          "price": 5400,
+          "originalPrice": 6000,
+          "timelineMonths": 3,
+          "offerPercentage": 10,
+          "active": true
+        },
+        {
+          "id": 3,
+          "title": "Platinum VIP",
+          "description": "6 Months VIP Access, Unlimited Likes, Priority Support, Astrologer Consultation",
+          "price": 8000,
+          "originalPrice": 10000,
+          "timelineMonths": 6,
+          "offerPercentage": 20,
+          "active": true
+        }
+      ]
+    },
+    {
+      "suite": "SUBSCRIPTION",
+      "testName": "Get User Current Subscription Status (/v1/subscriptions/my)",
+      "status": "PASSED",
+      "durationMs": 62,
+      "details": []
+    },
+    {
+      "suite": "SUBSCRIPTION",
+      "testName": "Get Company Bank Transfer Details (/v1/bank-details)",
+      "status": "PASSED",
+      "durationMs": 58,
+      "details": [
+        {
+          "id": 1,
+          "bankName": "Commercial Bank of Ceylon",
+          "branchName": "Kollupitiya",
+          "accountNumber": "8001234567",
+          "accountHolderName": "SriMatch Pvt Ltd",
+          "active": true
+        }
+      ]
+    },
+    {
+      "suite": "SUPPORT",
+      "testName": "User A Creates Support Ticket (/v1/support/tickets)",
+      "status": "PASSED",
+      "durationMs": 99,
+      "details": {
+        "id": 6,
+        "userEmail": "kasun_bandara_1788067277743@srimatch.com",
+        "subject": "Inquiry regarding VIP horoscope match analysis",
+        "status": "OPEN",
+        "priority": "MEDIUM",
+        "createdAt": "2026-08-30T10:51:30.88964",
+        "updatedAt": "2026-08-30T10:51:30.88964"
+      }
+    },
+    {
+      "suite": "SUPPORT",
+      "testName": "User A Gets Own Support Tickets List",
+      "status": "PASSED",
+      "durationMs": 72,
+      "details": [
+        {
+          "id": 6,
+          "userEmail": "kasun_bandara_1788067277743@srimatch.com",
+          "subject": "Inquiry regarding VIP horoscope match analysis",
+          "status": "OPEN",
+          "priority": "MEDIUM",
+          "createdAt": "2026-08-30T10:51:30.88964",
+          "updatedAt": "2026-08-30T10:51:30.88964"
+        }
+      ]
+    },
+    {
+      "suite": "SAFETY",
+      "testName": "User A Submits Profile Report (/v1/reports)",
+      "status": "PASSED",
+      "durationMs": 104,
+      "details": {
+        "success": true,
+        "message": "Report submitted successfully. Our moderation team will review it shortly.",
+        "data": {
+          "id": 6,
+          "reporterId": 24,
+          "reporterEmail": "kasun_bandara_1788067277743@srimatch.com",
+          "reportedUserId": 25,
+          "reportedUserEmail": "sanduni_perera_1788067277743@srimatch.com",
+          "reportedUserName": "Sanduni Perera",
+          "reason": "OTHER",
+          "description": "System automated safety workflow check.",
+          "status": "PENDING",
+          "createdAt": "2026-08-30T10:51:31.065383"
+        }
+      }
+    },
+    {
+      "suite": "ADMIN_AUTH",
+      "testName": "Register and Escalate Admin User",
+      "status": "PASSED",
+      "durationMs": 1905,
+      "details": {
+        "adminEmail": "admin_1788067277743@srimatch.com",
+        "tokenAcquired": true
+      }
+    },
+    {
+      "suite": "ADMIN",
+      "testName": "Admin Fetches Dashboard Analytics (/v1/admin/dashboard)",
+      "status": "PASSED",
+      "durationMs": 358,
+      "details": {
+        "kpis": [
+          {
+            "label": "Total Users",
+            "value": "26",
+            "change": "+12.4%",
+            "up": true,
+            "icon": "👤",
+            "color": "#3b82f6",
+            "bg": "#eff6ff"
+          },
+          {
+            "label": "Active Subscriptions",
+            "value": "0",
+            "change": "+8.1%",
+            "up": true,
+            "icon": "💎",
+            "color": "#a855f7",
+            "bg": "#faf5ff"
+          },
+          {
+            "label": "Monthly Revenue",
+            "value": "Rs 0K",
+            "change": "+5.3%",
+            "up": true,
+            "icon": "💰",
+            "color": "#10b981",
+            "bg": "#f0fdf4"
+          },
+          {
+            "label": "New Matches",
+            "value": "2",
+            "change": "+2.9%",
+            "up": true,
+            "icon": "❤️",
+            "color": "#f43f5e",
+            "bg": "#fff1f2"
+          },
+          {
+            "label": "Open Tickets",
+            "value": "6",
+            "change": "-3",
+            "up": false,
+            "icon": "🎫",
+            "color": "#f97316",
+            "bg": "#fff7ed"
+          },
+          {
+            "label": "Pending Payments",
+            "value": "0",
+            "change": "+4",
+            "up": false,
+            "icon": "⏳",
+            "color": "#eab308",
+            "bg": "#fefce8"
+          },
+          {
+            "label": "Reports (Unread)",
+            "value": "6",
+            "change": "-2",
+            "up": true,
+            "icon": "🚩",
+            "color": "#ef4444",
+            "bg": "#fef2f2"
+          },
+          {
+            "label": "Daily Active",
+            "value": "0",
+            "change": "+18.7%",
+            "up": true,
+            "icon": "📈",
+            "color": "#06b6d4",
+            "bg": "#ecfeff"
+          }
+        ],
+        "revenueTrend": [],
+        "userDistribution": {
+          "total": 26,
+          "freeCount": 26,
+          "premiumCount": 0,
+          "freePercent": 100,
+          "premiumPercent": 0
+        },
+        "recentRegistrations": [
+          {
+            "id": "U-26",
+            "name": "System Admin",
+            "email": "admin_1788067277743@srimatch.com",
+            "joined": "30 Aug 2026",
+            "role": "ADMIN",
+            "status": "Active",
+            "premium": false
+          },
+          {
+            "id": "U-25",
+            "name": "Sanduni Perera",
+            "email": "sanduni_perera_1788067277743@srimatch.com",
+            "joined": "30 Aug 2026",
+            "role": "USER",
+            "status": "Active",
+            "premium": false
+          },
+          {
+            "id": "U-24",
+            "name": "Kasun Bandara",
+            "email": "kasun_bandara_1788067277743@srimatch.com",
+            "joined": "30 Aug 2026",
+            "role": "USER",
+            "status": "Active",
+            "premium": false
+          },
+          {
+            "id": "U-23",
+            "name": "System Admin",
+            "email": "admin_1788066435973@srimatch.com",
+            "joined": "30 Aug 2026",
+            "role": "ADMIN",
+            "status": "Active",
+            "premium": false
+          },
+          {
+            "id": "U-22",
+            "name": "Sanduni Perera",
+            "email": "sanduni_perera_1788066435973@srimatch.com",
+            "joined": "30 Aug 2026",
+            "role": "USER",
+            "status": "Active",
+            "premium": false
+          }
+        ],
+        "recentPayments": [],
+        "recentReports": [
+          {
+            "id": "R-6",
+            "reason": "OTHER",
+            "reported": "sanduni_perera_1788067277743@srimatch.com",
+            "status": "PENDING",
+            "date": "30 Aug"
+          },
+          {
+            "id": "R-5",
+            "reason": "OTHER",
+            "reported": "sanduni_perera_1788066435973@srimatch.com",
+            "status": "PENDING",
+            "date": "30 Aug"
+          },
+          {
+            "id": "R-4",
+            "reason": "OTHER",
+            "reported": "sanduni_perera_1788066113497@srimatch.com",
+            "status": "PENDING",
+            "date": "30 Aug"
+          },
+          {
+            "id": "R-3",
+            "reason": "OTHER",
+            "reported": "sanduni_perera_1788065782660@srimatch.com",
+            "status": "PENDING",
+            "date": "30 Aug"
+          },
+          {
+            "id": "R-2",
+            "reason": "OTHER",
+            "reported": "sanduni_perera_1788065278575@srimatch.com",
+            "status": "PENDING",
+            "date": "30 Aug"
+          }
+        ],
+        "activityFeed": [
+          {
+            "time": "Just now",
+            "icon": "⚙️",
+            "msg": "GET /api/v1/admin/settings: Administrative action captured by interceptor"
+          },
+          {
+            "time": "Just now",
+            "icon": "⚙️",
+            "msg": "GET /api/v1/admin/users: Administrative action captured by interceptor"
+          },
+          {
+            "time": "Just now",
+            "icon": "⚙️",
+            "msg": "GET /api/v1/admin/dashboard: Administrative action captured by interceptor"
+          },
+          {
+            "time": "Just now",
+            "icon": "⚙️",
+            "msg": "GET /api/v1/admin/settings: Administrative action captured by interceptor"
+          },
+          {
+            "time": "Just now",
+            "icon": "⚙️",
+            "msg": "GET /api/v1/admin/users: Administrative action captured by interceptor"
+          },
+          {
+            "time": "Just now",
+            "icon": "⚙️",
+            "msg": "GET /api/v1/admin/dashboard: Administrative action captured by interceptor"
+          },
+          {
+            "time": "Just now",
+            "icon": "⚙️",
+            "msg": "GET /api/v1/admin/settings: Administrative action captured by interceptor"
+          },
+          {
+            "time": "Just now",
+            "icon": "⚙️",
+            "msg": "GET /api/v1/admin/users: Administrative action captured by interceptor"
+          }
+        ],
+        "systemHealth": [
+          {
+            "name": "API Server",
+            "status": "Operational",
+            "ping": "42ms",
+            "icon": "🖥️"
+          },
+          {
+            "name": "MySQL Database",
+            "status": "Operational",
+            "ping": "8ms",
+            "icon": "🗄️"
+          },
+          {
+            "name": "Redis Cache",
+            "status": "Operational",
+            "ping": "2ms",
+            "icon": "⚡"
+          },
+          {
+            "name": "Brevo Email",
+            "status": "Operational",
+            "ping": "—",
+            "icon": "📧"
+          },
+          {
+            "name": "Cloudinary CDN",
+            "status": "Operational",
+            "ping": "—",
+            "icon": "☁️"
+          },
+          {
+            "name": "Firebase Push",
+            "status": "Operational",
+            "ping": "—",
+            "icon": "🔔"
+          },
+          {
+            "name": "Prokerala API",
+            "status": "Operational",
+            "ping": "1.2s",
+            "icon": "⭐"
+          },
+          {
+            "name": "Cloudflare WAF",
+            "status": "Operational",
+            "ping": "—",
+            "icon": "🛡️"
+          }
+        ]
+      }
+    },
+    {
+      "suite": "ADMIN",
+      "testName": "Admin Lists System Users (/v1/admin/users)",
+      "status": "PASSED",
+      "durationMs": 182,
+      "details": {
+        "success": true,
+        "message": "All users fetched successfully",
+        "data": [
+          {
+            "id": 2,
+            "firstName": "Sanduni",
+            "lastName": "Perera",
+            "email": "sanduni_perera_1788065018711@srimatch.com",
+            "role": "USER",
+            "emailVerified": false,
+            "phoneVerified": false,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "createdAt": "2026-08-30T10:13:39.645178",
+            "updatedAt": "2026-08-30T10:13:39.645178",
+            "deleted": false
+          },
+          {
+            "id": 1,
+            "firstName": "Kasun",
+            "lastName": "Bandara",
+            "email": "kasun_bandara_1788065018711@srimatch.com",
+            "role": "USER",
+            "emailVerified": false,
+            "phoneVerified": false,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:13:40.399439",
+            "createdAt": "2026-08-30T10:13:39.194972",
+            "updatedAt": "2026-08-30T10:13:40.440175",
+            "deleted": false
+          },
+          {
+            "id": 3,
+            "firstName": "System",
+            "lastName": "Admin",
+            "email": "admin_1788065018711@srimatch.com",
+            "role": "ADMIN",
+            "emailVerified": false,
+            "phoneVerified": false,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:13:41.92479",
+            "createdAt": "2026-08-30T10:13:41.376959",
+            "updatedAt": "2026-08-30T10:13:41.93185",
+            "deleted": false
+          },
+          {
+            "id": 4,
+            "firstName": "Kasun",
+            "lastName": "Bandara",
+            "email": "kasun_bandara_1788065150590@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:15:51.778476",
+            "createdAt": "2026-08-30T10:15:51.068005",
+            "updatedAt": "2026-08-30T10:15:51.783627",
+            "deleted": false
+          },
+          {
+            "id": 12,
+            "firstName": "System",
+            "lastName": "Admin",
+            "email": "admin_1788065278575@srimatch.com",
+            "role": "ADMIN",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:18:02.58747",
+            "createdAt": "2026-08-30T10:18:01.807936",
+            "updatedAt": "2026-08-30T10:18:02.59473",
+            "deleted": false
+          },
+          {
+            "id": 5,
+            "firstName": "Sanduni",
+            "lastName": "Perera",
+            "email": "sanduni_perera_1788065150590@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:15:53.372693",
+            "createdAt": "2026-08-30T10:15:52.254865",
+            "updatedAt": "2026-08-30T10:15:53.392199",
+            "deleted": false
+          },
+          {
+            "id": 6,
+            "firstName": "System",
+            "lastName": "Admin",
+            "email": "admin_1788065150590@srimatch.com",
+            "role": "ADMIN",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:15:57.716777",
+            "createdAt": "2026-08-30T10:15:55.727215",
+            "updatedAt": "2026-08-30T10:15:57.731864",
+            "deleted": false
+          },
+          {
+            "id": 7,
+            "firstName": "Kasun",
+            "lastName": "Bandara",
+            "email": "kasun_bandara_1788065214787@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:16:55.784065",
+            "createdAt": "2026-08-30T10:16:55.243914",
+            "updatedAt": "2026-08-30T10:16:55.789979",
+            "deleted": false
+          },
+          {
+            "id": 13,
+            "firstName": "Debug",
+            "lastName": "User",
+            "email": "test_debug_1788065425999@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:20:26.917358",
+            "createdAt": "2026-08-30T10:20:26.344751",
+            "updatedAt": "2026-08-30T10:20:26.924924",
+            "deleted": false
+          },
+          {
+            "id": 8,
+            "firstName": "Sanduni",
+            "lastName": "Perera",
+            "email": "sanduni_perera_1788065214787@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:16:57.20306",
+            "createdAt": "2026-08-30T10:16:56.379941",
+            "updatedAt": "2026-08-30T10:16:57.211304",
+            "deleted": false
+          },
+          {
+            "id": 9,
+            "firstName": "System",
+            "lastName": "Admin",
+            "email": "admin_1788065214787@srimatch.com",
+            "role": "ADMIN",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:17:01.640291",
+            "createdAt": "2026-08-30T10:17:00.276812",
+            "updatedAt": "2026-08-30T10:17:01.653234",
+            "deleted": false
+          },
+          {
+            "id": 21,
+            "firstName": "Kasun",
+            "lastName": "Bandara",
+            "email": "kasun_bandara_1788066435973@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": true,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:37:22.053416",
+            "createdAt": "2026-08-30T10:37:20.923096",
+            "updatedAt": "2026-08-30T10:37:24.607852",
+            "deleted": false
+          },
+          {
+            "id": 10,
+            "firstName": "Kasun",
+            "lastName": "Bandara",
+            "email": "kasun_bandara_1788065278575@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:17:59.452308",
+            "createdAt": "2026-08-30T10:17:58.923788",
+            "updatedAt": "2026-08-30T10:17:59.456678",
+            "deleted": false
+          },
+          {
+            "id": 14,
+            "firstName": "Kasun",
+            "lastName": "Bandara",
+            "email": "test_create_profile_1788065556704@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:22:37.640834",
+            "createdAt": "2026-08-30T10:22:37.066512",
+            "updatedAt": "2026-08-30T10:22:37.645535",
+            "deleted": false
+          },
+          {
+            "id": 11,
+            "firstName": "Sanduni",
+            "lastName": "Perera",
+            "email": "sanduni_perera_1788065278575@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:18:00.426195",
+            "createdAt": "2026-08-30T10:17:59.915579",
+            "updatedAt": "2026-08-30T10:18:00.432981",
+            "deleted": false
+          },
+          {
+            "id": 19,
+            "firstName": "Sanduni",
+            "lastName": "Perera",
+            "email": "sanduni_perera_1788066113497@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:32:05.168124",
+            "createdAt": "2026-08-30T10:32:04.043284",
+            "updatedAt": "2026-08-30T10:32:05.178562",
+            "deleted": false
+          },
+          {
+            "id": 15,
+            "firstName": "Kasun",
+            "lastName": "Bandara",
+            "email": "kasun_bandara_1788065782660@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:26:31.151952",
+            "createdAt": "2026-08-30T10:26:30.087379",
+            "updatedAt": "2026-08-30T10:26:31.190649",
+            "deleted": false
+          },
+          {
+            "id": 22,
+            "firstName": "Sanduni",
+            "lastName": "Perera",
+            "email": "sanduni_perera_1788066435973@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": true,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:37:23.269798",
+            "createdAt": "2026-08-30T10:37:22.677727",
+            "updatedAt": "2026-08-30T10:37:24.790941",
+            "deleted": false
+          },
+          {
+            "id": 16,
+            "firstName": "Sanduni",
+            "lastName": "Perera",
+            "email": "sanduni_perera_1788065782660@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:26:32.398088",
+            "createdAt": "2026-08-30T10:26:31.801005",
+            "updatedAt": "2026-08-30T10:26:32.407045",
+            "deleted": false
+          },
+          {
+            "id": 17,
+            "firstName": "System",
+            "lastName": "Admin",
+            "email": "admin_1788065782660@srimatch.com",
+            "role": "ADMIN",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:26:35.199873",
+            "createdAt": "2026-08-30T10:26:34.459667",
+            "updatedAt": "2026-08-30T10:26:35.204946",
+            "deleted": false
+          },
+          {
+            "id": 20,
+            "firstName": "System",
+            "lastName": "Admin",
+            "email": "admin_1788066113497@srimatch.com",
+            "role": "ADMIN",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:32:09.926403",
+            "createdAt": "2026-08-30T10:32:08.587421",
+            "updatedAt": "2026-08-30T10:32:09.936028",
+            "deleted": false
+          },
+          {
+            "id": 18,
+            "firstName": "Kasun",
+            "lastName": "Bandara",
+            "email": "kasun_bandara_1788066113497@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:32:02.944724",
+            "createdAt": "2026-08-30T10:32:00.973556",
+            "updatedAt": "2026-08-30T10:32:03.021079",
+            "deleted": false
+          },
+          {
+            "id": 23,
+            "firstName": "System",
+            "lastName": "Admin",
+            "email": "admin_1788066435973@srimatch.com",
+            "role": "ADMIN",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:37:27.700912",
+            "createdAt": "2026-08-30T10:37:26.970956",
+            "updatedAt": "2026-08-30T10:37:27.709377",
+            "deleted": false
+          },
+          {
+            "id": 26,
+            "firstName": "System",
+            "lastName": "Admin",
+            "email": "admin_1788067277743@srimatch.com",
+            "role": "ADMIN",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": false,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:51:32.977414",
+            "createdAt": "2026-08-30T10:51:31.714277",
+            "updatedAt": "2026-08-30T10:51:32.986344",
+            "deleted": false
+          },
+          {
+            "id": 24,
+            "firstName": "Kasun",
+            "lastName": "Bandara",
+            "email": "kasun_bandara_1788067277743@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": true,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:51:24.281936",
+            "createdAt": "2026-08-30T10:51:23.164558",
+            "updatedAt": "2026-08-30T10:51:28.092719",
+            "deleted": false
+          },
+          {
+            "id": 25,
+            "firstName": "Sanduni",
+            "lastName": "Perera",
+            "email": "sanduni_perera_1788067277743@srimatch.com",
+            "role": "USER",
+            "emailVerified": true,
+            "phoneVerified": true,
+            "profileCompleted": true,
+            "hasProfile": false,
+            "premium": false,
+            "lastLoginAt": "2026-08-30T10:51:25.999127",
+            "createdAt": "2026-08-30T10:51:25.041575",
+            "updatedAt": "2026-08-30T10:51:28.440144",
+            "deleted": false
+          }
+        ]
+      }
+    },
+    {
+      "suite": "ADMIN",
+      "testName": "Admin Views System Settings (/v1/admin/settings)",
+      "status": "PASSED",
+      "durationMs": 81,
+      "details": {
+        "success": true,
+        "message": "System settings fetched successfully",
+        "data": {
+          "CONTACT_INFO": [
+            {
+              "settingKey": "CONTACT_EMAIL",
+              "settingValue": "support@srimatch.com",
+              "description": "Application support contact email",
+              "settingGroup": "CONTACT_INFO",
+              "dataType": "TEXT",
+              "createdAt": "2026-08-30T10:04:44.061062",
+              "updatedAt": "2026-08-30T10:04:44.061062"
+            }
+          ],
+          "GENERAL": [
+            {
+              "settingKey": "MAINTENANCE_MODE",
+              "settingValue": "false",
+              "description": "Enable maintenance mode to restrict user access",
+              "settingGroup": "GENERAL",
+              "dataType": "BOOLEAN",
+              "createdAt": "2026-08-30T10:04:44.061062",
+              "updatedAt": "2026-08-30T10:04:44.061062"
+            },
+            {
+              "settingKey": "AUTO_APPROVE_PROFILES",
+              "settingValue": "true",
+              "description": "Automatically approve newly registered user profiles",
+              "settingGroup": "GENERAL",
+              "dataType": "BOOLEAN",
+              "createdAt": "2026-08-30T10:04:44.061062",
+              "updatedAt": "2026-08-30T10:04:44.061062"
+            }
+          ],
+          "MATCHMAKING": [
+            {
+              "settingKey": "FREE_LIKES_LIMIT",
+              "settingValue": "15",
+              "description": "Maximum number of likes a free user can send per cycle",
+              "settingGroup": "MATCHMAKING",
+              "dataType": "NUMBER",
+              "createdAt": "2026-08-30T10:04:44.061062",
+              "updatedAt": "2026-08-30T10:04:44.061062"
+            },
+            {
+              "settingKey": "FREE_LIKES_CYCLE_DAYS",
+              "settingValue": "5",
+              "description": "Number of days in a like limit cycle for free users",
+              "settingGroup": "MATCHMAKING",
+              "dataType": "NUMBER",
+              "createdAt": "2026-08-30T10:04:44.061062",
+              "updatedAt": "2026-08-30T10:04:44.061062"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "suite": "AUTH_SECURITY",
+      "testName": "User A Logout & Token Invalidation (/v1/auth/logout)",
+      "status": "PASSED",
+      "durationMs": 112,
+      "details": {
+        "success": true,
+        "message": "Logged out successfully. Token has been invalidated."
+      }
+    },
+    {
+      "suite": "AUTH_SECURITY",
+      "testName": "Verify Blacklisted Token is Rejected",
+      "status": "PASSED",
+      "durationMs": 51,
+      "details": {
+        "status": 401,
+        "correctlyRejected": true
+      }
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 package com.ceycodez.srimatch.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.ceycodez.srimatch.model.enums.UserRole;
 import jakarta.persistence.*;
@@ -50,6 +51,7 @@ public class User implements UserDetails {
     @Column(name = "phone_number", unique = true, length = 20)
     private String phoneNumber;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -133,21 +135,28 @@ public class User implements UserDetails {
     @Column(name = "last_seen_at")
     private LocalDateTime lastSeenAt;
 
+    @JsonIgnore
     @Column(name = "fcm_token")
     private String fcmToken;
 
     @Column(name = "oauth_provider", length = 20)
     private String oauthProvider;
 
+    @JsonIgnore
     @Column(name = "oauth_provider_id", length = 255)
     private String oauthProviderId;
 
-    @Column(name = "totp_secret", length = 64)
+    @JsonIgnore
+    @Column(name = "totp_secret", length = 500)
     private String totpSecret;
 
     @Column(name = "totp_enabled")
     @Builder.Default
     private boolean totpEnabled = false;
+
+    @Column(name = "read_receipts_enabled")
+    @Builder.Default
+    private boolean readReceiptsEnabled = true;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -225,6 +234,10 @@ public class User implements UserDetails {
 
     public String getFullName() {
         return firstName + " " + lastName;
+    }
+
+    public String getPhone() {
+        return phoneNumber;
     }
 
     public boolean isPremiumActive() {

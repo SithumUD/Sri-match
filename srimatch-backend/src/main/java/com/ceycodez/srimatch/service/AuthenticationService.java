@@ -45,6 +45,8 @@ public class AuthenticationService {
     private final SocialAuthService socialAuthService;
     private final TotpService totpService;
     private final AuditLogService auditLogService;
+    private final EncryptionService encryptionService;
+    private final RateLimitingService rateLimitingService;
 
     @Value("${application.security.jwt.refresh-token.expiration}")
     private long refreshTokenExpiration;
@@ -58,7 +60,15 @@ public class AuthenticationService {
     @Transactional
     public void register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email is already in use");
+            throw new RuntimeException("An account with this email already exists");
+        }
+
+        if (!rateLimitingService.allowOtpRequest(request.getEmail())) {
+            long cooldown = rateLimitingService.getOtpCooldownRemainingSeconds(request.getEmail());
+            if (cooldown > 0) {
+                throw new RuntimeException("Please wait " + cooldown + " seconds before requesting another verification code.");
+            }
+            throw new RuntimeException("Too many verification attempts. Please try again in 15 minutes.");
         }
 
         User user = User.builder()
@@ -121,7 +131,8 @@ public class AuthenticationService {
             if (request.getTotpCode() == null) {
                 throw new RuntimeException("MFA_REQUIRED: Please provide your 2FA authenticator code.");
             }
-            if (!totpService.validate(user.getTotpSecret(), request.getTotpCode())) {
+            String decryptedSecret = encryptionService.decryptString(user.getTotpSecret());
+            if (!totpService.validate(decryptedSecret, request.getTotpCode())) {
                 throw new RuntimeException("Invalid 2FA code. Please try again.");
             }
         }
@@ -137,6 +148,7 @@ public class AuthenticationService {
 
         boolean hasProfile = user.getProfile() != null;
         Integer completionScore = hasProfile ? user.getProfile().getCompletionScore() : null;
+        boolean isIdVerified = hasProfile && user.getProfile().isIdVerified();
 
         return AuthResponse.builder()
                 .accessToken(jwtToken)
@@ -149,6 +161,7 @@ public class AuthenticationService {
                 .phoneVerified(user.isPhoneVerified())
                 .profileCompleted(user.isProfileCompleted())
                 .hasProfile(hasProfile)
+                .verified(isIdVerified)
                 .profileCompletionScore(completionScore)
                 .rememberMe(request.isRememberMe())
                 .build();
@@ -202,16 +215,20 @@ public class AuthenticationService {
         String refreshToken = generateAndSaveRefreshToken(user, false);
 
         boolean hasProfile = user.getProfile() != null;
+        boolean isIdVerified = hasProfile && user.getProfile().isIdVerified();
 
         return AuthResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken)
                 .role(user.getRole().name())
                 .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
                 .emailVerified(user.isEmailVerified())
                 .phoneVerified(user.isPhoneVerified())
                 .profileCompleted(user.isProfileCompleted())
                 .hasProfile(hasProfile)
+                .verified(isIdVerified)
                 .profileCompletionScore(hasProfile ? user.getProfile().getCompletionScore() : null)
                 .rememberMe(false)
                 .build();
@@ -245,7 +262,7 @@ public class AuthenticationService {
             throw new RuntimeException("2FA setup is only available for admin accounts");
         }
         TotpService.TotpSetupResult result = totpService.generateSecret(adminEmail);
-        admin.setTotpSecret(result.secret());
+        admin.setTotpSecret(encryptionService.encryptString(result.secret()));
         // Note: 2FA is NOT yet enabled until the admin confirms a successful TOTP code
         userRepository.save(admin);
         return result;
@@ -258,7 +275,8 @@ public class AuthenticationService {
         if (admin.getTotpSecret() == null) {
             throw new RuntimeException("2FA setup has not been initiated. Call /v1/auth/2fa/setup first.");
         }
-        if (!totpService.validate(admin.getTotpSecret(), totpCode)) {
+        String decryptedSecret = encryptionService.decryptString(admin.getTotpSecret());
+        if (!totpService.validate(decryptedSecret, totpCode)) {
             throw new RuntimeException("Invalid 2FA code. Please scan the QR code again and retry.");
         }
         admin.setTotpEnabled(true);
@@ -308,7 +326,11 @@ public class AuthenticationService {
     // ============================================================
     @Transactional
     public AuthResponse refreshToken(RefreshTokenRequest request) {
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
+        String rawToken = request.getRefreshToken();
+        String hashedToken = JwtBlacklistService.hashToken(rawToken);
+
+        RefreshToken refreshToken = refreshTokenRepository.findByToken(hashedToken)
+                .or(() -> refreshTokenRepository.findByToken(rawToken))
                 .orElseThrow(() -> new RuntimeException("Refresh token not found"));
 
         if (refreshToken.isExpired()) throw new RuntimeException("Refresh token is expired");
@@ -345,16 +367,24 @@ public class AuthenticationService {
     @Transactional
     public void initiateForgotPassword(ForgotPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found with this email"));
+                .orElseThrow(() -> new RuntimeException("User with this email does not exist"));
+
+        if (!rateLimitingService.allowOtpRequest(request.getEmail())) {
+            long cooldown = rateLimitingService.getOtpCooldownRemainingSeconds(request.getEmail());
+            if (cooldown > 0) {
+                throw new RuntimeException("Please wait " + cooldown + " seconds before requesting another reset code.");
+            }
+            throw new RuntimeException("Too many password reset requests. Please try again in 15 minutes.");
+        }
+
         String otp = generateOtp();
-        OtpVerification otpVerification = OtpVerification.builder()
-                .identifier(user.getEmail())
-                .otp(otp)
-                .type(OtpType.PASSWORD_RESET)
-                .expiresAt(LocalDateTime.now().plusMinutes(15))
-                .build();
-        otpVerificationRepository.save(otpVerification);
+        saveOtp(request.getEmail(), otp, OtpType.PASSWORD_RESET);
         emailService.sendPasswordResetEmail(user.getEmail(), user.getFirstName(), otp);
+    }
+
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        initiateForgotPassword(request);
     }
 
     @Transactional
@@ -404,20 +434,31 @@ public class AuthenticationService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         if (user.isEmailVerified()) throw new RuntimeException("Email is already verified");
 
+        if (!rateLimitingService.allowOtpRequest(email)) {
+            long cooldown = rateLimitingService.getOtpCooldownRemainingSeconds(email);
+            if (cooldown > 0) {
+                throw new RuntimeException("Please wait " + cooldown + " seconds before requesting another verification code.");
+            }
+            throw new RuntimeException("Too many OTP requests. Please try again in 15 minutes.");
+        }
+
         String otp = generateOtp();
-        OtpVerification otpVerification = OtpVerification.builder()
-                .identifier(user.getEmail())
-                .otp(otp)
-                .type(OtpType.EMAIL)
-                .expiresAt(LocalDateTime.now().plusHours(24))
-                .build();
-        otpVerificationRepository.save(otpVerification);
+        saveOtp(user.getEmail(), otp, OtpType.EMAIL);
         emailService.sendVerificationEmail(user.getEmail(), user.getFirstName(), otp);
     }
 
     // ============================================================
     // PRIVATE HELPERS
     // ============================================================
+    private void saveOtp(String identifier, String otp, OtpType type) {
+        OtpVerification otpVerification = OtpVerification.builder()
+                .identifier(identifier)
+                .otp(otp)
+                .type(type)
+                .expiresAt(LocalDateTime.now().plusMinutes(15))
+                .build();
+        otpVerificationRepository.save(otpVerification);
+    }
     private void handleFailedLogin(User user) {
         int attempts = user.getFailedLoginAttempts() + 1;
         user.setFailedLoginAttempts(attempts);
@@ -434,14 +475,17 @@ public class AuthenticationService {
 
     private String generateAndSaveRefreshToken(User user, boolean rememberMe) {
         long expirationTime = rememberMe ? rememberMeRefreshTokenExpiration : refreshTokenExpiration;
+        String rawToken = UUID.randomUUID().toString() + "-" + UUID.randomUUID().toString();
+        String hashedToken = JwtBlacklistService.hashToken(rawToken);
+
         RefreshToken refreshToken = RefreshToken.builder()
                 .user(user)
-                .token(UUID.randomUUID().toString())
+                .token(hashedToken)
                 .expiresAt(LocalDateTime.now().plusSeconds(expirationTime / 1000))
                 .rememberMe(rememberMe)
                 .build();
         refreshTokenRepository.save(refreshToken);
-        return refreshToken.getToken();
+        return rawToken;
     }
 
     private String generateOtp() {

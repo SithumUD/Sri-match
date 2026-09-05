@@ -1,6 +1,7 @@
 package com.ceycodez.srimatch.controller;
 
 import com.ceycodez.srimatch.dto.response.ApiResponse;
+import com.ceycodez.srimatch.dto.response.SubscriptionOverviewResponse;
 import com.ceycodez.srimatch.dto.response.SubscriptionResponse;
 import com.ceycodez.srimatch.model.Subscription;
 import com.ceycodez.srimatch.model.User;
@@ -21,6 +22,20 @@ public class SubscriptionController {
 
     private final SubscriptionService subscriptionService;
     private final UserRepository userRepository;
+
+    @GetMapping("/overview")
+    public ResponseEntity<ApiResponse<SubscriptionOverviewResponse>> getSubscriptionOverview(Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        SubscriptionOverviewResponse response = subscriptionService.getSubscriptionOverview(user);
+
+        return ResponseEntity.ok(ApiResponse.<SubscriptionOverviewResponse>builder()
+                .success(true)
+                .message("Subscription overview fetched successfully")
+                .data(response)
+                .build());
+    }
 
     @PostMapping("/initiate/{packageId}")
     public ResponseEntity<ApiResponse<SubscriptionResponse>> initiateSubscription(

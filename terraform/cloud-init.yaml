@@ -1,0 +1,76 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - git
+  - ufw
+  - fail2ban
+  - htop
+  - jq
+  - ca-certificates
+  - gnupg
+  - lsb-release
+
+write_files:
+  - path: /etc/sysctl.d/99-srimatch.conf
+    content: |
+      vm.max_map_count=262144
+      vm.overcommit_memory=1
+      net.core.somaxconn=1024
+      fs.file-max=65536
+    permissions: '0644'
+
+runcmd:
+  # Apply sysctl settings
+  - sysctl --system
+
+  # Configure Swap Space (4GB)
+  - fallocate -l 4G /swapfile
+  - chmod 600 /swapfile
+  - mkswap /swapfile
+  - swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+  # Install Official Docker Repository & Engine
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - chmod a+r /etc/apt/keyrings/docker.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # Enable and start Docker
+  - systemctl enable docker
+  - systemctl start docker
+
+  # Setup deployment directory
+  - mkdir -p /opt/srimatch/data /opt/srimatch/logs /opt/srimatch/backups
+  - chown -R root:root /opt/srimatch
+
+  # Setup Automated Daily Database Backup Cron
+  - |
+    cat << 'EOF' > /opt/srimatch/backup.sh
+    #!/bin/bash
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BACKUP_DIR=/opt/srimatch/backups
+    mkdir -p $BACKUP_DIR
+    docker exec srimatch-postgres pg_dump -U srimatch_user srimatch_db | gzip > $BACKUP_DIR/srimatch_db_$TIMESTAMP.sql.gz
+    # Keep only last 14 days of backups
+    find $BACKUP_DIR -type f -name "*.sql.gz" -mtime +14 -delete
+    EOF
+    chmod +x /opt/srimatch/backup.sh
+  - echo "0 2 * * * root /opt/srimatch/backup.sh > /dev/null 2>&1" > /etc/cron.d/srimatch-backup
+
+  # Configure UFW Firewall
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+
+  # Enable and start Fail2ban
+  - systemctl enable fail2ban
+  - systemctl start fail2ban

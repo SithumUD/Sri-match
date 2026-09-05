@@ -38,6 +38,24 @@ public class PublicProfileController {
                 .build());
     }
 
+    @GetMapping("/cursor")
+    public ResponseEntity<ApiResponse<com.ceycodez.srimatch.dto.response.CursorPageResponse<PublicProfileResponse>>> searchProfilesCursor(
+            @ModelAttribute ProfileSearchRequest request,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int limit,
+            Authentication authentication
+    ) {
+        String email = (authentication != null && authentication.isAuthenticated()) ? authentication.getName() : null;
+        com.ceycodez.srimatch.dto.response.CursorPageResponse<PublicProfileResponse> response =
+                profileService.searchProfilesCursor(request, cursor, limit, email);
+
+        return ResponseEntity.ok(ApiResponse.<com.ceycodez.srimatch.dto.response.CursorPageResponse<PublicProfileResponse>>builder()
+                .success(true)
+                .message("Profiles fetched successfully via keyset pagination")
+                .data(response)
+                .build());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<DetailedProfileResponse>> getProfile(
             @PathVariable Long id,

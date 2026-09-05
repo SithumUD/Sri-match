@@ -1,15 +1,18 @@
 package com.ceycodez.srimatch.controller;
 
 import com.ceycodez.srimatch.dto.request.PremiumPackageRequest;
-import com.ceycodez.srimatch.dto.response.ApiResponse;
-import com.ceycodez.srimatch.dto.response.PremiumPackageResponse;
+import com.ceycodez.srimatch.dto.response.*;
+import com.ceycodez.srimatch.service.BankDetailService;
+import com.ceycodez.srimatch.service.BoostService;
 import com.ceycodez.srimatch.service.PackageService;
+import com.ceycodez.srimatch.service.TikTokService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/v1/admin/packages")
@@ -18,6 +21,32 @@ import java.util.List;
 public class AdminPackageController {
 
     private final PackageService packageService;
+    private final BoostService boostService;
+    private final BankDetailService bankDetailService;
+    private final TikTokService tikTokService;
+
+    @GetMapping("/overview")
+    public ResponseEntity<ApiResponse<AdminPackagesOverviewResponse>> getPackagesOverview() {
+        CompletableFuture<List<PremiumPackageResponse>> pkgsFuture = CompletableFuture.supplyAsync(() -> packageService.getAllPackages(false));
+        CompletableFuture<List<BoostPackageResponse>> boostFuture = CompletableFuture.supplyAsync(() -> boostService.getAllPackages(false));
+        CompletableFuture<List<BankDetailResponse>> bankFuture = CompletableFuture.supplyAsync(() -> bankDetailService.getAllBankDetails(false));
+        CompletableFuture<List<TikTokPackageResponse>> tiktokFuture = CompletableFuture.supplyAsync(() -> tikTokService.adminGetAllPackages());
+
+        CompletableFuture.allOf(pkgsFuture, boostFuture, bankFuture, tiktokFuture).join();
+
+        AdminPackagesOverviewResponse response = AdminPackagesOverviewResponse.builder()
+                .packages(pkgsFuture.join())
+                .boostPackages(boostFuture.join())
+                .bankDetails(bankFuture.join())
+                .tiktokPackages(tiktokFuture.join())
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.<AdminPackagesOverviewResponse>builder()
+                .success(true)
+                .message("Packages overview fetched successfully")
+                .data(response)
+                .build());
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<PremiumPackageResponse>> createPackage(@RequestBody PremiumPackageRequest request) {

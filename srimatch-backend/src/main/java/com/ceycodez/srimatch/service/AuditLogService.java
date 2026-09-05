@@ -4,6 +4,10 @@ import com.ceycodez.srimatch.dto.response.AuditLogResponse;
 import com.ceycodez.srimatch.model.AuditLog;
 import com.ceycodez.srimatch.repository.AuditLogRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -44,6 +48,17 @@ public class AuditLogService {
                 .success(false)
                 .build();
         auditLogRepository.save(log);
+    }
+
+    public Page<AuditLogResponse> getPaginatedLogs(int page, int size, String search) {
+        Pageable pageable = PageRequest.of(Math.max(0, page), size > 0 ? size : 15, Sort.by("createdAt").descending());
+        Page<AuditLog> auditPage;
+        if (search != null && !search.trim().isBlank()) {
+            auditPage = auditLogRepository.searchAudits(search.trim(), pageable);
+        } else {
+            auditPage = auditLogRepository.findAll(pageable);
+        }
+        return auditPage.map(AuditLogResponse::fromEntity);
     }
 
     public List<AuditLogResponse> getAllLogs() {

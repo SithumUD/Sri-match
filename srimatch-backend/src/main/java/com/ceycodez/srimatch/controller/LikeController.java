@@ -3,6 +3,7 @@ package com.ceycodez.srimatch.controller;
 import com.ceycodez.srimatch.dto.request.SendLikeRequest;
 import com.ceycodez.srimatch.dto.response.ApiResponse;
 import com.ceycodez.srimatch.dto.response.ReceivedLikesPageResponse;
+import com.ceycodez.srimatch.dto.response.SendLikeResponse;
 import com.ceycodez.srimatch.model.Like;
 import com.ceycodez.srimatch.model.User;
 import com.ceycodez.srimatch.repository.UserRepository;
@@ -26,18 +27,28 @@ public class LikeController {
     private final LikeService likeService;
     private final UserRepository userRepository;
 
+    @GetMapping("/quota")
+    public ResponseEntity<ApiResponse<com.ceycodez.srimatch.dto.response.LikeQuotaResponse>> getLikeQuota(Authentication authentication) {
+        User user = getCurrentUser(authentication);
+        com.ceycodez.srimatch.dto.response.LikeQuotaResponse response = likeService.getLikeQuota(user);
+        return ResponseEntity.ok(ApiResponse.<com.ceycodez.srimatch.dto.response.LikeQuotaResponse>builder()
+                .success(true)
+                .message("Like quota fetched successfully")
+                .data(response)
+                .build());
+    }
+
     @PostMapping("/send")
-    public ResponseEntity<ApiResponse<String>> sendLike(
+    public ResponseEntity<ApiResponse<SendLikeResponse>> sendLike(
             @RequestBody @Valid SendLikeRequest request,
             Authentication authentication
     ) {
         User sender = getCurrentUser(authentication);
-        likeService.sendLike(sender, request);
-        
-        return ResponseEntity.ok(ApiResponse.<String>builder()
+        SendLikeResponse result = likeService.sendLike(sender, request);
+        return ResponseEntity.ok(ApiResponse.<SendLikeResponse>builder()
                 .success(true)
                 .message("Like sent successfully")
-                .data(null)
+                .data(result)
                 .build());
     }
 

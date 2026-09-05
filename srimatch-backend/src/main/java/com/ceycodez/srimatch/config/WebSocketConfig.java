@@ -16,6 +16,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketAuthInterceptor webSocketAuthInterceptor;
 
+    @org.springframework.beans.factory.annotation.Value("${cors.allowed.origins:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,http://localhost,http://localhost:80}")
+    private String allowedOrigins;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // Enable a simple memory-based message broker
@@ -32,9 +35,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Main endpoint for WebSocket connection
+        String[] origins = java.util.Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toArray(String[]::new);
+
+        // Standard WebSocket endpoint (fast, zero-overhead, no unload deprecation warnings)
         registry.addEndpoint("/ws-chat")
-                .setAllowedOrigins("http://localhost:3000", "http://localhost:5173") // match SecurityConfig CORS
+                .setAllowedOriginPatterns(origins);
+
+        // SockJS fallback endpoint
+        registry.addEndpoint("/ws-chat")
+                .setAllowedOriginPatterns(origins)
                 .withSockJS();
     }
 

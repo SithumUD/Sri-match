@@ -21,7 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/admin/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 public class AdminUserController {
 
     private final UserService userService;
@@ -33,6 +33,18 @@ public class AdminUserController {
         return ResponseEntity.ok(ApiResponse.<List<UserResponse>>builder()
                 .success(true)
                 .message("All users fetched successfully")
+                .data(response)
+                .build());
+    }
+
+    @GetMapping("/{id}/details")
+    public ResponseEntity<ApiResponse<com.ceycodez.srimatch.dto.response.AdminUserDetailResponse>> getAdminUserDetail(
+            @PathVariable Long id
+    ) {
+        com.ceycodez.srimatch.dto.response.AdminUserDetailResponse response = userService.getAdminUserDetail(id);
+        return ResponseEntity.ok(ApiResponse.<com.ceycodez.srimatch.dto.response.AdminUserDetailResponse>builder()
+                .success(true)
+                .message("Admin user details fetched successfully")
                 .data(response)
                 .build());
     }

@@ -34,7 +34,6 @@ public class ProfileSearchRequest {
     private SmokingHabit smokingHabits;
     private DrinkingHabit drinkingHabits;
     private DietaryPreference dietaryPreference;
-    private HoroscopeSign horoscopeSign;
     private String interests;
 
     // Pagination & Sorting
@@ -43,8 +42,8 @@ public class ProfileSearchRequest {
     @Builder.Default
     private int size = 20;
 
-    @Builder.Default
-    private String sortBy = "newest"; // newest, age_asc, age_desc, height_asc, height_desc
+    // null = no sort (dynamic discovery); valid values: newest, age_asc, age_desc, height_asc, height_desc
+    private String sortBy;
 
     public boolean hasNoFilters() {
         return gender == null && minAge == null && maxAge == null &&
@@ -56,6 +55,6 @@ public class ProfileSearchRequest {
                 minHeight == null && maxHeight == null &&
                 bodyType == null && smokingHabits == null &&
                 drinkingHabits == null && dietaryPreference == null &&
-                horoscopeSign == null && interests == null;
+                interests == null;
     }
 }

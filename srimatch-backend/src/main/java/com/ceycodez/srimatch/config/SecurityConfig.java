@@ -51,6 +51,8 @@ public class SecurityConfig {
                                 "/v1/packages/**",
                                 "/v1/locations/**",
                                 "/v1/boost/packages",
+                                "/actuator/**",
+                                "/error",
 
                                 // Swagger / Docs
                                 "/v2/api-docs",
@@ -91,6 +93,9 @@ public class SecurityConfig {
         return http.build();
     }
 
+    @org.springframework.beans.factory.annotation.Value("${cors.allowed.origins:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,http://localhost,http://localhost:80}")
+    private String allowedOrigins;
+
     // ==============================
     // ✅ CORS CONFIGURATION
     // ==============================
@@ -99,14 +104,12 @@ public class SecurityConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // ✅ Allow your frontend (Vite)
-        config.setAllowedOriginPatterns(List.of(
-                "http://localhost:5173",
-                "http://localhost:3000"
-        ));
+        List<String> origins = java.util.Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
 
-        // OR for development (allow all):
-        // config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOriginPatterns(origins);
 
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"

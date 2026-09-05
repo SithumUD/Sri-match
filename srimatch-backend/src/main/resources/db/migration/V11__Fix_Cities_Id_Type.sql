@@ -1,11 +1,3 @@
--- Fix Cities table to match Hibernate expectation (ID must be BIGINT for Long)
-ALTER TABLE cities MODIFY id BIGINT NOT NULL AUTO_INCREMENT;
-
--- Also update VARCHAR lengths to default 255 to prevent secondary validation errors
-ALTER TABLE cities MODIFY name_en VARCHAR(255);
-ALTER TABLE cities MODIFY name_si VARCHAR(255);
-ALTER TABLE cities MODIFY name_ta VARCHAR(255);
-ALTER TABLE cities MODIFY sub_name_en VARCHAR(255);
-ALTER TABLE cities MODIFY sub_name_si VARCHAR(255);
-ALTER TABLE cities MODIFY sub_name_ta VARCHAR(255);
-ALTER TABLE cities MODIFY postcode VARCHAR(255);
+-- Fix Cities table / add city indexes for fast search (PostgreSQL)
+CREATE INDEX IF NOT EXISTS idx_cities_name_en ON cities (name_en);
+CREATE INDEX IF NOT EXISTS idx_cities_postcode ON cities (postcode);

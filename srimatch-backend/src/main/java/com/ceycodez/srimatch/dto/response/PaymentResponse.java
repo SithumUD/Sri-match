@@ -29,6 +29,7 @@ public class PaymentResponse {
     private LocalDateTime submittedAt;
     private LocalDateTime reviewedAt;
     private String rejectionReason;
+    private String estimatedReviewTime;
 
     public static PaymentResponse fromEntity(Payment payment) {
         String pkgName = null;
@@ -42,6 +43,10 @@ public class PaymentResponse {
             boostPkgId = payment.getBoostPackage().getId();
             pkgName = payment.getBoostPackage().getName();
         }
+
+        String estTime = payment.getPaymentStatus() == com.ceycodez.srimatch.model.enums.PaymentStatus.PENDING
+                ? "Usually reviewed within 24 hours"
+                : null;
 
         return PaymentResponse.builder()
                 .id(payment.getId())
@@ -59,6 +64,7 @@ public class PaymentResponse {
                 .submittedAt(payment.getSubmittedAt())
                 .reviewedAt(payment.getReviewedAt())
                 .rejectionReason(payment.getRejectionReason())
+                .estimatedReviewTime(estTime)
                 .build();
     }
 }

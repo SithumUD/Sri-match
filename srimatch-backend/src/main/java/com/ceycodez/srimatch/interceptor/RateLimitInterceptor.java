@@ -18,13 +18,18 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String ipAddress = getClientIp(request);
-        Bucket bucket = rateLimitingService.resolveBucket(ipAddress);
+        String uri = request.getRequestURI();
+
+        Bucket bucket = uri.contains("/v1/auth/")
+                ? rateLimitingService.resolveAuthBucket(ipAddress)
+                : rateLimitingService.resolveBucket(ipAddress);
 
         if (bucket.tryConsume(1)) {
             return true;
         } else {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-            response.getWriter().write("Too many requests. Please try again in a minute.");
+            response.setContentType("application/json");
+            response.getWriter().write("{\"success\":false,\"message\":\"Too many requests. Please try again later.\",\"data\":null}");
             return false;
         }
     }

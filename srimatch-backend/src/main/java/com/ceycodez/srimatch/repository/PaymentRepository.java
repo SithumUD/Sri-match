@@ -15,6 +15,7 @@ import java.util.List;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByUser(User user);
+    List<Payment> findByUserOrderBySubmittedAtDesc(User user);
     List<Payment> findByPaymentStatus(PaymentStatus status);
     boolean existsByUserAndPaymentStatus(User user, PaymentStatus status);
 
@@ -33,9 +34,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     BigDecimal getRevenueAfter(LocalDateTime since);
 
     // Dashboard: monthly revenue breakdown (last 7 months)
-    @Query(value = "SELECT MONTH(submitted_at) as m, YEAR(submitted_at) as y, SUM(amount) as total " +
+    @Query(value = "SELECT CAST(EXTRACT(MONTH FROM submitted_at) AS INTEGER) as m, CAST(EXTRACT(YEAR FROM submitted_at) AS INTEGER) as y, SUM(amount) as total " +
                    "FROM payments WHERE payment_status = 'COMPLETED' AND submitted_at >= :since " +
-                   "GROUP BY YEAR(submitted_at), MONTH(submitted_at) ORDER BY y, m",
+                   "GROUP BY EXTRACT(YEAR FROM submitted_at), EXTRACT(MONTH FROM submitted_at) ORDER BY y, m",
            nativeQuery = true)
     List<Object[]> getMonthlyBreakdown(LocalDateTime since);
 }

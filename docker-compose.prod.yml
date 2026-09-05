@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # Caddy Automatic HTTPS Reverse Proxy
+  # ============================================
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: srimatch-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:-api.srimatch.lk}
+      - ACME_EMAIL=${ACME_EMAIL:-admin@srimatch.lk}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - srimatch-network
+
+  # ============================================
+  # SriMatch Backend (Spring Boot 3.3.4, Java 21)
+  # ============================================
+  backend:
+    build:
+      context: ./srimatch-backend
+      dockerfile: Dockerfile
+    image: ghcr.io/${GITHUB_REPOSITORY:-ceycodez/srimatch}-backend:latest
+    container_name: srimatch-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-srimatch_db}
+      DB_USERNAME: ${DB_USERNAME:-srimatch_user}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
+      R2_ENABLED: ${R2_ENABLED:-false}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET_NAME: ${R2_BUCKET_NAME:-srimatch-media}
+      R2_PUBLIC_CUSTOM_DOMAIN: ${R2_PUBLIC_CUSTOM_DOMAIN:-https://media.srimatch.lk}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://srimatch.com,https://www.srimatch.com}
+      JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Duser.timezone=Asia/Colombo"
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_logs:/app/logs
+    networks:
+      - srimatch-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # ============================================
+  # PostgreSQL Database Service (PostgreSQL 16)
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: srimatch-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-srimatch_db}
+      POSTGRES_USER: ${DB_USERNAME:-srimatch_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Colombo
+    command: >
+      postgres
+      -c max_connections=150
+      -c shared_buffers=1GB
+      -c effective_cache_size=3GB
+      -c maintenance_work_mem=256MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=16MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - srimatch-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-srimatch_user} -d ${DB_NAME:-srimatch_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ============================================
+  # Redis Cache & Presence Service (Redis 7)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: srimatch-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass "${REDIS_PASSWORD:-}"
+      --save 60 1
+      --loglevel warning
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - srimatch-network
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a '${REDIS_PASSWORD:-}' ping || redis-cli ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  srimatch-network:
+    driver: bridge
+    name: srimatch-network
+
+# ============================================
+# Persistent Volumes
+# ============================================
+volumes:
+  postgres_data:
+    name: srimatch_prod_postgres_data
+  redis_data:
+    name: srimatch_prod_redis_data
+  caddy_data:
+    name: srimatch_prod_caddy_data
+  caddy_config:
+    name: srimatch_prod_caddy_config
+  caddy_logs:
+    name: srimatch_prod_caddy_logs
+  backend_uploads:
+    name: srimatch_prod_backend_uploads
+  backend_logs:
+    name: srimatch_prod_backend_logs

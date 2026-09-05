@@ -12,5 +12,7 @@ import java.util.Optional;
 @Repository
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
     List<Subscription> findByUser(User user);
+    List<Subscription> findByUserOrderByCreatedAtDesc(User user);
     Optional<Subscription> findTopByUserAndStatusOrderByCreatedAtDesc(User user, SubscriptionStatus status);
+    List<Subscription> findByStatusAndEndDateBefore(SubscriptionStatus status, java.time.LocalDateTime now);
 }

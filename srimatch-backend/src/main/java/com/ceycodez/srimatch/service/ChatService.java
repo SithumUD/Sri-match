@@ -115,12 +115,14 @@ public class ChatService {
         message.setStatus(MessageStatus.READ);
         messageRepository.save(message);
 
-        // Notify sender that message was read
-        messagingTemplate.convertAndSendToUser(
-                message.getSender().getEmail(),
-                "/queue/message-status",
-                mapToResponse(message)
-        );
+        // Notify sender that message was read only if the reader has read receipts enabled
+        if (user.isReadReceiptsEnabled()) {
+            messagingTemplate.convertAndSendToUser(
+                    message.getSender().getEmail(),
+                    "/queue/message-status",
+                    mapToResponse(message)
+            );
+        }
     }
 
     private MessageResponse mapToResponse(Message message) {

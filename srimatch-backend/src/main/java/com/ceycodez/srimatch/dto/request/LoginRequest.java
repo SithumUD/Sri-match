@@ -17,6 +17,7 @@ public class LoginRequest {
     @NotBlank(message = "Password is required")
     private String password;
     
+    @Builder.Default
     private boolean rememberMe = false;
 
     /** Required for admins when 2FA is enabled */

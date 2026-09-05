@@ -52,10 +52,6 @@ public class ProfileRequest {
     private Ethnicity ethnicity;
     private List<String> languages;
 
-    private HoroscopeSign horoscopeSign;
-    private String birthStar;
-    private String horoscopeDetails;
-
     private EducationLevel education;
     private String fieldOfStudy;
     private String profession;

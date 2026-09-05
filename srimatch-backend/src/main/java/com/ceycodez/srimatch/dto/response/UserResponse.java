@@ -23,6 +23,8 @@ public class UserResponse {
     private boolean phoneVerified;
     private boolean profileCompleted;
     private boolean hasProfile;
+    private boolean idVerified;
+    private String verificationStatus;
     private boolean premium;
     private LocalDateTime premiumExpiryDate;
     private LocalDateTime lastLoginAt;

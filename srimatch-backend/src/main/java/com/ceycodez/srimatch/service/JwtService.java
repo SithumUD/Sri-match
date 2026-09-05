@@ -101,11 +101,14 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
+    @Value("${application.security.jwt.cookie-secure:false}")
+    private boolean cookieSecure;
+
     public ResponseCookie createAccessTokenCookie(String token, boolean rememberMe) {
         long duration = rememberMe ? rememberMeExpiration : jwtExpiration;
         return ResponseCookie.from("accessToken", token)
                 .httpOnly(true)
-                .secure(true) // Should be true in production (HTTPS)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(duration / 1000)
                 .sameSite("Lax")
@@ -116,7 +119,7 @@ public class JwtService {
         long duration = rememberMe ? rememberMeRefreshTokenExpiration : refreshTokenExpiration;
         return ResponseCookie.from("refreshToken", token)
                 .httpOnly(true)
-                .secure(true)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(duration / 1000)
                 .sameSite("Lax")
@@ -126,7 +129,7 @@ public class JwtService {
     public ResponseCookie createEmptyCookie(String name) {
         return ResponseCookie.from(name, "")
                 .httpOnly(true)
-                .secure(true)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(0)
                 .sameSite("Lax")

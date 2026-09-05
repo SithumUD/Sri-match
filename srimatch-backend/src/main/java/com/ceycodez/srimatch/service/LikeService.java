@@ -3,6 +3,7 @@ package com.ceycodez.srimatch.service;
 import com.ceycodez.srimatch.dto.request.SendLikeRequest;
 import com.ceycodez.srimatch.dto.response.ReceivedLikeResponse;
 import com.ceycodez.srimatch.dto.response.ReceivedLikesPageResponse;
+import com.ceycodez.srimatch.dto.response.SendLikeResponse;
 import com.ceycodez.srimatch.model.Like;
 import com.ceycodez.srimatch.model.User;
 import com.ceycodez.srimatch.model.enums.LikeStatus;
@@ -35,25 +36,68 @@ public class LikeService {
     private final NotificationService notificationService;
     private final MatchingService matchingService;
 
+    @Transactional(readOnly = true)
+    public com.ceycodez.srimatch.dto.response.LikeQuotaResponse getLikeQuota(User user) {
+        boolean isPremium = user.isPremiumActive();
+        if (isPremium) {
+            return com.ceycodez.srimatch.dto.response.LikeQuotaResponse.builder()
+                    .likeLimit(-1)
+                    .likesUsed(user.getLikesUsed())
+                    .likesRemaining(-1)
+                    .resetsAt(null)
+                    .canSendLike(true)
+                    .isPremium(true)
+                    .message("Unlimited likes (Premium Member)")
+                    .build();
+        }
+
+        LocalDateTime resetsAt = user.getLastLikeReset() != null
+                ? user.getLastLikeReset().plusDays(5)
+                : LocalDateTime.now().plusDays(5);
+
+        int limit = user.getLikeLimit() != null ? user.getLikeLimit() : 15;
+        int used = user.getLikesUsed() != null ? user.getLikesUsed() : 0;
+        int remaining = Math.max(0, limit - used);
+
+        return com.ceycodez.srimatch.dto.response.LikeQuotaResponse.builder()
+                .likeLimit(limit)
+                .likesUsed(used)
+                .likesRemaining(remaining)
+                .resetsAt(resetsAt)
+                .canSendLike(user.canSendLike())
+                .isPremium(false)
+                .message(remaining + "/" + limit + " likes remaining. Resets every 5 days.")
+                .build();
+    }
+
     @Transactional
-    public void sendLike(User sender, SendLikeRequest request) {
+    public SendLikeResponse sendLike(User sender, SendLikeRequest request) {
         // Find the profile first, then get the user owning that profile
         Profile targetProfile = profileRepository.findById(request.getReceiverId())
                 .orElseThrow(() -> new RuntimeException("Target profile not found"));
-        
+
         User receiver = targetProfile.getUser();
 
         if (sender.getId().equals(receiver.getId())) {
             throw new RuntimeException("You cannot like yourself");
         }
 
-        // Check for existing like
-        if (likeRepository.existsBySenderAndReceiverAndStatus(sender, receiver, LikeStatus.PENDING) ||
-            likeRepository.existsBySenderAndReceiverAndStatus(sender, receiver, LikeStatus.ACCEPTED)) {
-            throw new RuntimeException("You have already liked this user");
+        // Idempotency check: if an active like already exists, return its current state
+        // without creating a duplicate or charging quota again. This makes the endpoint
+        // safe for retries caused by network drops, rapid taps, or tab-restore scenarios.
+        Optional<Like> existingLike = likeRepository.findBySenderAndReceiver(sender, receiver);
+        if (existingLike.isPresent()) {
+            Like ex = existingLike.get();
+            if (ex.getStatus() == LikeStatus.PENDING || ex.getStatus() == LikeStatus.ACCEPTED) {
+                return SendLikeResponse.builder()
+                        .interactionType(ex.getType().name())
+                        .interactionStatus(ex.getStatus().name())
+                        .build();
+            }
         }
 
-        // Check limits for normal likes
+        // Check limits for normal likes — placed AFTER idempotency check so
+        // retries of an already-sent like never burn an extra quota token.
         if (request.getType() == LikeType.NORMAL) {
             if (!sender.canSendLike()) {
                 throw new RuntimeException("You have reached your like limit. Normal users have 15 likes per 5 days.");
@@ -76,16 +120,16 @@ public class LikeService {
 
         likeRepository.save(like);
 
-        // Check for mutual like
+        // Check for mutual like — if the other side already sent a PENDING like,
+        // both become ACCEPTED and a Match record is created immediately.
         likeRepository.findBySenderAndReceiver(receiver, sender)
                 .filter(l -> l.getStatus() == LikeStatus.PENDING)
                 .ifPresent(receiverLike -> {
-                    // Match!
                     like.setStatus(LikeStatus.ACCEPTED);
                     receiverLike.setStatus(LikeStatus.ACCEPTED);
                     likeRepository.save(like);
                     likeRepository.save(receiverLike);
-                    
+
                     matchingService.createMatch(sender, receiver, like.getId());
                 });
 
@@ -100,6 +144,14 @@ public class LikeService {
                     "LIKE"
             );
         }
+
+        // Return authoritative state. interactionStatus will be "PENDING" for a normal
+        // new like, or "ACCEPTED" if a mutual match was just created — the frontend
+        // uses this in onSuccess to overwrite the optimistic guess with the real outcome.
+        return SendLikeResponse.builder()
+                .interactionType(like.getType().name())
+                .interactionStatus(like.getStatus().name())
+                .build();
     }
 
     public ReceivedLikesPageResponse getReceivedLikes(User user, String type, Pageable pageable) {

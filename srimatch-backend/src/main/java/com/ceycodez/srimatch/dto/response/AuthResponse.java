@@ -11,9 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AuthResponse {
-    @JsonIgnore
     private String accessToken;
-    @JsonIgnore
     private String refreshToken;
     private String role;
     private String email;
@@ -23,6 +21,7 @@ public class AuthResponse {
     private boolean phoneVerified;
     private boolean profileCompleted;
     private boolean hasProfile;
+    private boolean verified;
     private Integer profileCompletionScore;
     private boolean rememberMe;
 }

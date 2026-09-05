@@ -1,5 +1,6 @@
 package com.ceycodez.srimatch.service;
 
+import com.ceycodez.srimatch.dto.response.NotificationResponse;
 import com.ceycodez.srimatch.model.User;
 import com.ceycodez.srimatch.model.enums.NotificationType;
 import com.ceycodez.srimatch.repository.NotificationRepository;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,10 +23,15 @@ import java.time.LocalDateTime;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
-    public void createNotification(User user, String title, String message, NotificationType type, Long relatedEntityId, String relatedEntityType) {
-        // Use fully qualified name for local model to avoid conflict with Firebase model
+    public NotificationResponse createNotification(User user, String title, String message, NotificationType type, Long relatedEntityId, String relatedEntityType) {
+        return createNotification(user, title, message, type, relatedEntityId, relatedEntityType, null);
+    }
+
+    @Transactional
+    public NotificationResponse createNotification(User user, String title, String message, NotificationType type, Long relatedEntityId, String relatedEntityType, String actionUrl) {
         com.ceycodez.srimatch.model.Notification notification = com.ceycodez.srimatch.model.Notification.builder()
                 .user(user)
                 .title(title)
@@ -32,18 +39,34 @@ public class NotificationService {
                 .type(type)
                 .relatedEntityId(relatedEntityId)
                 .relatedEntityType(relatedEntityType)
+                .actionUrl(actionUrl)
                 .build();
-        notificationRepository.save(notification);
+        com.ceycodez.srimatch.model.Notification saved = notificationRepository.save(notification);
+        NotificationResponse response = NotificationResponse.fromEntity(saved);
 
-        // Send Push Notification if FCM token is present
-        if (user.getFcmToken() != null && !user.getFcmToken().isEmpty()) {
+        // 1. Broadcast via STOMP WebSocket for real-time in-app delivery
+        try {
+            if (user != null && user.getEmail() != null) {
+                messagingTemplate.convertAndSendToUser(
+                        user.getEmail(),
+                        "/queue/notifications",
+                        response
+                );
+            }
+        } catch (Exception e) {
+            log.warn("Could not send WebSocket notification to {}: {}", user != null ? user.getEmail() : "null", e.getMessage());
+        }
+
+        // 2. Send Push Notification if FCM token is present
+        if (user != null && user.getFcmToken() != null && !user.getFcmToken().isEmpty()) {
             sendPushNotification(user.getFcmToken(), title, message);
         }
+
+        return response;
     }
 
     private void sendPushNotification(String token, String title, String body) {
         try {
-            // Use Firebase Notification class
             Notification notification = Notification.builder()
                     .setTitle(title)
                     .setBody(body)
@@ -55,36 +78,45 @@ public class NotificationService {
                     .build();
 
             String response = FirebaseMessaging.getInstance().send(message);
-            log.info("Successfully sent push notification: " + response);
+            log.info("Successfully sent push notification: {}", response);
         } catch (Exception e) {
-            log.error("Error sending push notification to token: " + token, e);
+            log.warn("Push notification skipped/failed for token {}: {}", token, e.getMessage());
         }
     }
 
-    public Page<com.ceycodez.srimatch.model.Notification> getNotifications(User user, Pageable pageable) {
-        return notificationRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+    public Page<NotificationResponse> getNotifications(User user, Pageable pageable) {
+        return notificationRepository.findByUserOrderByCreatedAtDesc(user, pageable)
+                .map(NotificationResponse::fromEntity);
     }
 
     @Transactional
-    public void markAsRead(Long notificationId, User user) {
+    public NotificationResponse markAsRead(Long notificationId, User user) {
         com.ceycodez.srimatch.model.Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
-        
+
         if (!notification.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("Unauthorized");
         }
-        
+
         notification.markAsRead();
-        notificationRepository.save(notification);
+        return NotificationResponse.fromEntity(notificationRepository.save(notification));
     }
 
     @Transactional
     public void markAllAsRead(User user) {
-        notificationRepository.findByUserAndReadOrderByCreatedAtDesc(user, false)
-                .forEach(notification -> {
-                    notification.markAsRead();
-                    notificationRepository.save(notification);
-                });
+        notificationRepository.markAllAsReadForUser(user);
+    }
+
+    @Transactional
+    public void deleteNotification(Long notificationId, User user) {
+        com.ceycodez.srimatch.model.Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+
+        if (!notification.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        notificationRepository.delete(notification);
     }
 
     public long getUnreadCount(User user) {

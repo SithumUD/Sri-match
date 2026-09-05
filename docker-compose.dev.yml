@@ -1,0 +1,56 @@
+version: '3.8'
+
+# =======================================================
+# SriMatch - Local Development Docker Compose
+# Use this to spin up PostgreSQL and Redis quickly for dev:
+#   docker compose -f docker-compose.dev.yml up -d
+# =======================================================
+
+services:
+  postgres-dev:
+    image: postgres:16-alpine
+    container_name: srimatch-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: srimatch_dev
+      POSTGRES_USER: srimatch_user
+      POSTGRES_PASSWORD: srimatch_secret_pwd
+      TZ: Asia/Colombo
+    ports:
+      - "${DB_PORT_FORWARD:-5433}:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - srimatch-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U srimatch_user -d srimatch_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-dev:
+    image: redis:7-alpine
+    container_name: srimatch-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - srimatch-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  srimatch-dev-network:
+    driver: bridge
+    name: srimatch-dev-network
+
+volumes:
+  postgres_dev_data:
+    name: srimatch_postgres_dev_data
+  redis_dev_data:
+    name: srimatch_redis_dev_data

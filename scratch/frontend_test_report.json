@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-08-30T11:52:29.967Z",
+  "passed": 9,
+  "failed": 0,
+  "total": 9,
+  "results": [
+    {
+      "name": "1. Landing Page UI & Features",
+      "status": "PASSED",
+      "duration": 4797,
+      "data": {
+        "screenshot": "C:\\Users\\sithu\\.gemini\\antigravity-ide\\brain\\4ed87762-fcd5-489d-8407-0037bf6032ee\\ui_test_01_landing_page.png"
+      }
+    },
+    {
+      "name": "2. How It Works Page & Guidelines",
+      "status": "PASSED",
+      "duration": 1152,
+      "data": {
+        "screenshot": "C:\\Users\\sithu\\.gemini\\antigravity-ide\\brain\\4ed87762-fcd5-489d-8407-0037bf6032ee\\ui_test_02_how_it_works.png"
+      }
+    },
+    {
+      "name": "3. User Registration Form & Validation",
+      "status": "PASSED",
+      "duration": 4013,
+      "data": {
+        "email": "auto_ui_1788090715516@srimatch.com",
+        "otpPrompt": true
+      }
+    },
+    {
+      "name": "4. OTP Verification Execution",
+      "status": "PASSED",
+      "duration": 3299,
+      "data": {
+        "otp": "152313",
+        "screenshot": "C:\\Users\\sithu\\.gemini\\antigravity-ide\\brain\\4ed87762-fcd5-489d-8407-0037bf6032ee\\ui_test_04_otp_verified.png"
+      }
+    },
+    {
+      "name": "5. User Authentication & Login Flow",
+      "status": "PASSED",
+      "duration": 3952,
+      "data": {
+        "currentUrl": "http://localhost:5173/profile-creation",
+        "screenshot": "C:\\Users\\sithu\\.gemini\\antigravity-ide\\brain\\4ed87762-fcd5-489d-8407-0037bf6032ee\\ui_test_05_login_success.png"
+      }
+    },
+    {
+      "name": "6. Discovery & Match Feed UI (/home)",
+      "status": "PASSED",
+      "duration": 8222,
+      "data": {
+        "currentUrl": "http://localhost:5173/home",
+        "screenshot": "C:\\Users\\sithu\\.gemini\\antigravity-ide\\brain\\4ed87762-fcd5-489d-8407-0037bf6032ee\\ui_test_06_discovery_feed.png"
+      }
+    },
+    {
+      "name": "7. Premium Membership Plans (/subscription)",
+      "status": "PASSED",
+      "duration": 3037,
+      "data": {
+        "currentUrl": "http://localhost:5173/subscription",
+        "screenshot": "C:\\Users\\sithu\\.gemini\\antigravity-ide\\brain\\4ed87762-fcd5-489d-8407-0037bf6032ee\\ui_test_07_pricing_packages.png"
+      }
+    },
+    {
+      "name": "8. Messages & Chat Interface (/messages)",
+      "status": "PASSED",
+      "duration": 2882,
+      "data": {
+        "currentUrl": "http://localhost:5173/messages",
+        "screenshot": "C:\\Users\\sithu\\.gemini\\antigravity-ide\\brain\\4ed87762-fcd5-489d-8407-0037bf6032ee\\ui_test_08_messages_chat.png"
+      }
+    },
+    {
+      "name": "9. Admin Panel Dashboard & User Table",
+      "status": "PASSED",
+      "duration": 8858,
+      "data": {
+        "currentUrl": "http://localhost:5173/admin",
+        "screenshot": "C:\\Users\\sithu\\.gemini\\antigravity-ide\\brain\\4ed87762-fcd5-489d-8407-0037bf6032ee\\ui_test_09_admin_dashboard.png"
+      }
+    }
+  ]
+}

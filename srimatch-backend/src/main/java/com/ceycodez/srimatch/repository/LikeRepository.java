@@ -39,4 +39,22 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
     Optional<Like> findBySenderIdAndReceiverProfileId(@Param("senderId") Long senderId, @Param("targetProfileId") Long targetProfileId);
 
     java.util.List<Like> findBySenderIdAndReceiverIdIn(Long senderId, java.util.Collection<Long> receiverIds);
+
+    @Query("SELECT l FROM Like l " +
+           "LEFT JOIN FETCH l.sender s " +
+           "LEFT JOIN FETCH s.profile " +
+           "LEFT JOIN FETCH l.receiver r " +
+           "LEFT JOIN FETCH r.profile " +
+           "WHERE l.sender = :sender " +
+           "ORDER BY l.createdAt DESC")
+    java.util.List<Like> findBySenderOrderByCreatedAtDesc(@Param("sender") User sender);
+
+    @Query("SELECT l FROM Like l " +
+           "LEFT JOIN FETCH l.sender s " +
+           "LEFT JOIN FETCH s.profile " +
+           "LEFT JOIN FETCH l.receiver r " +
+           "LEFT JOIN FETCH r.profile " +
+           "WHERE l.receiver = :receiver " +
+           "ORDER BY l.createdAt DESC")
+    java.util.List<Like> findByReceiverOrderByCreatedAtDesc(@Param("receiver") User receiver);
 }

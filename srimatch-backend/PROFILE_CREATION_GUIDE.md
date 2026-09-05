@@ -8,8 +8,8 @@ This document provides the complete API specification and data requirements for 
 
 ## 2. Dynamic Data Requirements
 
-### 📍 Location & Coordinates (CRITICAL)
-For accurate horoscope matching, we now use a database-driven city list with precise coordinates.
+### 📍 Location & Coordinates
+For accurate location-based discovery and distance filtering, we use a database-driven city list with precise coordinates.
 - **Endpoint**: `GET /v1/locations/cities`
 - **Response**: A list of city objects:
   ```json
@@ -21,11 +21,10 @@ For accurate horoscope matching, we now use a database-driven city list with pre
     }
   ]
   ```
-- **Action**: When a user selects a city, the frontend MUST send the `latitude` and `longitude` in the profile creation request.
+- **Action**: When a user selects a city, the frontend sends the `city`, `latitude`, and `longitude` in the profile creation request.
 
 ### 🕒 Birth Information
 - **`dateOfBirth`**: Format `YYYY-MM-DD` (e.g., `1990-05-15`)
-- **`timeOfBirth`**: Format `HH:mm:ss` (e.g., `10:30:00`). This is essential for astrological calculations.
 
 ---
 
@@ -41,7 +40,6 @@ For accurate horoscope matching, we now use a database-driven city list with pre
   "lastName": "Perera",
   "gender": "MALE",
   "dateOfBirth": "1990-05-15",
-  "timeOfBirth": "10:30:00",
   "maritalStatus": "NEVER_MARRIED",
   "city": "Colombo 01",
   "latitude": 6.9319,
@@ -76,13 +74,12 @@ For accurate horoscope matching, we now use a database-driven city list with pre
 | **complexion** | `FAIR`, `WHEATISH`, `MEDIUM`, `DUSKY`, `DARK` |
 | **smoking** | `NEVER`, `OCCASIONALLY`, `REGULARLY`, `TRYING_TO_QUIT` |
 | **drinking** | `NEVER`, `SOCIALLY`, `OCCASIONALLY`, `REGULARLY` |
-| **horoscopeSign** | `ARIES`, `TAURUS`, `GEMINI`, `CANCER`, `LEO`, `VIRGO`, `LIBRA`, `SCORPIO`, `SAGITTARIUS`, `CAPRICORN`, `AQUARIUS`, `PISCES` |
 
 ---
 
 ## 5. Testing & Examples
 
-Use the following JSON payloads to test the complete flow (including horoscope matching).
+Use the following JSON payloads to test the complete profile creation flow.
 
 ### 🧑 Profile A (Male) - Kamal
 ```json
@@ -91,7 +88,6 @@ Use the following JSON payloads to test the complete flow (including horoscope m
   "lastName": "Perera",
   "gender": "MALE",
   "dateOfBirth": "1990-05-15",
-  "timeOfBirth": "10:30:00",
   "maritalStatus": "NEVER_MARRIED",
   "city": "Ampara",
   "latitude": 7.2833,
@@ -112,7 +108,6 @@ Use the following JSON payloads to test the complete flow (including horoscope m
   "lastName": "Silva",
   "gender": "FEMALE",
   "dateOfBirth": "1993-08-20",
-  "timeOfBirth": "14:15:00",
   "maritalStatus": "NEVER_MARRIED",
   "city": "Pottuvil",
   "latitude": 6.8667,
@@ -125,12 +120,3 @@ Use the following JSON payloads to test the complete flow (including horoscope m
   "about": "Compassionate and career-oriented family person."
 }
 ```
-
----
-
-## 6. Testing Horoscope Matching
-Once both profiles are created, trigger the matching analysis from User A's account:
-
-**Endpoint**: `GET /v1/horoscope/match/{targetProfileId}`
-- **Logic**: Compares the authenticated user's profile against the target profile.
-- **Result**: Returns a total point score (out of 36) and detailed Porutham analysis (Gana, Yoni, Rasi, etc.).

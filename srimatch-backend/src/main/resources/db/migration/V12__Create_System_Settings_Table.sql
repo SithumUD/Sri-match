@@ -1,3 +1,4 @@
+-- V12: Create System Settings Table (PostgreSQL)
 CREATE TABLE system_settings (
     setting_key VARCHAR(100) NOT NULL PRIMARY KEY,
     setting_value TEXT,
@@ -5,7 +6,7 @@ CREATE TABLE system_settings (
     setting_group VARCHAR(50),
     data_type VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 INSERT INTO system_settings (setting_key, setting_value, description, setting_group, data_type) VALUES

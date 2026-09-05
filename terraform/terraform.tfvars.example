@@ -1,0 +1,18 @@
+# Hetzner Cloud API Token (Generate in Hetzner Cloud Console -> Project -> Security -> API Tokens)
+hcloud_token = "YOUR_HETZNER_CLOUD_API_TOKEN_HERE"
+
+# Server configuration
+server_name = "srimatch-prod-backend"
+server_type = "cpx21" # 3 vCPU / 4 GB RAM (~€9.50/mo in Singapore) or cpx31 (4 vCPU / 8 GB RAM)
+location    = "sin"   # Singapore location (ultra-low latency to Sri Lanka)
+image       = "ubuntu-24.04"
+
+# Your public SSH key (e.g., contents of ~/.ssh/id_rsa.pub or ~/.ssh/id_ed25519.pub)
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@machine"
+ssh_key_name   = "srimatch-deploy-key"
+
+# Persistent storage for PostgreSQL data
+volume_size_gb = 50
+
+# Allowed SSH IP addresses (use ["0.0.0.0/0", "::/0"] or restrict to your specific office/home IP)
+allowed_ssh_ips = ["0.0.0.0/0", "::/0"]

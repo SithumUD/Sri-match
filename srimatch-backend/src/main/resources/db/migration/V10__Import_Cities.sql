@@ -1,20 +1,19 @@
-DROP TABLE IF EXISTS `cities`;
+DROP TABLE IF EXISTS cities;
 
-CREATE TABLE IF NOT EXISTS `cities` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name_en` varchar(100) DEFAULT NULL,
-  `name_si` varchar(100) DEFAULT NULL,
-  `name_ta` varchar(100) DEFAULT NULL,
-  `sub_name_en` varchar(100) DEFAULT NULL,
-  `sub_name_si` varchar(100) DEFAULT NULL,
-  `sub_name_ta` varchar(100) DEFAULT NULL,
-  `postcode` varchar(20) DEFAULT NULL,
-  `latitude` double DEFAULT NULL,
-  `longitude` double DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+CREATE TABLE IF NOT EXISTS cities (
+  id BIGINT NOT NULL PRIMARY KEY,
+  name_en VARCHAR(255) DEFAULT NULL,
+  name_si VARCHAR(255) DEFAULT NULL,
+  name_ta VARCHAR(255) DEFAULT NULL,
+  sub_name_en VARCHAR(255) DEFAULT NULL,
+  sub_name_si VARCHAR(255) DEFAULT NULL,
+  sub_name_ta VARCHAR(255) DEFAULT NULL,
+  postcode VARCHAR(255) DEFAULT NULL,
+  latitude DOUBLE PRECISION DEFAULT NULL,
+  longitude DOUBLE PRECISION DEFAULT NULL
+);
 
-INSERT INTO `cities` (`id`, `name_en`, `name_si`, `name_ta`, `sub_name_en`, `sub_name_si`, `sub_name_ta`, `postcode`, `latitude`, `longitude`) VALUES
+INSERT INTO cities (id, name_en, name_si, name_ta, sub_name_en, sub_name_si, sub_name_ta, postcode, latitude, longitude) VALUES
 (1, 'Akkaraipattu', NULL, NULL, NULL, NULL, NULL, '32400', 7.2167, 81.85),
 (2, 'Ambagahawatta', NULL, NULL, NULL, NULL, NULL, '90326', 7.4, 81.3),
 (3, 'Ampara', NULL, NULL, NULL, NULL, NULL, '32000', 7.2833, 81.6667),

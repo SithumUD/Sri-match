@@ -39,6 +39,10 @@ public class Payment {
     @JoinColumn(name = "boost_package_id", nullable = true)
     private BoostPackage boostPackage;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tiktok_promotion_id", nullable = true)
+    private TikTokPromotion tiktokPromotion;
+
     @Column(name = "payment_type", length = 30)
     @Builder.Default
     private String paymentType = "SUBSCRIPTION";

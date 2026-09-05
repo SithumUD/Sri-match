@@ -7,7 +7,9 @@ import com.ceycodez.srimatch.model.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -90,16 +92,6 @@ public class Profile {
     @Builder.Default
     private List<String> languages = new ArrayList<>();
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "horoscope_sign")
-    private HoroscopeSign horoscopeSign;
-
-    @Column(name = "birth_star", length = 50)
-    private String birthStar;
-
-    @Column(name = "horoscope_details", columnDefinition = "TEXT")
-    private String horoscopeDetails;
-
     // Education & Career
     @Enumerated(EnumType.STRING)
     private EducationLevel education;
@@ -176,8 +168,8 @@ public class Profile {
     @Column(columnDefinition = "TEXT")
     private String about;
 
-    @Convert(converter = JsonListConverter.class)
-    @Column(columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "interests", columnDefinition = "jsonb")
     @Builder.Default
     private List<String> interests = new ArrayList<>();
 
@@ -193,8 +185,8 @@ public class Profile {
     private String personalityTraits;
 
     // Partner Preferences
-    @Convert(converter = JsonMapConverter.class)
-    @Column(name = "partner_preferences", columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "partner_preferences", columnDefinition = "jsonb")
     @Builder.Default
     private Map<String, Object> partnerPreferences = new HashMap<>();
 

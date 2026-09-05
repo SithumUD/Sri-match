@@ -1,7 +1,7 @@
--- V17: Extend payments table to support boost package purchases
+-- V17: Extend payments table to support boost package purchases (PostgreSQL)
 
--- 1. Make subscription_id nullable (boost purchases have no subscription)
-ALTER TABLE payments MODIFY COLUMN subscription_id BIGINT NULL;
+-- 1. Make subscription_id nullable
+ALTER TABLE payments ALTER COLUMN subscription_id DROP NOT NULL;
 
 -- 2. Add boost_package_id foreign key
 ALTER TABLE payments ADD COLUMN boost_package_id BIGINT;

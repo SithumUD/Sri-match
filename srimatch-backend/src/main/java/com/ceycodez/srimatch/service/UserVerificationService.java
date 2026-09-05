@@ -33,28 +33,30 @@ public class UserVerificationService {
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
     private final EncryptionService encryptionService;
+    private final AuditLogService auditLogService;
 
     private static final String UPLOAD_DIR = "uploads/verifications/";
 
     @Transactional
     public VerificationResponse submitDocuments(User user, VerificationType type, MultipartFile front, MultipartFile back) throws Exception {
-        // Cleanup existing if any
-        verificationRepository.findByUser(user).ifPresent(v -> {
-            deleteFiles(v);
-            verificationRepository.delete(v);
-        });
+        UserVerification verification = verificationRepository.findByUser(user)
+                .orElseGet(() -> UserVerification.builder().user(user).build());
+
+        // Delete old files from disk if user is re-submitting
+        deleteFiles(verification);
 
         String frontPath = saveAndEncrypt(front, user.getId(), "front");
         String backPath = back != null ? saveAndEncrypt(back, user.getId(), "back") : null;
 
-        UserVerification verification = UserVerification.builder()
-                .user(user)
-                .type(type)
-                .idFrontPath(frontPath)
-                .idBackPath(backPath)
-                .status(VerificationStatus.PENDING)
-                .selfieSessionToken(UUID.randomUUID().toString())
-                .build();
+        verification.setType(type);
+        verification.setIdFrontPath(frontPath);
+        verification.setIdBackPath(backPath);
+        verification.setSelfiePath(null);
+        verification.setStatus(VerificationStatus.PENDING);
+        verification.setSelfieSessionToken(UUID.randomUUID().toString());
+        verification.setAdminNotes(null);
+        verification.setResolvedAt(null);
+        verification.setResolvedBy(null);
 
         return VerificationResponse.fromEntity(verificationRepository.save(verification));
     }
@@ -64,37 +66,46 @@ public class UserVerificationService {
         UserVerification v = verificationRepository.findBySelfieSessionToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid selfie session"));
 
-        if (v.getStatus() != VerificationStatus.PENDING) {
-            throw new RuntimeException("Verification request is not in pending state");
-        }
-
         String selfiePath = saveAndEncrypt(selfie, v.getUser().getId(), "selfie");
+
         v.setSelfiePath(selfiePath);
         v.setStatus(VerificationStatus.UNDER_REVIEW);
         verificationRepository.save(v);
     }
 
     public List<VerificationResponse> getPendingVerifications() {
-        return verificationRepository.findAll().stream()
-                .filter(v -> v.getStatus() == VerificationStatus.UNDER_REVIEW || v.getStatus() == VerificationStatus.PENDING)
-                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+        return verificationRepository.findAllByStatusOrderByCreatedAtDesc(VerificationStatus.UNDER_REVIEW).stream()
                 .map(VerificationResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    public byte[] getDecryptedFile(Long id, String side) throws Exception {
+    public byte[] getDecryptedFile(Long id, String side, String adminEmail, String ipAddress) throws Exception {
         UserVerification v = verificationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Verification not found"));
-        
+
         String pathStr;
         switch (side.toLowerCase()) {
             case "front": pathStr = v.getIdFrontPath(); break;
             case "back": pathStr = v.getIdBackPath(); break;
             case "selfie": pathStr = v.getSelfiePath(); break;
-            default: throw new RuntimeException("Invalid side");
+            default: throw new RuntimeException("Invalid side: " + side);
         }
 
         if (pathStr == null) throw new RuntimeException("File not found");
+
+        // Record compliance audit log row for viewing sensitive identity document
+        User admin = userRepository.findByEmail(adminEmail).orElse(null);
+        Long adminId = admin != null ? admin.getId() : null;
+        auditLogService.log(
+                adminEmail,
+                adminId,
+                "VERIFICATION_DOC_VIEWED",
+                "USER_VERIFICATION",
+                v.getId(),
+                "Admin viewed " + side + " document for user ID " + v.getUser().getId() + " (" + v.getUser().getEmail() + ")",
+                ipAddress
+        );
+
         return encryptionService.decryptFile(Paths.get(pathStr));
     }
 
@@ -141,15 +152,20 @@ public class UserVerificationService {
     }
 
     private String saveAndEncrypt(MultipartFile file, Long userId, String label) throws Exception {
+        byte[] validatedBytes = com.ceycodez.srimatch.util.FileValidationUtil.validateAndSanitize(
+                file,
+                com.ceycodez.srimatch.util.FileValidationUtil.FileCategory.IDENTITY_DOCUMENT
+        );
+
         File directory = new File(UPLOAD_DIR);
         if (!directory.exists()) directory.mkdirs();
 
         String filename = userId + "_" + label + "_" + System.currentTimeMillis() + ".enc";
         Path filePath = Paths.get(UPLOAD_DIR, filename);
-        
-        Files.write(filePath, file.getBytes());
+
+        Files.write(filePath, validatedBytes);
         encryptionService.encryptFile(filePath);
-        
+
         return filePath.toString();
     }
 

@@ -1,0 +1,43 @@
+{
+    email {$ACME_EMAIL:admin@srimatch.lk}
+    admin off
+}
+
+# Production Backend API & WebSocket Reverse Proxy
+{$DOMAIN_NAME:api.srimatch.lk} {
+    encode gzip zstd
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # Handle WebSockets (/ws-chat)
+    @websockets {
+        path /ws-chat/*
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    reverse_proxy @websockets backend:8080
+
+    # Handle standard REST API & Actuator
+    reverse_proxy backend:8080 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10MB
+            roll_keep 10
+        }
+        format json
+    }
+}

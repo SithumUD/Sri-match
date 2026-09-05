@@ -70,9 +70,6 @@ public class DetailedProfileResponse {
     // Cultural
     private String ethnicity;
     private List<String> languages;
-    private String horoscopeSign;
-    private String birthStar;
-    private String horoscopeDetails;
     private String religiousPractices;
 
     // Family

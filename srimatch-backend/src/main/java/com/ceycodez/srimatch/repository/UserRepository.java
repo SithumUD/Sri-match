@@ -23,6 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // Dashboard: premium users
     long countByPremiumTrueAndIsDeletedFalse();
+    List<User> findByPremiumTrueAndPremiumExpiryDateBefore(LocalDateTime now);
 
     // Dashboard: currently online users
     long countByOnlineTrueAndIsDeletedFalse();

@@ -3,6 +3,8 @@ package com.ceycodez.srimatch.controller;
 import com.ceycodez.srimatch.dto.request.ProfileRequest;
 import com.ceycodez.srimatch.dto.response.ApiResponse;
 import com.ceycodez.srimatch.dto.response.ProfileResponse;
+import com.ceycodez.srimatch.model.User;
+import com.ceycodez.srimatch.repository.UserRepository;
 import com.ceycodez.srimatch.service.ProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class ProfileController {
 
     private final ProfileService profileService;
+    private final UserRepository userRepository;
 
     @PostMapping
     public ResponseEntity<ApiResponse<ProfileResponse>> createOrUpdateProfile(
@@ -57,6 +60,19 @@ public class ProfileController {
         return ResponseEntity.ok(ApiResponse.<ProfileResponse>builder()
                 .success(true)
                 .message("Profile fetched successfully")
+                .data(response)
+                .build());
+    }
+
+    @GetMapping("/me/completion-status")
+    public ResponseEntity<ApiResponse<com.ceycodez.srimatch.dto.response.ProfileCompletionStatusResponse>> getCompletionStatus(Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        com.ceycodez.srimatch.dto.response.ProfileCompletionStatusResponse response = profileService.getCompletionStatus(user);
+        
+        return ResponseEntity.ok(ApiResponse.<com.ceycodez.srimatch.dto.response.ProfileCompletionStatusResponse>builder()
+                .success(true)
+                .message("Profile completion status fetched successfully")
                 .data(response)
                 .build());
     }

@@ -237,8 +237,7 @@ public class AdminDashboardService {
         healthList.add(new DashboardResponse.SystemHealthDTO("Redis Cache", "Operational", "2ms", "⚡"));
         healthList.add(new DashboardResponse.SystemHealthDTO("Brevo Email", "Operational", "—", "📧"));
         healthList.add(new DashboardResponse.SystemHealthDTO("Cloudinary CDN", "Operational", "—", "☁️"));
-        healthList.add(new DashboardResponse.SystemHealthDTO("Firebase Push", "Operational", "—", "🔔"));
-        healthList.add(new DashboardResponse.SystemHealthDTO("Prokerala API", "Operational", "1.2s", "⭐"));
+        healthList.add(new DashboardResponse.SystemHealthDTO("WebSocket Gateway", "Operational", "12ms", "💬"));
         healthList.add(new DashboardResponse.SystemHealthDTO("Cloudflare WAF", "Operational", "—", "🛡️"));
         return healthList;
     }

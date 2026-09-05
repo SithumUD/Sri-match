@@ -1,0 +1,173 @@
+name: Backend CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'srimatch-backend/**'
+      - 'docker-compose.prod.yml'
+      - 'Caddyfile'
+      - '.github/workflows/backend-ci-cd.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'srimatch-backend/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}-backend
+
+jobs:
+  # ============================================
+  # 1. CI - Automated Testing & Build
+  # ============================================
+  test-and-build:
+    name: Run Unit Tests & Build JAR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Backend Tests
+        run: |
+          cd srimatch-backend
+          mvn clean test --batch-mode
+
+      - name: Package JAR
+        run: |
+          cd srimatch-backend
+          mvn package -DskipTests --batch-mode
+
+  # ============================================
+  # 2. CD - Docker Container Build & Push
+  # ============================================
+  docker-build-and-push:
+    name: Build & Push Docker Image
+    needs: test-and-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: actions/docker-setup-buildx@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./srimatch-backend
+          file: ./srimatch-backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================
+  # 3. CD - Deploy to Hetzner Cloud Server via SSH
+  # ============================================
+  deploy-to-hetzner:
+    name: Deploy to Hetzner Cloud Server
+    needs: docker-build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST_IP }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            echo "🚀 Starting deployment on Hetzner Cloud..."
+            
+            mkdir -p /opt/srimatch
+            cd /opt/srimatch
+
+            # Write production environment variables from GitHub Secrets
+            cat << 'EOF' > .env
+            SPRING_PROFILES_ACTIVE=prod
+            DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}
+            ACME_EMAIL=${{ secrets.ACME_EMAIL }}
+            DB_HOST=postgres
+            DB_PORT=5432
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            REDIS_HOST=redis
+            REDIS_PORT=6379
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            APP_ENCRYPTION_KEY=${{ secrets.APP_ENCRYPTION_KEY }}
+            R2_ENABLED=${{ secrets.R2_ENABLED || 'true' }}
+            R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }}
+            R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}
+            R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }}
+            R2_BUCKET_NAME=${{ secrets.R2_BUCKET_NAME || 'srimatch-media' }}
+            R2_PUBLIC_CUSTOM_DOMAIN=${{ secrets.R2_PUBLIC_CUSTOM_DOMAIN || 'https://media.srimatch.lk' }}
+            CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+            BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}
+            PROKERALA_CLIENT_ID=${{ secrets.PROKERALA_CLIENT_ID }}
+            PROKERALA_CLIENT_SECRET=${{ secrets.PROKERALA_CLIENT_SECRET }}
+            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+            GITHUB_REPOSITORY=${{ github.repository }}
+            EOF
+
+            # Log in to GHCR on the remote server
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            # Pull latest image and restart services with zero-downtime rolling update
+            docker compose -f docker-compose.prod.yml pull backend
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+            # Health Check Verification
+            echo "⏳ Waiting for backend healthcheck..."
+            sleep 15
+            for i in {1..12}; do
+              if curl -s -f http://localhost:8080/api/actuator/health | grep -q "UP"; then
+                echo "✅ Backend is healthy and UP!"
+                exit 0
+              fi
+              echo "Waiting for healthcheck ($i/12)..."
+              sleep 5
+            done
+
+            echo "❌ Healthcheck timed out. Checking container logs:"
+            docker logs --tail 50 srimatch-backend
+            exit 1

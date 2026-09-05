@@ -35,6 +35,7 @@ public class PaymentService {
     private final CloudinaryService cloudinaryService;
     private final SubscriptionService subscriptionService;
     private final BoostPackageRepository boostPackageRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public PaymentResponse submitBankReceipt(Long userId, Long subscriptionId, MultipartFile receipt) throws IOException {
@@ -104,6 +105,19 @@ public class PaymentService {
                 // Activate subscription
                 subscriptionService.activateSubscription(payment.getSubscription().getId());
             }
+
+            try {
+                notificationService.createNotification(
+                        payment.getUser(),
+                        "Payment Approved!",
+                        "Your bank transfer payment of LKR " + payment.getAmount() + " has been approved.",
+                        com.ceycodez.srimatch.model.enums.NotificationType.PAYMENT_STATUS_UPDATE,
+                        payment.getId(),
+                        "PAYMENT"
+                );
+            } catch (Exception e) {
+                // Log and continue
+            }
         } else {
             payment.setPaymentStatus(PaymentStatus.FAILED);
             payment.setRejectionReason(request.getRejectionReason());
@@ -112,6 +126,19 @@ public class PaymentService {
                 Subscription sub = payment.getSubscription();
                 sub.setStatus(SubscriptionStatus.CANCELLED);
                 subscriptionRepository.save(sub);
+            }
+
+            try {
+                notificationService.createNotification(
+                        payment.getUser(),
+                        "Payment Review Notice",
+                        "Your payment review was rejected: " + (request.getRejectionReason() != null ? request.getRejectionReason() : "Please resubmit with a clear bank receipt."),
+                        com.ceycodez.srimatch.model.enums.NotificationType.PAYMENT_STATUS_UPDATE,
+                        payment.getId(),
+                        "PAYMENT"
+                );
+            } catch (Exception e) {
+                // Log and continue
             }
         }
 

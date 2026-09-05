@@ -14,7 +14,6 @@ public class ReportRequest {
     @NotNull(message = "Reason is required")
     private ReportReason reason;
 
-    @NotBlank(message = "Description is required")
     private String description;
 
     private String evidenceUrls; // Optional comma-separated or JSON string of URLs

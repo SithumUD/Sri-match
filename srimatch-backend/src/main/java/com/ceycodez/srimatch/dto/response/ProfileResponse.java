@@ -20,6 +20,9 @@ public class ProfileResponse {
     private Long userId;
     private String firstName;
     private String lastName;
+    private String email;
+    private String phone;
+    private String phoneNumber;
     
     private Gender gender;
     private LocalDate dateOfBirth;
@@ -39,10 +42,6 @@ public class ProfileResponse {
     private String religiousPractices;
     private Ethnicity ethnicity;
     private List<String> languages;
-
-    private HoroscopeSign horoscopeSign;
-    private String birthStar;
-    private String horoscopeDetails;
 
     private EducationLevel education;
     private String fieldOfStudy;
@@ -83,6 +82,7 @@ public class ProfileResponse {
 
     private Integer completionScore;
     private boolean visible;
+    private boolean profileCompleted;
 
     // Premium Status
     private boolean premium;

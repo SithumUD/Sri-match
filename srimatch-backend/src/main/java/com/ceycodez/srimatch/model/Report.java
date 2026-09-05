@@ -42,7 +42,7 @@ public class Report {
     @Column(nullable = false)
     private ReportReason reason;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "evidence_urls", columnDefinition = "TEXT")

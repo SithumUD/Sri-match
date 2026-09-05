@@ -13,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
@@ -33,8 +34,20 @@ public class AdminVerificationController {
     }
 
     @GetMapping("/{id}/view/{side}")
-    public ResponseEntity<byte[]> viewFile(@PathVariable Long id, @PathVariable String side) throws Exception {
-        byte[] data = verificationService.getDecryptedFile(id, side);
+    public ResponseEntity<byte[]> viewFile(
+            @PathVariable Long id,
+            @PathVariable String side,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest request
+    ) throws Exception {
+        String clientIp = request.getHeader("X-Forwarded-For");
+        if (clientIp == null || clientIp.isBlank()) {
+            clientIp = request.getRemoteAddr();
+        } else {
+            clientIp = clientIp.split(",")[0].trim();
+        }
+
+        byte[] data = verificationService.getDecryptedFile(id, side, userDetails.getUsername(), clientIp);
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.IMAGE_JPEG); // Assumption, could be dynamic

@@ -13,24 +13,27 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+
 @RestController
 @RequestMapping("/v1/admin/audits")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 public class AdminAuditController {
 
     private final AuditLogService auditLogService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<AuditLogResponse>>> getAllAudits(@RequestParam(required = false) String email) {
-        List<AuditLogResponse> logs;
-        if (email != null && !email.isEmpty()) {
-            logs = auditLogService.getLogsByUser(email);
-        } else {
-            logs = auditLogService.getAllLogs();
-        }
+    public ResponseEntity<ApiResponse<Page<AuditLogResponse>>> getAllAudits(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String email
+    ) {
+        String query = (search != null && !search.isBlank()) ? search : email;
+        Page<AuditLogResponse> logs = auditLogService.getPaginatedLogs(page, size, query);
         
-        return ResponseEntity.ok(ApiResponse.<List<AuditLogResponse>>builder()
+        return ResponseEntity.ok(ApiResponse.<Page<AuditLogResponse>>builder()
                 .success(true)
                 .message("Audit logs fetched successfully")
                 .data(logs)

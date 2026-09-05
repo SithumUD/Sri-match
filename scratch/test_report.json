@@ -1,0 +1,234 @@
+{
+  "total": 28,
+  "passed": 2,
+  "failed": 26,
+  "results": [
+    {
+      "suite": "AUTH",
+      "testName": "Health Check Endpoint (/actuator/health)",
+      "status": "FAILED",
+      "durationMs": 258,
+      "error": "Health check returned status 403",
+      "stack": "Error: Health check returned status 403\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:76:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:74:3)"
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Register User A (Male, Colombo)",
+      "status": "FAILED",
+      "durationMs": 159,
+      "error": "Register failed with status 403: {\"raw\":\"\"}",
+      "stack": "Error: Register failed with status 403: {\"raw\":\"\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:95:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:82:3)"
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Verify OTP for User A (Debug OTP: 123456)",
+      "status": "FAILED",
+      "durationMs": 32,
+      "error": "Verify OTP failed: {\"raw\":\"\"}",
+      "stack": "Error: Verify OTP failed: {\"raw\":\"\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:108:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:100:3)"
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Register User B (Female, Kandy)",
+      "status": "FAILED",
+      "durationMs": 15,
+      "error": "Register User B failed: {\"raw\":\"\"}",
+      "stack": "Error: Register User B failed: {\"raw\":\"\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:128:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:115:3)"
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Verify OTP for User B",
+      "status": "FAILED",
+      "durationMs": 13,
+      "error": "Verify OTP for User B failed: {\"raw\":\"\"}",
+      "stack": "Error: Verify OTP for User B failed: {\"raw\":\"\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:140:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:132:3)"
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Login with User A Credentials",
+      "status": "FAILED",
+      "durationMs": 40,
+      "error": "Login failed: {\"raw\":\"\"}",
+      "stack": "Error: Login failed: {\"raw\":\"\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:155:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:146:3)"
+    },
+    {
+      "suite": "AUTH",
+      "testName": "Login Failure on Incorrect Password",
+      "status": "PASSED",
+      "durationMs": 17,
+      "details": {
+        "status": 403
+      }
+    },
+    {
+      "suite": "PROFILE",
+      "testName": "Get User A Own Profile (/profile/me)",
+      "status": "FAILED",
+      "durationMs": 66,
+      "error": "Get profile failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Get profile failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:181:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:176:3)"
+    },
+    {
+      "suite": "PROFILE",
+      "testName": "Update User A Profile Details",
+      "status": "FAILED",
+      "durationMs": 8,
+      "error": "Update profile failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}",
+      "stack": "Error: Update profile failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:221:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:186:3)"
+    },
+    {
+      "suite": "PROFILE",
+      "testName": "Update User B Profile Details",
+      "status": "FAILED",
+      "durationMs": 5,
+      "error": "Update User B profile failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}",
+      "stack": "Error: Update User B profile failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:260:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:226:3)"
+    },
+    {
+      "suite": "DISCOVERY",
+      "testName": "Get Discovery Profiles (/profiles)",
+      "status": "FAILED",
+      "durationMs": 15,
+      "error": "Get discovery profiles failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Get discovery profiles failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:272:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:267:3)"
+    },
+    {
+      "suite": "DISCOVERY",
+      "testName": "Search Profiles with Filters (district=KANDY)",
+      "status": "FAILED",
+      "durationMs": 18,
+      "error": "Search profiles failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Search profiles failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:284:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:279:3)"
+    },
+    {
+      "suite": "DISCOVERY",
+      "testName": "Get Public Profile of User B (/profiles/{id})",
+      "status": "FAILED",
+      "durationMs": 11,
+      "error": "Get User B public profile failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Get User B public profile failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:293:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:288:3)"
+    },
+    {
+      "suite": "MATCHING",
+      "testName": "User A Likes User B (/likes/{targetUserId})",
+      "status": "FAILED",
+      "durationMs": 3,
+      "error": "User A like failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}",
+      "stack": "Error: User A like failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:306:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:301:3)"
+    },
+    {
+      "suite": "MATCHING",
+      "testName": "User B Likes User A (Triggers Mutual Match!)",
+      "status": "FAILED",
+      "durationMs": 3,
+      "error": "User B like failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}",
+      "stack": "Error: User B like failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:315:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:310:3)"
+    },
+    {
+      "suite": "MATCHING",
+      "testName": "Get User A Matches List (/matches)",
+      "status": "FAILED",
+      "durationMs": 11,
+      "error": "Get matches failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Get matches failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:325:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:320:3)"
+    },
+    {
+      "suite": "CHAT",
+      "testName": "Get User A Conversations List (/chat/conversations)",
+      "status": "FAILED",
+      "durationMs": 14,
+      "error": "Get conversations failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Get conversations failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:341:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:336:3)"
+    },
+    {
+      "suite": "CHAT",
+      "testName": "Send Message from User A to User B (/chat/send)",
+      "status": "FAILED",
+      "durationMs": 4,
+      "error": "Send message failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}",
+      "stack": "Error: Send message failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:360:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:350:3)"
+    },
+    {
+      "suite": "CHAT",
+      "testName": "Get Message History between User A & B",
+      "status": "FAILED",
+      "durationMs": 15,
+      "error": "Get history failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Get history failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:370:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:365:3)"
+    },
+    {
+      "suite": "ASTROLOGY",
+      "testName": "Calculate Horoscope Porutham Match Score",
+      "status": "FAILED",
+      "durationMs": 5,
+      "error": "Horoscope compatibility failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}",
+      "stack": "Error: Horoscope compatibility failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:387:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:379:3)"
+    },
+    {
+      "suite": "SUBSCRIPTION",
+      "testName": "Get All Active Membership Packages (/packages)",
+      "status": "FAILED",
+      "durationMs": 14,
+      "error": "Get packages failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Get packages failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:400:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:395:3)"
+    },
+    {
+      "suite": "SUBSCRIPTION",
+      "testName": "Get User A Current Subscription Status",
+      "status": "FAILED",
+      "durationMs": 13,
+      "error": "Get current subscription failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Get current subscription failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:411:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:406:3)"
+    },
+    {
+      "suite": "SUBSCRIPTION",
+      "testName": "Get Bank Transfer Payment Details (/bank-details)",
+      "status": "FAILED",
+      "durationMs": 12,
+      "error": "Get bank details failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Get bank details failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:420:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:415:3)"
+    },
+    {
+      "suite": "SUPPORT",
+      "testName": "Create Support Ticket (/support/tickets)",
+      "status": "FAILED",
+      "durationMs": 3,
+      "error": "Create support ticket failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}",
+      "stack": "Error: Create support ticket failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:439:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:428:3)"
+    },
+    {
+      "suite": "SUPPORT",
+      "testName": "Get User A Support Tickets List",
+      "status": "FAILED",
+      "durationMs": 13,
+      "error": "Get tickets failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Get tickets failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:449:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:444:3)"
+    },
+    {
+      "suite": "SAFETY",
+      "testName": "Submit Report against User Profile (/reports)",
+      "status": "FAILED",
+      "durationMs": 3,
+      "error": "Submit report failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}",
+      "stack": "Error: Submit report failed: {\"success\":false,\"message\":\"CSRF protection: X-Requested-With header is missing\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:463:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:453:3)"
+    },
+    {
+      "suite": "AUTH_SECURITY",
+      "testName": "User A Logout & Token Blacklist (/auth/logout)",
+      "status": "FAILED",
+      "durationMs": 13,
+      "error": "Logout failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}",
+      "stack": "Error: Logout failed: {\"success\":false,\"message\":\"Authentication failed: JWT strings must contain exactly 2 period characters. Found: 0\"}\n    at assert (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:26:11)\n    at file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:475:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async recordTest (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:9:20)\n    at async runAllTests (file:///C:/Users/sithu/OneDrive/Documents/GitHub/Sri-match/scratch/full_system_api_test.mjs:470:3)"
+    },
+    {
+      "suite": "AUTH_SECURITY",
+      "testName": "Verify Blacklisted Token is Rejected on Subsequent Calls",
+      "status": "PASSED",
+      "durationMs": 12,
+      "details": {
+        "status": 401,
+        "correctlyRejected": true
+      }
+    }
+  ]
+}

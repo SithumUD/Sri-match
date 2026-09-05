@@ -1,5 +1,5 @@
 CREATE TABLE profile_views (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     viewer_id BIGINT NOT NULL,
     viewed_profile_id BIGINT NOT NULL,
     viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

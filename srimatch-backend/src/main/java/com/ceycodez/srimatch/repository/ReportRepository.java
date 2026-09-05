@@ -11,4 +11,6 @@ import java.util.List;
 public interface ReportRepository extends JpaRepository<Report, Long> {
     long countByStatus(ReportStatus status);
     List<Report> findTop5ByOrderByCreatedAtDesc();
+    List<Report> findByReporterOrderByCreatedAtDesc(com.ceycodez.srimatch.model.User reporter);
+    List<Report> findByReportedUserOrderByCreatedAtDesc(com.ceycodez.srimatch.model.User reportedUser);
 }
