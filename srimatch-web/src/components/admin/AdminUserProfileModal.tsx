@@ -453,6 +453,27 @@ const AdminUserProfileModal = ({ userId, initialUser, onClose }) => {
                         </div>
                       </div>
 
+                      {/* Horoscope */}
+                      <div className="upm-section-card">
+                        <div className="upm-section-title">
+                          <StarIcon size={16} color="#8b4e2e" /> Horoscope & Astrology
+                        </div>
+                        <div className="upm-field-grid">
+                          <div className="upm-field-item">
+                            <label>Rashi (Sign)</label>
+                            <value>{profile.horoscopeSign || "N/A"}</value>
+                          </div>
+                          <div className="upm-field-item">
+                            <label>Birth Star (Nekatha)</label>
+                            <value>{profile.birthStar || "N/A"}</value>
+                          </div>
+                          <div className="upm-field-item" style={{ gridColumn: "1 / -1" }}>
+                            <label>Astrological Details</label>
+                            <value>{profile.horoscopeDetails || "Not provided"}</value>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Lifestyle, Family & Bio */}
                       <div className="upm-section-card">
                         <div className="upm-section-title">

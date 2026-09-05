@@ -69,6 +69,10 @@ export const dummyUser = {
   ],
   profileImage:
     "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHByb2ZpbGUlMjBpbmRpYW4lMjBtYW58ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=800&q=60",
+  horoscope: {
+    sign: "Leo",
+    details: "Sun in 1st house, Mars in 5th house",
+  },
 };
 
 // Dummy profiles for browse page
@@ -145,6 +149,10 @@ export const dummyProfiles = [
     ],
     profileImage:
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8cHJvZmlsZSUyMGluZGlhbiUyMHdvbWFufGVufDB8fDB8fHww&auto=format&fit=crop&w=800&q=60",
+    horoscope: {
+      sign: "Pisces",
+      details: "Moon in 7th house, Venus in 2nd house",
+    },
     isVerified: true,
     matchPercentage: 85,
   },
@@ -214,6 +222,10 @@ export const dummyProfiles = [
     ],
     profileImage:
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fHByb2ZpbGUlMjBpbmRpYW4lMjBtYW58ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=800&q=60",
+    horoscope: {
+      sign: "Leo",
+      details: "Sun in 1st house, Mars in 9th house",
+    },
     isVerified: true,
     matchPercentage: 62,
   },
@@ -289,6 +301,10 @@ export const dummyProfiles = [
     ],
     profileImage:
       "https://images.unsplash.com/photo-1664575599736-c5197c684de0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fGluZGlhbiUyMHdvbWFufGVufDB8fDB8fHww&auto=format&fit=crop&w=800&q=60",
+    horoscope: {
+      sign: "Virgo",
+      details: "Mercury in 10th house, Moon in 4th house",
+    },
     isVerified: true,
     matchPercentage: 76,
   },
@@ -365,6 +381,10 @@ export const dummyProfiles = [
     ],
     profileImage:
       "https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OXx8cHJvZmlsZSUyMGluZGlhbiUyMG1hbnxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
+    horoscope: {
+      sign: "Taurus",
+      details: "Venus in 2nd house, Jupiter in 11th house",
+    },
     isVerified: false,
     matchPercentage: 58,
   },
@@ -434,6 +454,10 @@ export const dummyProfiles = [
     ],
     profileImage:
       "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cHJvZmlsZSUyMGluZGlhbiUyMHdvbWFufGVufDB8fDB8fHww&auto=format&fit=crop&w=800&q=60",
+    horoscope: {
+      sign: "Libra",
+      details: "Venus in 7th house, Saturn in 10th house",
+    },
     isVerified: true,
     matchPercentage: 92,
   },
@@ -508,6 +532,10 @@ export const dummyProfiles = [
     ],
     profileImage:
       "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fHByb2ZpbGUlMjBpbmRpYW4lMjBtYW58ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=800&q=60",
+    horoscope: {
+      sign: "Capricorn",
+      details: "Saturn in 1st house, Sun in 5th house",
+    },
     isVerified: true,
     matchPercentage: 67,
   },
@@ -592,6 +620,20 @@ export const profileOptions = {
     "300,000-500,000",
     "Above 500,000",
     "Prefer not to say",
+  ],
+  horoscopeSigns: [
+    "Aries",
+    "Taurus",
+    "Gemini",
+    "Cancer",
+    "Leo",
+    "Virgo",
+    "Libra",
+    "Scorpio",
+    "Sagittarius",
+    "Capricorn",
+    "Aquarius",
+    "Pisces",
   ],
   interests: [
     "Reading",

@@ -263,6 +263,14 @@ const styles = `
   .up-match-hero-text h4 { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; font-weight: 600; color: #2d1810; margin-bottom: 0.25rem; }
   .up-match-hero-text p { font-size: 0.8rem; color: #9a7060; line-height: 1.5; }
 
+  .up-horoscope-pill {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    background: #f5f0fa; color: #6a40a8;
+    font-size: 0.8rem; font-weight: 500;
+    padding: 0.4rem 1rem; border-radius: 99px;
+    border: 1px solid #e0d0f8; margin-bottom: 1rem;
+  }
+
   .up-pref-item {
     display: flex; justify-content: space-between; align-items: center;
     padding: 0.7rem 0; border-bottom: 1px solid #faf3ef; font-size: 0.83rem;
@@ -625,6 +633,8 @@ const UserProfilePage = () => {
           <p>Based on shared interests and preferences between you and {profile.firstName}.</p>
         </div>
       </div>
+      <div className="up-subsection-title"><Star size={11} />Horoscope Sign</div>
+      <div className="up-horoscope-pill"><Star size={13} />{profile.horoscopeSign || "Not shared"}</div>
     </>
   );
 

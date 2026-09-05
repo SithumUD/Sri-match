@@ -1,7 +1,8 @@
 "use client";
+
 import React, { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from "../context/AuthContext";
 import {
   User, MapPin, GraduationCap, Briefcase, Heart, Settings, Edit3, Save, X,
@@ -9,26 +10,113 @@ import {
   ChevronDown, ChevronUp, Check, Image as ImageIcon, Plus, ArrowLeft,
   Shield, Eye, EyeOff, Lock, Sparkles, Crown, Target, Home,
 } from "lucide-react";
-/* ─── Options Data ──────────────────────────────────────────────────────── */
+/* ─── Enum Helpers & Options ────────────────────────────────────────────── */
+export const toEnumVal = (str) => str ? String(str).toUpperCase().replace(/[\s-]+/g, '_') : '';
+
+export const formatEnum = (str) => {
+  if (str === null || str === undefined || str === '') return 'Not specified';
+  return String(str)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
+};
+
 const PROFILE_OPTIONS = {
-  maritalStatus: ["Never Married", "Divorced", "Widowed", "Separated", "Annulled"],
-  religion: ["Buddhist", "Hindu", "Muslim", "Christian", "Catholic", "No Religion", "Other"],
-  ethnicity: ["Sinhalese", "Tamil", "Moor", "Burgher", "Malay", "Other"],
-  education: ["High School", "Diploma", "Bachelors", "Masters", "Doctorate", "Professional Certification", "Other"],
-  bodyType: ["Slim", "Athletic", "Average", "Overweight", "Plus Size", "Muscular"],
-  complexion: ["Fair", "Wheatish", "Medium", "Dusky", "Dark"],
-  smoking: ["Never", "Occasionally", "Regularly", "Trying to Quit"],
-  drinking: ["Never", "Socially", "Occasionally", "Regularly"],
-  dietary: ["Vegetarian", "Vegan", "Non Vegetarian", "Pescatarian", "No Preference"],
+  gender: [
+    { value: "MALE", label: "Male" },
+    { value: "FEMALE", label: "Female" },
+    { value: "OTHER", label: "Other" }
+  ],
+  maritalStatus: [
+    { value: "NEVER_MARRIED", label: "Never Married" },
+    { value: "DIVORCED", label: "Divorced" },
+    { value: "WIDOWED", label: "Widowed" },
+    { value: "SEPARATED", label: "Separated" },
+    { value: "ANNULLED", label: "Annulled" }
+  ],
+  religion: [
+    { value: "BUDDHIST", label: "Buddhist" },
+    { value: "HINDU", label: "Hindu" },
+    { value: "MUSLIM", label: "Muslim" },
+    { value: "CHRISTIAN", label: "Christian" },
+    { value: "CATHOLIC", label: "Catholic" },
+    { value: "NO_RELIGION", label: "No Religion" },
+    { value: "OTHER", label: "Other" }
+  ],
+  ethnicity: [
+    { value: "SINHALESE", label: "Sinhalese" },
+    { value: "TAMIL", label: "Tamil" },
+    { value: "MOOR", label: "Moor" },
+    { value: "BURGHER", label: "Burgher" },
+    { value: "MALAY", label: "Malay" },
+    { value: "OTHER", label: "Other" }
+  ],
+  education: [
+    { value: "HIGH_SCHOOL", label: "High School" },
+    { value: "DIPLOMA", label: "Diploma" },
+    { value: "BACHELORS", label: "Bachelors" },
+    { value: "MASTERS", label: "Masters" },
+    { value: "DOCTORATE", label: "Doctorate" },
+    { value: "PROFESSIONAL_CERTIFICATION", label: "Professional Certification" },
+    { value: "OTHER", label: "Other" }
+  ],
+  bodyType: [
+    { value: "SLIM", label: "Slim" },
+    { value: "ATHLETIC", label: "Athletic" },
+    { value: "AVERAGE", label: "Average" },
+    { value: "OVERWEIGHT", label: "Overweight" },
+    { value: "PLUS_SIZE", label: "Plus Size" },
+    { value: "MUSCULAR", label: "Muscular" }
+  ],
+  complexion: [
+    { value: "FAIR", label: "Fair" },
+    { value: "WHEATISH", label: "Wheatish" },
+    { value: "MEDIUM", label: "Medium" },
+    { value: "DUSKY", label: "Dusky" },
+    { value: "DARK", label: "Dark" }
+  ],
+  smoking: [
+    { value: "NEVER", label: "Never" },
+    { value: "OCCASIONALLY", label: "Occasionally" },
+    { value: "REGULARLY", label: "Regularly" },
+    { value: "TRYING_TO_QUIT", label: "Trying to Quit" }
+  ],
+  drinking: [
+    { value: "NEVER", label: "Never" },
+    { value: "SOCIALLY", label: "Socially" },
+    { value: "OCCASIONALLY", label: "Occasionally" },
+    { value: "REGULARLY", label: "Regularly" }
+  ],
+  dietary: [
+    { value: "VEGETARIAN", label: "Vegetarian" },
+    { value: "VEGAN", label: "Vegan" },
+    { value: "NON_VEGETARIAN", label: "Non Vegetarian" },
+    { value: "PESCATARIAN", label: "Pescatarian" },
+    { value: "NO_PREFERENCE", label: "No Preference" }
+  ],
+  horoscope: [
+    { value: "ARIES", label: "Aries" },
+    { value: "TAURUS", label: "Taurus" },
+    { value: "GEMINI", label: "Gemini" },
+    { value: "CANCER", label: "Cancer" },
+    { value: "LEO", label: "Leo" },
+    { value: "VIRGO", label: "Virgo" },
+    { value: "LIBRA", label: "Libra" },
+    { value: "SCORPIO", label: "Scorpio" },
+    { value: "SAGITTARIUS", label: "Sagittarius" },
+    { value: "CAPRICORN", label: "Capricorn" },
+    { value: "AQUARIUS", label: "Aquarius" },
+    { value: "PISCES", label: "Pisces" }
+  ],
   districts: ["Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", "Mannar", "Matale", "Matara", "Moneragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"],
+  languages: ["Sinhala", "Tamil", "English"],
   interests: ["Music", "Travel", "Photography", "Reading", "Movies", "Gaming", "Cooking", "Sports", "Yoga", "Dancing"],
   industries: ["Technology", "Healthcare", "Finance", "Education", "Engineering", "Arts", "Government", "Other"],
   incomeRanges: ["Less than 50k", "50k - 100k", "100k - 200k", "200k - 500k", "Above 500k"]
 };
 
-import CityAutocomplete from "../components/common/CityAutocomplete";
 import ProfileService from "../services/profile.service";
-import { getProfileImage } from "../utils/image.utils";
+import { getProfileImage, compressImage } from "../utils/image.utils";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -653,7 +741,7 @@ const MyProfilePage = () => {
     setIsSaving(true);
     try {
       const mappedData = { ...formData };
-      const mapEnum = (val) => val ? val.toUpperCase().replace(/\s+/g, '_') : null;
+      const mapEnum = (val) => val ? String(val).toUpperCase().replace(/[\s-]+/g, '_') : null;
       if (mappedData.maritalStatus) mappedData.maritalStatus = mapEnum(mappedData.maritalStatus);
       if (mappedData.religion) mappedData.religion = mapEnum(mappedData.religion);
       if (mappedData.ethnicity) mappedData.ethnicity = mapEnum(mappedData.ethnicity);
@@ -664,14 +752,16 @@ const MyProfilePage = () => {
       if (mappedData.smoking) mappedData.smoking = mapEnum(mappedData.smoking);
       if (mappedData.drinking) mappedData.drinking = mapEnum(mappedData.drinking);
       if (mappedData.dietaryPreferences) mappedData.dietaryPreferences = mapEnum(mappedData.dietaryPreferences);
+      if (mappedData.horoscopeSign) mappedData.horoscopeSign = mapEnum(mappedData.horoscopeSign);
       const res = await ProfileService.updateProfile(mappedData);
-      if (res.success) {
-        setUser(res.data);
+      if (res.success || res.data) {
+        setUser(res.data || res);
         setEditMode(null);
       }
     } catch (err) {
       console.error("Failed to update profile:", err);
-      alert("Failed to save changes. Please check your internet connection.");
+      const errMsg = err.response?.data?.message || err.message || "Failed to save changes. Please try again.";
+      alert(errMsg);
     } finally {
       setIsSaving(false);
     }
@@ -689,13 +779,22 @@ const MyProfilePage = () => {
   };
 
   const [currentFile, setCurrentFile] = useState(null);
-  const handleImageChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCurrentFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setPreviewImage(reader.result);
-      reader.readAsDataURL(file);
+  const handleImageChange = async (e) => {
+    const rawFile = e.target.files?.[0];
+    if (rawFile) {
+      try {
+        const compressed = await compressImage(rawFile);
+        setCurrentFile(compressed);
+        const reader = new FileReader();
+        reader.onloadend = () => setPreviewImage(reader.result);
+        reader.readAsDataURL(compressed);
+      } catch (err) {
+        console.error("Image processing error:", err);
+        setCurrentFile(rawFile);
+        const reader = new FileReader();
+        reader.onloadend = () => setPreviewImage(reader.result);
+        reader.readAsDataURL(rawFile);
+      }
     }
   };
 
@@ -704,15 +803,16 @@ const MyProfilePage = () => {
       setIsSaving(true);
       try {
         const res = await ProfileService.uploadProfileImage(currentFile, (user.profileImages || []).length === 0);
-        if (res.success) {
-          setUser(res.data);
+        if (res.success || res.data) {
+          setUser(res.data || res);
           setShowImageUpload(false);
           setPreviewImage(null);
           setCurrentFile(null);
         }
       } catch (err) {
         console.error("Upload failed:", err);
-        alert("Image upload failed.");
+        const errorMsg = err.response?.data?.message || err.message || "Image upload failed. Please try a different image.";
+        alert(errorMsg);
       } finally {
         setIsSaving(false);
       }
@@ -803,7 +903,7 @@ const MyProfilePage = () => {
       <div className="mp-root">
         <div className="mp-inner">
 
-          <button className="mp-back" onClick={() => router.push(-1)}>
+          <button className="mp-back" onClick={() => router.back()}>
             <ArrowLeft size={14} /> Back
           </button>
 
@@ -833,8 +933,8 @@ const MyProfilePage = () => {
               <div className="mp-name-block">
                 <div className="mp-profile-name">{user.firstName} {user.lastName}</div>
                 <div className="mp-profile-meta">
-                  {user.city && user.district && (
-                    <span className="mp-profile-meta-item"><MapPin size={11} />{user.city}, {user.district}</span>
+                  {user.city && (
+                    <span className="mp-profile-meta-item"><MapPin size={11} />{user.city}</span>
                   )}
                   {user.profession && (
                     <span className="mp-profile-meta-item"><Briefcase size={11} />{user.profession}</span>
@@ -897,23 +997,21 @@ const MyProfilePage = () => {
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Gender</label>
-                              <select className="mp-select" name="gender" value={formData.gender || ""} onChange={handleChange}>
+                              <select className="mp-select" name="gender" value={toEnumVal(formData.gender)} onChange={handleChange}>
                                 <option value="">Select gender</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                                <option value="other">Other</option>
+                                {PROFILE_OPTIONS.gender.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Marital Status</label>
-                              <select className="mp-select" name="maritalStatus" value={formData.maritalStatus || ""} onChange={handleChange}>
+                              <select className="mp-select" name="maritalStatus" value={toEnumVal(formData.maritalStatus)} onChange={handleChange}>
                                 <option value="">Select status</option>
-                                {(PROFILE_OPTIONS.maritalStatus || []).map(s => <option key={s} value={s}>{s}</option>)}
+                                {PROFILE_OPTIONS.maritalStatus.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Children</label>
-                              <select className="mp-select" value={formData.hasChildren !== undefined ? String(formData.hasChildren) : ""} onChange={e => setFormData(p => ({ ...p, hasChildren: e.target.value === "true" }))}>
+                              <select className="mp-select" value={formData.hasChildren !== undefined && formData.hasChildren !== null ? String(formData.hasChildren) : ""} onChange={e => setFormData(p => ({ ...p, hasChildren: e.target.value === "true" }))}>
                                 <option value="">Select</option>
                                 <option value="true">Yes</option>
                                 <option value="false">No</option>
@@ -924,16 +1022,17 @@ const MyProfilePage = () => {
                       ) : (
                         <div className="mp-info-grid">
                           {[
-                            ["Full Name", `${user.firstName} ${user.lastName}`],
-                            ["Gender", user.gender],
+                            ["Full Name", `${user.firstName || ''} ${user.lastName || ''}`.trim() || null],
+                            ["Gender", formatEnum(user.gender)],
                             ["Date of Birth", user.dateOfBirth ? `${new Date(user.dateOfBirth).toLocaleDateString("en-LK")} (${calculateAge(user.dateOfBirth)} yrs)` : null],
-                            ["Marital Status", user.maritalStatus],
-                            ["Email", user.email],
-                            ["Children", user.hasChildren !== undefined ? (user.hasChildren ? "Yes" : "No") : null],
+                            ["Marital Status", formatEnum(user.maritalStatus)],
+                            ["Email", user.email || (user.user?.email) || null],
+                            ["Phone", user.phone || (user.user?.phone) || null],
+                            ["Children", user.hasChildren !== undefined && user.hasChildren !== null ? (user.hasChildren ? "Yes" : "No") : null],
                           ].map(([label, value]) => (
                             <div key={label} className="mp-info-item">
                               <span className="mp-info-label">{label}</span>
-                              <span className="mp-info-value" style={{ textTransform: "capitalize" }}>{value || "Not specified"}</span>
+                              <span className="mp-info-value" style={{ color: value ? "#4a3028" : "#9a7060" }}>{value || "Not specified"}</span>
                             </div>
                           ))}
                         </div>
@@ -955,42 +1054,32 @@ const MyProfilePage = () => {
                         <>
                           <div className="mp-form-grid">
                             <div className="mp-form-group">
+                              <label className="mp-form-label">City</label>
+                              <input className="mp-input" type="text" name="city" value={formData.city || ""} onChange={handleChange} placeholder="e.g. Colombo" />
+                            </div>
+                            <div className="mp-form-group">
                               <label className="mp-form-label">District</label>
                               <select className="mp-select" name="district" value={formData.district || ""} onChange={handleChange}>
                                 <option value="">Select district</option>
-                                {(PROFILE_OPTIONS.districts || []).map(d => <option key={d} value={d}>{d}</option>)}
+                                {PROFILE_OPTIONS.districts.map(d => <option key={d} value={d}>{d}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
-                              <label className="mp-form-label">City</label>
-                              <CityAutocomplete
-                                value={formData.city || ""}
-                                onChange={(val) => setFormData(prev => ({ ...prev, city: val }))}
-                                placeholder="e.g. Colombo, Kandy, Galle"
-                                variant="form"
-                              />
-                            </div>
-                            <div className="mp-form-group">
                               <label className="mp-form-label">Place of Birth</label>
-                              <CityAutocomplete
-                                value={formData.placeOfBirth || ""}
-                                onChange={(val) => setFormData(prev => ({ ...prev, placeOfBirth: val }))}
-                                placeholder="e.g. Matara, Kandy"
-                                variant="form"
-                              />
+                              <input className="mp-input" type="text" name="placeOfBirth" value={formData.placeOfBirth || ""} onChange={handleChange} placeholder="e.g. Kandy" />
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Ethnicity</label>
-                              <select className="mp-select" name="ethnicity" value={formData.ethnicity || ""} onChange={handleChange}>
+                              <select className="mp-select" name="ethnicity" value={toEnumVal(formData.ethnicity)} onChange={handleChange}>
                                 <option value="">Select ethnicity</option>
-                                {(PROFILE_OPTIONS.ethnicity || []).map(e => <option key={e} value={e}>{e}</option>)}
+                                {PROFILE_OPTIONS.ethnicity.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Religion</label>
-                              <select className="mp-select" name="religion" value={formData.religion || ""} onChange={handleChange}>
+                              <select className="mp-select" name="religion" value={toEnumVal(formData.religion)} onChange={handleChange}>
                                 <option value="">Select religion</option>
-                                {(PROFILE_OPTIONS.religion || []).map(r => <option key={r} value={r}>{r}</option>)}
+                                {PROFILE_OPTIONS.religion.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                               </select>
                             </div>
                           </div>
@@ -1011,15 +1100,16 @@ const MyProfilePage = () => {
                         <>
                           <div className="mp-info-grid" style={{ marginBottom: "1rem" }}>
                             {[
-                              ["Current Location", user.city && user.district ? `${user.city}, ${user.district}` : null],
-                              ["Religion", user.religion],
-                              ["Place of Birth", user.placeOfBirth],
-                              ["Religious Practices", user.religiousPractices],
-                              ["Ethnicity", user.ethnicity],
+                              ["Current Location", user.city || null],
+                              ["District", user.district || null],
+                              ["Place of Birth", user.placeOfBirth || null],
+                              ["Ethnicity", formatEnum(user.ethnicity)],
+                              ["Religion", formatEnum(user.religion)],
+                              ["Religious Practices", user.religiousPractices || null],
                             ].map(([label, value]) => (
                               <div key={label} className="mp-info-item">
                                 <span className="mp-info-label">{label}</span>
-                                <span className="mp-info-value">{value || "Not specified"}</span>
+                                <span className="mp-info-value" style={{ color: value ? "#4a3028" : "#9a7060" }}>{value || "Not specified"}</span>
                               </div>
                             ))}
                           </div>
@@ -1049,9 +1139,9 @@ const MyProfilePage = () => {
                           <div className="mp-form-grid">
                             <div className="mp-form-group">
                               <label className="mp-form-label">Education Level</label>
-                              <select className="mp-select" name="education" value={formData.education || ""} onChange={handleChange}>
+                              <select className="mp-select" name="education" value={toEnumVal(formData.education || formData.educationLevel)} onChange={handleChange}>
                                 <option value="">Select level</option>
-                                {(PROFILE_OPTIONS.education || []).map(l => <option key={l} value={l}>{l}</option>)}
+                                {PROFILE_OPTIONS.education.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
@@ -1090,7 +1180,7 @@ const MyProfilePage = () => {
                       ) : (
                         <div className="mp-info-grid">
                           {[
-                            ["Education", user.education],
+                            ["Education", formatEnum(user.education || user.educationLevel)],
                             ["Field of Study", user.fieldOfStudy],
                             ["Profession", user.profession],
                             ["Industry", user.industry],
@@ -1100,7 +1190,7 @@ const MyProfilePage = () => {
                           ].map(([label, value]) => (
                             <div key={label} className="mp-info-item">
                               <span className="mp-info-label">{label}</span>
-                              <span className="mp-info-value">{value || "Not specified"}</span>
+                              <span className="mp-info-value" style={{ color: value ? "#4a3028" : "#9a7060" }}>{value || "Not specified"}</span>
                             </div>
                           ))}
                         </div>
@@ -1127,39 +1217,39 @@ const MyProfilePage = () => {
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Body Type</label>
-                              <select className="mp-select" name="bodyType" value={formData.bodyType || ""} onChange={handleChange}>
-                                <option value="">Select</option>
-                                {(PROFILE_OPTIONS.bodyType || []).map(t => <option key={t} value={t}>{t}</option>)}
+                              <select className="mp-select" name="bodyType" value={toEnumVal(formData.bodyType)} onChange={handleChange}>
+                                <option value="">Select body type</option>
+                                {PROFILE_OPTIONS.bodyType.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Complexion</label>
-                              <select className="mp-select" name="complexion" value={formData.complexion || ""} onChange={handleChange}>
-                                <option value="">Select</option>
-                                {(PROFILE_OPTIONS.complexion || []).map(c => <option key={c} value={c}>{c}</option>)}
+                              <select className="mp-select" name="complexion" value={toEnumVal(formData.complexion)} onChange={handleChange}>
+                                <option value="">Select complexion</option>
+                                {PROFILE_OPTIONS.complexion.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                               </select>
                             </div>
                           </div>
                           <div className="mp-form-grid">
                             <div className="mp-form-group">
                               <label className="mp-form-label">Smoking</label>
-                              <select className="mp-select" name="smoking" value={formData.smoking || ""} onChange={handleChange}>
+                              <select className="mp-select" name="smoking" value={toEnumVal(formData.smoking)} onChange={handleChange}>
                                 <option value="">Select</option>
-                                {(PROFILE_OPTIONS.smoking || []).map(h => <option key={h} value={h}>{h}</option>)}
+                                {PROFILE_OPTIONS.smoking.map(h => <option key={h.value} value={h.value}>{h.label}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Drinking</label>
-                              <select className="mp-select" name="drinking" value={formData.drinking || ""} onChange={handleChange}>
+                              <select className="mp-select" name="drinking" value={toEnumVal(formData.drinking)} onChange={handleChange}>
                                 <option value="">Select</option>
-                                {(PROFILE_OPTIONS.drinking || []).map(h => <option key={h} value={h}>{h}</option>)}
+                                {PROFILE_OPTIONS.drinking.map(h => <option key={h.value} value={h.value}>{h.label}</option>)}
                               </select>
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Dietary Preferences</label>
-                              <select className="mp-select" name="dietaryPreferences" value={formData.dietaryPreferences || ""} onChange={handleChange}>
+                              <select className="mp-select" name="dietaryPreferences" value={toEnumVal(formData.dietaryPreferences)} onChange={handleChange}>
                                 <option value="">Select</option>
-                                {(PROFILE_OPTIONS.dietary || []).map(p => <option key={p} value={p}>{p}</option>)}
+                                {PROFILE_OPTIONS.dietary.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                               </select>
                             </div>
                           </div>
@@ -1176,17 +1266,17 @@ const MyProfilePage = () => {
                         <div className="mp-info-grid">
                           {[
                             ["Height", user.height ? `${user.height} cm` : null],
-                            ["Body Type", user.bodyType],
-                            ["Complexion", user.complexion],
-                            ["Smoking", user.smoking],
-                            ["Drinking", user.drinking],
-                            ["Dietary Preferences", user.dietaryPreferences],
+                            ["Body Type", formatEnum(user.bodyType)],
+                            ["Complexion", formatEnum(user.complexion)],
+                            ["Smoking", formatEnum(user.smoking)],
+                            ["Drinking", formatEnum(user.drinking)],
+                            ["Dietary Preferences", formatEnum(user.dietaryPreferences)],
                             ["Health & Fitness", user.healthHabits],
                             ["Lifestyle", user.lifestyle],
                           ].map(([label, value]) => (
                             <div key={label} className="mp-info-item">
                               <span className="mp-info-label">{label}</span>
-                              <span className="mp-info-value">{value || "Not specified"}</span>
+                              <span className="mp-info-value" style={{ color: value ? "#4a3028" : "#9a7060" }}>{value || "Not specified"}</span>
                             </div>
                           ))}
                         </div>
@@ -1222,7 +1312,19 @@ const MyProfilePage = () => {
                             <label className="mp-form-label">Wedding Preferences</label>
                             <textarea className="mp-textarea" rows={2} name="weddingPreferences" value={formData.weddingPreferences || ""} onChange={handleChange} placeholder="e.g. Traditional Buddhist ceremony" />
                           </div>
-                          
+                          <div className="mp-form-grid">
+                            <div className="mp-form-group">
+                              <label className="mp-form-label">Horoscope Sign</label>
+                              <select className="mp-select" name="horoscopeSign" value={toEnumVal(formData.horoscopeSign)} onChange={handleChange}>
+                                <option value="">Select sign</option>
+                                {PROFILE_OPTIONS.horoscope.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                              </select>
+                            </div>
+                            <div className="mp-form-group">
+                              <label className="mp-form-label">Horoscope Details</label>
+                              <textarea className="mp-textarea" rows={2} name="horoscopeDetails" value={formData.horoscopeDetails || ""} onChange={handleChange} placeholder="e.g. Moon in 7th house" />
+                            </div>
+                          </div>
                         </>
                       ) : (
                         <div className="mp-info-grid">
@@ -1231,10 +1333,12 @@ const MyProfilePage = () => {
                             ["Cultural Values", user.culturalValues],
                             ["Family Involvement", user.familyInvolvement],
                             ["Wedding Preferences", user.weddingPreferences],
+                            ["Horoscope Sign", formatEnum(user.horoscopeSign || user.horoscope?.sign)],
+                            ["Horoscope Details", user.horoscopeDetails || user.horoscope?.details],
                           ].map(([label, value]) => (
                             <div key={label} className="mp-info-item">
                               <span className="mp-info-label">{label}</span>
-                              <span className="mp-info-value">{value || "Not specified"}</span>
+                              <span className="mp-info-value" style={{ color: value ? "#4a3028" : "#9a7060" }}>{value || "Not specified"}</span>
                             </div>
                           ))}
                         </div>
@@ -1397,12 +1501,12 @@ const MyProfilePage = () => {
                       <label className="mp-form-label">Partner Age Range</label>
                       <div className="mp-form-grid">
                         <div>
-                          <p className="mp-range-label">Min: {(formData.partnerPreferences?.ageRange || [18, 60])[0]} yrs</p>
-                          <input type="range" min="18" max="60" value={(formData.partnerPreferences?.ageRange || [18, 60])[0]} onChange={e => { const v = +e.target.value; const cur = formData.partnerPreferences?.ageRange || [18, 60]; handleNestedChange("partnerPreferences", "ageRange", [v, Math.max(v, cur[1])]); }} />
+                          <p className="mp-range-label">Min: {(Array.isArray(formData.partnerPreferences?.ageRange) ? formData.partnerPreferences.ageRange : [formData.partnerPreferences?.minAge || 18, formData.partnerPreferences?.maxAge || 60])[0]} yrs</p>
+                          <input type="range" min="18" max="60" value={(Array.isArray(formData.partnerPreferences?.ageRange) ? formData.partnerPreferences.ageRange : [formData.partnerPreferences?.minAge || 18, formData.partnerPreferences?.maxAge || 60])[0]} onChange={e => { const v = +e.target.value; const cur = Array.isArray(formData.partnerPreferences?.ageRange) ? formData.partnerPreferences.ageRange : [formData.partnerPreferences?.minAge || 18, formData.partnerPreferences?.maxAge || 60]; handleNestedChange("partnerPreferences", "ageRange", [v, Math.max(v, cur[1])]); }} />
                         </div>
                         <div>
-                          <p className="mp-range-label">Max: {(formData.partnerPreferences?.ageRange || [18, 60])[1]} yrs</p>
-                          <input type="range" min="18" max="60" value={(formData.partnerPreferences?.ageRange || [18, 60])[1]} onChange={e => { const v = +e.target.value; const cur = formData.partnerPreferences?.ageRange || [18, 60]; handleNestedChange("partnerPreferences", "ageRange", [Math.min(v, cur[0]), v]); }} />
+                          <p className="mp-range-label">Max: {(Array.isArray(formData.partnerPreferences?.ageRange) ? formData.partnerPreferences.ageRange : [formData.partnerPreferences?.minAge || 18, formData.partnerPreferences?.maxAge || 60])[1]} yrs</p>
+                          <input type="range" min="18" max="60" value={(Array.isArray(formData.partnerPreferences?.ageRange) ? formData.partnerPreferences.ageRange : [formData.partnerPreferences?.minAge || 18, formData.partnerPreferences?.maxAge || 60])[1]} onChange={e => { const v = +e.target.value; const cur = Array.isArray(formData.partnerPreferences?.ageRange) ? formData.partnerPreferences.ageRange : [formData.partnerPreferences?.minAge || 18, formData.partnerPreferences?.maxAge || 60]; handleNestedChange("partnerPreferences", "ageRange", [Math.min(v, cur[0]), v]); }} />
                         </div>
                       </div>
                     </div>
@@ -1410,36 +1514,36 @@ const MyProfilePage = () => {
                       <label className="mp-form-label">Partner Height Range (cm)</label>
                       <div className="mp-form-grid">
                         <div>
-                          <p className="mp-range-label">Min: {(formData.partnerPreferences?.heightPreference || [150, 180])[0]} cm</p>
-                          <input type="range" min="140" max="200" value={(formData.partnerPreferences?.heightPreference || [150, 180])[0]} onChange={e => { const v = +e.target.value; const cur = formData.partnerPreferences?.heightPreference || [150, 180]; handleNestedChange("partnerPreferences", "heightPreference", [v, Math.max(v, cur[1])]); }} />
+                          <p className="mp-range-label">Min: {(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180])[0]} cm</p>
+                          <input type="range" min="140" max="200" value={(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180])[0]} onChange={e => { const v = +e.target.value; const cur = Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180]; handleNestedChange("partnerPreferences", "heightPreference", [v, Math.max(v, cur[1])]); }} />
                         </div>
                         <div>
-                          <p className="mp-range-label">Max: {(formData.partnerPreferences?.heightPreference || [150, 180])[1]} cm</p>
-                          <input type="range" min="140" max="200" value={(formData.partnerPreferences?.heightPreference || [150, 180])[1]} onChange={e => { const v = +e.target.value; const cur = formData.partnerPreferences?.heightPreference || [150, 180]; handleNestedChange("partnerPreferences", "heightPreference", [Math.min(v, cur[0]), v]); }} />
+                          <p className="mp-range-label">Max: {(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180])[1]} cm</p>
+                          <input type="range" min="140" max="200" value={(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180])[1]} onChange={e => { const v = +e.target.value; const cur = Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180]; handleNestedChange("partnerPreferences", "heightPreference", [Math.min(v, cur[0]), v]); }} />
                         </div>
                       </div>
                     </div>
                     <div className="mp-form-grid">
                       <div className="mp-form-group">
                         <label className="mp-form-label">Location Preference</label>
-                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).locationPreference || ""} onChange={e => handleNestedChange("partnerPreferences", "locationPreference", e.target.value)} placeholder="e.g. Colombo or willing to relocate" />
+                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).locationPreference || (formData.partnerPreferences || {}).location || ""} onChange={e => handleNestedChange("partnerPreferences", "locationPreference", e.target.value)} placeholder="e.g. Colombo or willing to relocate" />
                       </div>
                       <div className="mp-form-group">
                         <label className="mp-form-label">Education Preference</label>
-                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).educationLevel || ""} onChange={e => handleNestedChange("partnerPreferences", "educationLevel", e.target.value)} placeholder="e.g. Bachelor's or higher" />
+                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).educationLevel || (formData.partnerPreferences || {}).education || ""} onChange={e => handleNestedChange("partnerPreferences", "educationLevel", e.target.value)} placeholder="e.g. Bachelor's or higher" />
                       </div>
                       <div className="mp-form-group">
                         <label className="mp-form-label">Religion Preference</label>
-                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).religionPreference || ""} onChange={e => handleNestedChange("partnerPreferences", "religionPreference", e.target.value)} placeholder="e.g. Buddhist, Open to all" />
+                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).religionPreference || (formData.partnerPreferences || {}).religion || ""} onChange={e => handleNestedChange("partnerPreferences", "religionPreference", e.target.value)} placeholder="e.g. Buddhist, Open to all" />
                       </div>
                       <div className="mp-form-group">
                         <label className="mp-form-label">Marital Status Preference</label>
-                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).maritalStatusPreference || ""} onChange={e => handleNestedChange("partnerPreferences", "maritalStatusPreference", e.target.value)} placeholder="e.g. Never married" />
+                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).maritalStatusPreference || (formData.partnerPreferences || {}).maritalStatus || ""} onChange={e => handleNestedChange("partnerPreferences", "maritalStatusPreference", e.target.value)} placeholder="e.g. Never married" />
                       </div>
                     </div>
                     <div className="mp-form-group">
                       <label className="mp-form-label">Lifestyle Compatibility</label>
-                      <textarea className="mp-textarea" rows={2} value={(formData.partnerPreferences || {}).lifestyleCompatibility || ""} onChange={e => handleNestedChange("partnerPreferences", "lifestyleCompatibility", e.target.value)} placeholder="e.g. Health-conscious, non-smoker" />
+                      <textarea className="mp-textarea" rows={2} value={(formData.partnerPreferences || {}).lifestyleCompatibility || (formData.partnerPreferences || {}).lifestyle || ""} onChange={e => handleNestedChange("partnerPreferences", "lifestyleCompatibility", e.target.value)} placeholder="e.g. Health-conscious, non-smoker" />
                     </div>
                     <div className="mp-form-group">
                       <label className="mp-form-label">Dealbreakers</label>
@@ -1454,18 +1558,28 @@ const MyProfilePage = () => {
                   <>
                     <div className="mp-info-grid">
                       {[
-                        ["Age Range", (user.partnerPreferences?.ageRange || []).length === 2 ? `${user.partnerPreferences.ageRange[0]} – ${user.partnerPreferences.ageRange[1]} years` : null],
-                        ["Height Range", user.partnerPreferences?.heightPreference?.length === 2 ? `${user.partnerPreferences.heightPreference[0]} – ${user.partnerPreferences.heightPreference[1]} cm` : null],
-                        ["Location", user.partnerPreferences?.locationPreference],
-                        ["Education", user.partnerPreferences?.educationLevel],
-                        ["Religion", user.partnerPreferences?.religionPreference],
-                        ["Marital Status", user.partnerPreferences?.maritalStatusPreference],
-                        ["Lifestyle Compatibility", user.partnerPreferences?.lifestyleCompatibility],
+                        ["Age Range", (() => {
+                          const p = user.partnerPreferences;
+                          if (Array.isArray(p?.ageRange) && p.ageRange.length === 2) return `${p.ageRange[0]} – ${p.ageRange[1]} years`;
+                          if (p?.minAge && p?.maxAge) return `${p.minAge} – ${p.maxAge} years`;
+                          return null;
+                        })()],
+                        ["Height Range", (() => {
+                          const p = user.partnerPreferences;
+                          if (Array.isArray(p?.heightPreference) && p.heightPreference.length === 2) return `${p.heightPreference[0]} – ${p.heightPreference[1]} cm`;
+                          if (p?.minHeight && p?.maxHeight) return `${p.minHeight} – ${p.maxHeight} cm`;
+                          return null;
+                        })()],
+                        ["Location", user.partnerPreferences?.locationPreference || user.partnerPreferences?.location],
+                        ["Education", user.partnerPreferences?.educationLevel || user.partnerPreferences?.education],
+                        ["Religion", formatEnum(user.partnerPreferences?.religionPreference || user.partnerPreferences?.religion)],
+                        ["Marital Status", formatEnum(user.partnerPreferences?.maritalStatusPreference || user.partnerPreferences?.maritalStatus)],
+                        ["Lifestyle Compatibility", user.partnerPreferences?.lifestyleCompatibility || user.partnerPreferences?.lifestyle],
                         ["Dealbreakers", user.dealbreakers],
                       ].map(([label, value]) => (
                         <div key={label} className="mp-info-item">
                           <span className="mp-info-label">{label}</span>
-                          <span className="mp-info-value">{value || "Not specified"}</span>
+                          <span className="mp-info-value" style={{ color: value ? "#4a3028" : "#9a7060" }}>{value || "Not specified"}</span>
                         </div>
                       ))}
                     </div>
@@ -1545,6 +1659,7 @@ const MyProfilePage = () => {
                   <div className="mp-privacy-title"><Lock size={16} style={{ color: "#8b4e2e" }} />Information Privacy</div>
                   {[
                     { label: "Show my income range", sub: "Display income information to others", type: "toggle", defaultChecked: false },
+                    { label: "Show horoscope details", sub: "Make detailed horoscope information visible", type: "toggle", defaultChecked: true },
                     { label: "Show family details", sub: "Display family background information", type: "toggle", defaultChecked: true },
                   ].map((item, i) => (
                     <div key={i} className="mp-privacy-row">

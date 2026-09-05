@@ -43,38 +43,6 @@ export const useReceivedLikes = () => {
   });
 };
 
-export const useLikeQuota = () => {
-  const { user, isAuthenticated } = useAuth();
-  const isPremium = Boolean(
-    user?.premium || 
-    user?.isPremium || 
-    user?.subscription?.plan === 'premium' || 
-    user?.subscription?.plan === 'PRO' || 
-    user?.subscription?.plan === 'VIP' ||
-    user?.role === 'PREMIUM'
-  );
-
-  return useQuery({
-    queryKey: ['likes', 'quota'],
-    queryFn: async () => {
-      const res = await LikeService.getLikeQuota();
-      if (res.success && res.data) {
-        return res.data;
-      }
-      return {
-        likeLimit: 15,
-        likesUsed: 0,
-        likesRemaining: 15,
-        canSendLike: true,
-        isPremium: false,
-        resetsAt: null,
-      };
-    },
-    enabled: !!isAuthenticated && !isPremium,
-    staleTime: 60_000,
-  });
-};
-
 export const useToggleLike = () => {
   const queryClient = useQueryClient();
 
@@ -207,9 +175,11 @@ export const useToggleLike = () => {
       // Always release the in-flight guard for this profile, regardless of outcome.
       pendingIds.current.delete(Number(profileId));
 
-      // Invalidate connections and like quota
+      // Invalidate connections only — a new like may have created a mutual match
+      // that needs to appear in the Connections page.
+      // We do NOT invalidate ['profiles'] or ['likes', 'sent'] — that would
+      // discard the reconciled cache state and cause an unnecessary re-fetch.
       queryClient.invalidateQueries({ queryKey: ['connections'] });
-      queryClient.invalidateQueries({ queryKey: ['likes', 'quota'] });
     },
   });
 };

@@ -408,7 +408,7 @@ const Footer = () => {
               <Link href="/register" className="ft-link">Join Free</Link>
               <Link href="/subscription" className="ft-link">Premium Plans</Link>
               <Link href="/verification" className="ft-link">NIC Verification</Link>
-              <Link href="/connections" className="ft-link">Mutual Matches</Link>
+              <Link href="/horoscope" className="ft-link">Horoscope Matching</Link>
               <Link href="/profile-boost" className="ft-link">Profile Boost</Link>
               <Link href="/gifting" className="ft-link">Send a Gift</Link>
             </nav>
@@ -437,7 +437,7 @@ const Footer = () => {
           </div>
           <div className="ft-trust-item">
             <StarIcon size={13} />
-            <span>Smart Compatibility</span>
+            <span>Horoscope Matching</span>
           </div>
           <div className="ft-trust-item">
             <HeartIcon size={13} />

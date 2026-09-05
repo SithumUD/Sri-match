@@ -91,8 +91,8 @@ const HelpCenterPage = () => {
           title: "Sending and receiving connection requests",
         },
         {
-          id: "compatibility-matching",
-          title: "Understanding compatibility scores",
+          id: "horoscope-matching",
+          title: "Understanding horoscope compatibility",
         },
         {
           id: "search-filters",

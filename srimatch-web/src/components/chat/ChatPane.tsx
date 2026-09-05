@@ -117,7 +117,7 @@ const ChatPane = ({
             </div>
             {messages.map(msg => (
               <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-1 duration-300">
-                <MessageBubble message={msg} isMine={String(msg.senderId) === String(currentUserId)} />
+                <MessageBubble message={msg} isMine={msg.senderId === currentUserId} />
               </div>
             ))}
           </>

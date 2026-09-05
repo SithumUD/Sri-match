@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { usePathname } from 'next/navigation';
 import { useAuth } from "../context/AuthContext";
 import MatchService from "../services/match.service";
@@ -10,18 +10,21 @@ import wsService from "../services/websocket.service";
 import { toast } from "sonner";
 import { X, Flag, Check, Loader2 } from "lucide-react";
 
+
 // Modular Components
 import ConversationList from "../components/chat/ConversationList";
 import ChatPane from "../components/chat/ChatPane";
 
 const MessagesPage = () => {
   const pathname = usePathname();
+  const queryParams = new URLSearchParams(location.search);
+  const initialUserId = queryParams.get("user");
+
   const { user, accessToken } = useAuth();
   
-  const [initialUserId, setInitialUserId] = useState<string | null>(null);
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [activeConversation, setActiveConversation] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [conversations, setConversations] = useState([]);
+  const [activeConversation, setActiveConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [message, setMessage] = useState("");
@@ -34,64 +37,9 @@ const MessagesPage = () => {
   const [reportLoading, setReportLoading] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      setInitialUserId(params.get("user"));
-    }
-  }, []);
-
-  /* ─── Fetch Conversations ────────────────────────────────────────────── */
-  const fetchConversations = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await MatchService.getMyMatches();
-      if (response.success) {
-        const convs = Array.isArray(response.data)
-          ? response.data
-          : response.data?.content || [];
-        setConversations(convs);
-        
-        // Handle initial user from query param or auto-select first
-        if (initialUserId) {
-          const target = convs.find((c: any) => 
-            String(c.otherUser?.id) === String(initialUserId) || 
-            String(c.otherUser?.userId) === String(initialUserId)
-          );
-          if (target) {
-            setActiveConversation(target);
-          } else if (convs.length > 0) {
-            setActiveConversation((prev: any) => prev || convs[0]);
-          }
-        } else if (convs.length > 0) {
-          setActiveConversation((prev: any) => prev || convs[0]);
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching conversations:", err);
-      toast.error("Failed to load conversations");
-    } finally {
-      setLoading(false);
-    }
-  }, [initialUserId]);
-
-  /* ─── Event Handlers ─────────────────────────────────────────────────── */
-  const handleIncomingMessage = useCallback((incomingMsg: any) => {
-    // If message is for the current active chat, add it to state
-    if (activeConversation && String(incomingMsg.senderId) === String(activeConversation.otherUser?.id)) {
-      setMessages(prev => [...prev, incomingMsg]);
-      // Mark as read via HTTP
-      ChatService.markAsRead(incomingMsg.id);
-    } else {
-      // Show notification if it's from someone else
-      toast.info(`New message from ${incomingMsg.senderName || 'someone'}`);
-      // Refresh conversations list to update order/previews
-      fetchConversations();
-    }
-  }, [activeConversation, fetchConversations]);
-
   /* ─── WebSocket Lifecycle ─────────────────────────────────────────────── */
   useEffect(() => {
+    // Only connect if we have a token
     if (accessToken) {
       wsService.connect(accessToken, () => {
         // Subscribe to private messages queue
@@ -106,30 +54,68 @@ const MessagesPage = () => {
     return () => {
       wsService.disconnect();
     };
-  }, [accessToken, fetchConversations, handleIncomingMessage]);
+  }, []);
+
+  /* ─── Fetch Conversations ────────────────────────────────────────────── */
+  const fetchConversations = async () => {
+    try {
+      setLoading(true);
+      const response = await MatchService.getMyMatches();
+      if (response.success) {
+        const convs = response.data.content || [];
+        setConversations(convs);
+        
+        // Handle initial user from query param or auto-select first
+        if (initialUserId) {
+          const target = convs.find(c => c.otherUser.id === initialUserId || c.otherUser.userId === initialUserId);
+          if (target) setActiveConversation(target);
+        } else if (convs.length > 0 && !activeConversation) {
+          setActiveConversation(convs[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching conversations:", err);
+      toast.error("Failed to load conversations");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /* ─── Fetch Message History ──────────────────────────────────────────── */
   useEffect(() => {
-    if (activeConversation?.id) {
+    if (activeConversation) {
       fetchMessages(activeConversation.id);
     }
   }, [activeConversation?.id]);
 
-  const fetchMessages = async (matchId: number | string) => {
+  const fetchMessages = async (matchId) => {
     try {
       setLoadingMessages(true);
       const response = await ChatService.getChatHistory(matchId);
       if (response.success) {
-        const raw = Array.isArray(response.data)
-          ? response.data
-          : response.data?.content || [];
-        // Reverse because backend sends newest first
-        setMessages([...raw].reverse());
+        // Reverse because backend usually sends newest first
+        setMessages((response.data.content || []).reverse());
       }
     } catch (err) {
       console.error("Error fetching messages:", err);
     } finally {
       setLoadingMessages(false);
+    }
+  };
+
+  /* ─── Event Handlers ─────────────────────────────────────────────────── */
+  const handleIncomingMessage = (incomingMsg) => {
+    // If message is for the current active chat, add it to state
+    // We check if it's from the other user in the active conversation
+    if (activeConversation && (incomingMsg.senderId === activeConversation.otherUser.id)) {
+      setMessages(prev => [...prev, incomingMsg]);
+      // Mark as read via HTTP
+      ChatService.markAsRead(incomingMsg.id);
+    } else {
+      // Show notification if it's from someone else
+      toast.info(`New message from ${incomingMsg.senderName || 'someone'}`);
+      // Refresh conversations list to show unread badges (if implemented in backend)
+      fetchConversations();
     }
   };
 
@@ -139,11 +125,16 @@ const MessagesPage = () => {
     const payload = {
       matchId: activeConversation.id,
       receiverId: activeConversation.otherUser.id,
-      content: message.trim(),
+      content: message,
       type: "TEXT"
     };
+
+    // Optimistic UI update or wait for backend? 
+    // Usually for STOMP we send via WS and wait for our own message back in /user/queue/messages
+    // BUT many backends only send to RECEIVER. So we send via WS and add to our own list.
     
     try {
+      // Send via HTTP (Backend requirement)
       const response = await ChatService.sendMessage(payload);
       
       if (response.success) {
@@ -154,13 +145,13 @@ const MessagesPage = () => {
       } else {
         toast.error(response.message || "Failed to send message");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to send message:", err);
-      toast.error(err.message || "Message delivery failed");
+      toast.error("Message delivery failed");
     }
   };
 
-  const handleReport = async (e: React.FormEvent) => {
+  const handleReport = async (e) => {
     e.preventDefault();
     if (!reportReason || !activeConversation) return;
     try {
@@ -177,7 +168,7 @@ const MessagesPage = () => {
         setReportReason("");
         setReportDesc("");
       }, 2000);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Failed to submit report");
     } finally {
       setReportLoading(false);
@@ -186,12 +177,14 @@ const MessagesPage = () => {
 
   const filteredConversations = useMemo(() => {
     return conversations.filter(c =>
-      (c.otherUser?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+      c.otherUser.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [conversations, searchTerm]);
 
   return (
     <div className="min-h-screen bg-[#fdf8f4] px-4 py-8 sm:px-6 lg:px-8 font-['DM_Sans']">
+      
+
       <div className="mx-auto max-w-[1100px]">
         <div className="mb-7">
           <h1 className="font-['Cormorant_Garamond'] text-[2rem] font-semibold text-[#2d1810] leading-tight">
@@ -218,7 +211,7 @@ const MessagesPage = () => {
             setMessage={setMessage}
             onSend={handleSendMessage}
             onReport={() => setShowReportModal(true)}
-            isPremium={Boolean(user?.premium || user?.isPremium || user?.role === 'PREMIUM')}
+            isPremium={user?.premium}
             currentUserId={user?.id}
           />
         </div>
@@ -230,7 +223,7 @@ const MessagesPage = () => {
           <div className="w-full max-w-md bg-white rounded-[22px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
             <div className="p-7">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-['Cormorant_Garamond'] text-[1.5rem] font-bold text-[#2d1810]">Report {activeConversation?.otherUser?.name}</h3>
+                <h3 className="font-['Cormorant_Garamond'] text-[1.5rem] font-bold text-[#2d1810]">Report {activeConversation?.otherUser.name}</h3>
                 <button 
                   onClick={() => !reportLoading && setShowReportModal(false)}
                   className="h-8 w-8 flex items-center justify-center rounded-full bg-[#f5ede5] text-[#8b4e2e] hover:bg-[#ebdccf] transition-colors"

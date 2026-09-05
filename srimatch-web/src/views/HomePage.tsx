@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useToggleLike, useLikeQuota } from "../hooks/useLikes";
+import { useToggleLike } from "../hooks/useLikes";
 import { useSubscription } from "../hooks/useSubscription";
 import { useProfiles } from "../hooks/useProfiles";
 import { Loader2, Search as SearchIcon } from "lucide-react";
@@ -24,6 +24,7 @@ const PROFILE_OPTIONS = {
   smoking: ["Never", "Occasionally", "Regularly", "Trying to Quit"],
   drinking: ["Never", "Socially", "Occasionally", "Regularly"],
   dietary: ["Vegetarian", "Vegan", "Non Vegetarian", "Pescatarian", "No Preference"],
+  horoscope: ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"],
   districts: ["Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", "Mannar", "Matale", "Matara", "Moneragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"],
   interests: ["Music", "Travel", "Photography", "Reading", "Movies", "Gaming", "Cooking", "Sports", "Yoga", "Dancing"],
   industries: ["Technology", "Healthcare", "Finance", "Education", "Engineering", "Arts", "Government", "Other"],
@@ -46,7 +47,6 @@ const SORT_OPTIONS = [
 const HomePage = () => {
   const { user: currentUser } = useAuth();
   const { mutate: mutateToggleLike } = useToggleLike();
-  const { data: likeQuota } = useLikeQuota();
   const { data: subscription = {} } = useSubscription();
 
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -58,7 +58,7 @@ const HomePage = () => {
     city: "", ethnicity: "", religion: "", education: "",
     profession: "", industry: "", income: "", heightFrom: 140, heightTo: 220,
     bodyType: "", smoking: "", drinking: "", dietaryPreferences: "",
-    verified: false, interests: [],
+    verified: false, horoscopeSign: "", interests: [],
   });
 
   const {
@@ -76,9 +76,8 @@ const HomePage = () => {
   }, [data]);
 
   const totalCount = data?.pages[0]?.count || 0;
-  const isPremium = likeQuota?.isPremium ?? (subscription?.plan === "premium" || currentUser?.premium);
-  const likesRemaining = likeQuota ? likeQuota.likesRemaining : (subscription?.remainingLikes ?? 15);
-  const likeLimit = likeQuota?.likeLimit ?? 15;
+  const isPremium = subscription?.plan === "premium" || currentUser?.premium;
+  const likesRemaining = subscription?.remainingLikes ?? 5;
 
   // Infinite Scroll Observer
   const observer = useRef();
@@ -117,7 +116,7 @@ const HomePage = () => {
       city: "", ethnicity: "", religion: "", education: "",
       profession: "", industry: "", income: "", heightFrom: 140, heightTo: 220,
       bodyType: "", smoking: "", drinking: "", dietaryPreferences: "",
-      verified: false, interests: [],
+      verified: false, horoscopeSign: "", interests: [],
     });
   }, []);
 
@@ -143,7 +142,6 @@ const HomePage = () => {
           showAdvanced={showAdvanced}
           setShowAdvanced={setShowAdvanced}
           likesRemaining={likesRemaining}
-          likeLimit={likeLimit}
           options={PROFILE_OPTIONS}
         />
 

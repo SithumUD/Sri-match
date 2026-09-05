@@ -50,8 +50,8 @@ const AuthService = {
     /**
      * Resend verification email
      */
-    resendVerification: (email) => {
-        return API.post('/auth/resend-verification', email ? { email } : {});
+    resendVerification: () => {
+        return API.post('/auth/resend-verification');
     },
 
     /**

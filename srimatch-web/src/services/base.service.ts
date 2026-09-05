@@ -1,18 +1,9 @@
 import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import CookieService from './cookie.service';
 
-// Get base API URL
-const getBaseUrl = (): string => {
-    if (process.env.NEXT_PUBLIC_API_URL) {
-        const url = process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
-        return url.endsWith('/api/v1') ? url : (url.endsWith('/api') ? `${url}/v1` : `${url}/api/v1`);
-    }
-    return '/api/v1';
-};
-
 // Create Axios instance
 const API = axios.create({
-    baseURL: getBaseUrl(),
+    baseURL: '/api/v1',
     withCredentials: true,
     xsrfCookieName: 'XSRF-TOKEN',
     xsrfHeaderName: 'X-XSRF-TOKEN',

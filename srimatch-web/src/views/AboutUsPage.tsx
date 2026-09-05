@@ -1,6 +1,7 @@
 "use client";
+
 import React, { useState } from "react";
-import Link from "next/link";
+import Link from 'next/link';
 import Footer from "../components/Footer";
 import {
   HeartIcon,
@@ -313,13 +314,13 @@ const styles = `
     box-shadow: 0 16px 40px rgba(139,78,46,0.1);
   }
   .au-team-img-wrap {
-    height: 200px; overflow: hidden; position: relative;
+    height: 240px; overflow: hidden; position: relative;
   }
   .au-team-img {
-    width: 100%; height: 100%; object-fit: cover;
-    transition: transform 0.4s;
+    width: 100%; height: 100%; object-fit: cover; object-position: center 20%;
+    transition: transform 0.35s;
   }
-  .au-team-card:hover .au-team-img { transform: scale(1.05); }
+  .au-team-card:hover .au-team-img { transform: scale(1.04); }
   .au-team-img-overlay {
     position: absolute; inset: 0;
     background: linear-gradient(to top, rgba(61,31,18,0.5) 0%, transparent 50%);
@@ -435,37 +436,37 @@ const TEAM = [
     name: "Rajiv Perera",
     role: "CEO & Founder",
     bio: "Visionary leader with 15+ years in tech and a deep passion for Sri Lankan culture and community building.",
-    img: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auhref=format&fit=crop&w=400&q=80",
+    img: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80",
   },
   {
     name: "Priya Jayawardena",
     role: "Chief Technology Officer",
     bio: "Full-stack architect specialising in secure, scalable platforms. Former lead engineer at a top Colombo fintech.",
-    img: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auhref=format&fit=crop&w=400&q=80",
+    img: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80",
   },
   {
     name: "Dinesh Fernando",
     role: "Chief Marketing Officer",
     bio: "Digital marketing strategist with expertise in growing Sri Lankan consumer brands across local and diaspora audiences.",
-    img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auhref=format&fit=crop&w=400&q=80",
+    img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=400&q=80",
   },
   {
     name: "Nimali Senanayake",
     role: "Head of Member Success",
     bio: "Relationship counsellor and community manager dedicated to ensuring every member feels heard, safe, and supported.",
-    img: "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auhref=format&fit=crop&w=400&q=80",
+    img: "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=400&q=80",
   },
   {
     name: "Kasun Wickramasinghe",
     role: "Lead Designer",
     bio: "Award-winning UX/UI designer crafting elegant, culturally resonant experiences that feel distinctly Sri Lankan.",
-    img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auhref=format&fit=crop&w=400&q=80",
+    img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
   },
   {
     name: "Tharushi Mendis",
-    role: "Family & Culture Advisor",
-    bio: "Relationship counselor ensuring our compatibility matching honours authentic Sri Lankan family values.",
-    img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auhref=format&fit=crop&w=400&q=80",
+    role: "Astrology & Culture Advisor",
+    bio: "Certified Jyotisha practitioner ensuring our horoscope matching honours authentic Sri Lankan astrological traditions.",
+    img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
   },
 ];
 
@@ -596,8 +597,8 @@ const AboutUsPage = () => {
                 {
                   year: "2022",
                   icon: <StarIcon size={16} style={{ color: "#e8c97a" }} />,
-                  heading: "Smart Matching Goes Live",
-                  text: "We partnered with relationship experts and cultural advisors to build our compatibility engine — honouring traditions and values that thousands of Sri Lankan families rely on when considering a match.",
+                  heading: "Horoscope Matching Goes Live",
+                  text: "We partnered with certified Jyotisha practitioners to build our horoscope compatibility engine — honouring a tradition that thousands of Sri Lankan families rely on when considering a match.",
                 },
                 {
                   year: "2023",
@@ -642,11 +643,7 @@ const AboutUsPage = () => {
             <div className="au-diff-grid">
               {[
                 { icon: <ShieldCheckIcon size={22} color="#fff" />, title: "NIC Verified Profiles", text: "Every member can get verified using their National Identity Card, giving you confidence that every profile you see is real and trustworthy." },
-                {
-                icon: <StarIcon size={22} color="#fff" />,
-                title: "Smart Compatibility",
-                text: "Deep cultural and lifestyle compatibility built right into the platform — a feature your parents will appreciate as much as you do.",
-              },
+                { icon: <StarIcon size={22} color="#fff" />, title: "Horoscope Matching", text: "Traditional astrological compatibility built right into the platform — a feature your parents will appreciate as much as you do." },
                 { icon: <UsersIcon size={22} color="#fff" />, title: "Cultural Compatibility", text: "Religion, ethnicity, caste preferences, and family values are first-class matching criteria — because they matter here." },
                 { icon: <GlobeIcon size={22} color="#fff" />, title: "Worldwide Sri Lankan Community", text: "Colombo, London, Toronto, or Sydney — our community spans the globe so distance is never a barrier to love." },
                 { icon: <LockIcon size={22} color="#fff" />, title: "Privacy & Data Security", text: "SSL encryption, granular privacy controls, and a strict no-data-selling policy. Your personal information is always yours." },
@@ -676,7 +673,7 @@ const AboutUsPage = () => {
                 { icon: <ShieldCheckIcon size={20} color="#fff" />, title: "Trust", text: "We earn trust through transparency, rigorous verification, and never compromising on member privacy." },
                 { icon: <SparklesIcon size={20} color="#fff" />, title: "Authenticity", text: "We encourage real, honest profiles and genuine conversations — because authenticity is the foundation of lasting love." },
                 { icon: <GlobeIcon size={20} color="#fff" />, title: "Inclusivity", text: "Sri Lanka is beautifully diverse. SriMatch welcomes all ethnicities, religions, and communities within our culture." },
-                { icon: <TrendingUpIcon size={20} color="#fff" />, title: "Innovation", text: "We continuously evolve our platform — AI matching, lifestyle discovery, video calling — always guided by member needs." },
+                { icon: <TrendingUpIcon size={20} color="#fff" />, title: "Innovation", text: "We continuously evolve our platform — AI matching, horoscope engines, video calling — always guided by member needs." },
                 { icon: <UsersIcon size={20} color="#fff" />, title: "Community", text: "We are more than an app. We are a community of Sri Lankans who believe love is worth celebrating." },
               ].map((v, i) => (
                 <div key={i} className="au-value-item">

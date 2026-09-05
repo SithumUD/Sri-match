@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { Filter, RefreshCw, Crown, Shield, ChevronDown, Heart } from 'lucide-react';
-import CityAutocomplete from '../common/CityAutocomplete';
 
 const FilterSidebar = ({ 
   filters, 
@@ -15,7 +14,6 @@ const FilterSidebar = ({
   showAdvanced, 
   setShowAdvanced, 
   likesRemaining,
-  likeLimit = 15,
   options
 }: any) => {
   return (
@@ -39,7 +37,7 @@ const FilterSidebar = ({
               <Crown size={13} className="text-[#d4a017]" /> Premium Filters
             </h4>
             <p className="mb-2.5 text-[0.73rem] leading-relaxed text-[#9a7060]">
-              Unlock education, income, lifestyle & value filters to find your ideal match faster.
+              Unlock education, income, lifestyle & horoscope filters to find your ideal match faster.
             </p>
             <Link href="/subscription" className="inline-block rounded-full bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] px-4 py-1.5 text-[0.75rem] font-medium text-white no-underline transition-opacity hover:opacity-90">
               Upgrade Now ✦
@@ -106,14 +104,11 @@ const FilterSidebar = ({
           <div className="mb-2.5 text-[0.7rem] font-semibold uppercase tracking-[0.09em] text-[#8b4e2e]">Location & Background</div>
           
           <label className="mb-1 block text-[0.77rem] font-medium text-[#4a3028]">City / Town</label>
-          <div className="mb-4">
-            <CityAutocomplete
-              value={filters.city}
-              onChange={(cityName) => onFilterChange({ target: { name: "city", value: cityName } })}
-              variant="filter"
-              placeholder="e.g. Colombo, Kandy"
-            />
-          </div>
+          <input 
+            name="city" value={filters.city} onChange={onFilterChange} 
+            className="mb-4 w-full rounded-lg border-[1.5px] border-[#e8ddd8] bg-[#fdf8f4] px-3 py-[0.52rem] font-['DM_Sans'] text-[0.81rem] text-[#2d1810] outline-none focus:border-[#c9856a]" 
+            placeholder="e.g. Colombo, Kandy" 
+          />
 
           <label className="mb-1 block text-[0.77rem] font-medium text-[#4a3028]">Religion</label>
           <select 
@@ -259,9 +254,18 @@ const FilterSidebar = ({
             <div className="my-4 h-px bg-[#f0ddd5]" />
 
             <div className="mb-[1.1rem]">
-              <div className="mb-2.5 text-[0.7rem] font-semibold uppercase tracking-[0.09em] text-[#8b4e2e]">Interests & Hobbies</div>
+              <div className="mb-2.5 text-[0.7rem] font-semibold uppercase tracking-[0.09em] text-[#8b4e2e]">Horoscope & Interests</div>
               
-              <label className="mb-2 block text-[0.77rem] font-medium text-[#4a3028]">Interests</label>
+              <label className="mb-1 block text-[0.77rem] font-medium text-[#4a3028]">Horoscope Sign</label>
+              <select 
+                name="horoscopeSign" value={filters.horoscopeSign} onChange={onFilterChange} 
+                className="mb-4 w-full appearance-none rounded-lg border-[1.5px] border-[#e8ddd8] bg-[#fdf8f4] bg-[url('data:image/svg+xml,%3Csvg_xmlns=%27http://www.w3.org/2000/svg%27_width=%2710%27_height=%277%27_viewBox=%270_0_10_7%27%3E%3Cpath_fill=%27%23c9856a%27_d=%27M0_0l5_7_5-7z%27/%3E%3C/svg%3E')] bg-[position:right_0.75rem_center] bg-no-repeat px-3 py-[0.52rem] pr-8 font-['DM_Sans'] text-[0.81rem] text-[#2d1810] outline-none transition-colors focus:border-[#c9856a]"
+              >
+                <option value="">Any Sign</option>
+                {options.horoscope.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+
+              <label className="mb-2 mt-4 block text-[0.77rem] font-medium text-[#4a3028]">Interests</label>
               <div className="max-h-[110px] overflow-y-auto rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f4] p-2.5">
                 <div className="flex flex-wrap gap-1.5">
                   {options.interests.map(interest => (
@@ -284,12 +288,12 @@ const FilterSidebar = ({
           <div className="mt-4 rounded-xl border border-[#f0ddd5] bg-[#fdf5ee] p-3.5">
             <div className="mb-2 flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-[0.78rem] font-medium text-[#4a3028]">
-                <Heart size={13} className="text-[#c9856a]" /> Likes Remaining
+                <Heart size={13} className="text-[#c9856a]" /> Daily Likes
               </span>
-              <span className="text-[0.78rem] font-semibold text-[#8b4e2e]">{likesRemaining} / {likeLimit || 15}</span>
+              <span className="text-[0.78rem] font-semibold text-[#8b4e2e]">{likesRemaining} / 5</span>
             </div>
             <div className="h-1 w-full overflow-hidden rounded-full bg-[#ede5e0]">
-              <div className="h-full bg-gradient-to-r from-[#8b4e2e] to-[#c9856a] transition-all duration-500" style={{ width: `${Math.min(100, (likesRemaining / (likeLimit || 15)) * 100)}%` }} />
+              <div className="h-full bg-gradient-to-r from-[#8b4e2e] to-[#c9856a] transition-all duration-500" style={{ width: `${(likesRemaining / 5) * 100}%` }} />
             </div>
             <p className="mt-2 text-[0.69rem] text-[#9a7060]">Upgrade to Premium for unlimited likes ✦</p>
           </div>

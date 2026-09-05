@@ -572,7 +572,13 @@ const SettingsPage = () => {
                       <Toggle />
                     </div>
 
-                    
+                    <div className="set-toggle-row">
+                      <div className="set-toggle-info">
+                        <p>Show horoscope details</p>
+                        <span>Make your detailed horoscope information visible to matches</span>
+                      </div>
+                      <Toggle defaultChecked />
+                    </div>
 
                     <div className="set-divider" />
                     <div className="set-subsection-title"><Shield size={11} />Blocking</div>
@@ -762,7 +768,7 @@ const SettingsPage = () => {
                     {!isPremium && (
                       <div className="set-info-box">
                         <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                        <span>Premium members find matches 3× faster. Unlock unlimited likes, voice & video calls, advanced filters, and value compatibility — starting from just $20/month.</span>
+                        <span>Premium members find matches 3× faster. Unlock unlimited likes, voice & video calls, advanced filters, and detailed horoscope compatibility — starting from just $20/month.</span>
                       </div>
                     )}
 
@@ -785,8 +791,9 @@ const SettingsPage = () => {
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginBottom: "1.25rem" }}>
                       {[
                         ["How do I edit my profile?", "Go to My Profile and tap the Edit button on any section to update your information."],
+                        ["How does horoscope matching work?", "We use traditional Sri Lankan astrological principles to calculate compatibility scores between horoscope charts."],
                         ["How can I get verified?", "Visit the Verification page and submit your NIC or passport for a trusted green badge on your profile."],
-                        ["How does matching work?", "Our algorithm considers preferences, interests, location, education, and lifestyle compatibility factors to suggest potential matches."],
+                        ["How does matching work?", "Our algorithm considers preferences, interests, location, and compatibility factors — including horoscope — to suggest potential matches."],
                       ].map(([q, a]) => (
                         <div key={q} className="set-faq-item">
                           <div className="set-faq-q">{q}</div>

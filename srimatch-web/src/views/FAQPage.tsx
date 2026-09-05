@@ -383,12 +383,12 @@ const FAQS = {
     {
       id: "g1",
       q: "What is SriMatch?",
-      a: "SriMatch is a matrimonial and dating platform built exclusively for Sri Lankans. We combine traditional values — family involvement, cultural and religious matching — with modern technology to help you find a life partner who truly understands where you come from.",
+      a: "SriMatch is a matrimonial and dating platform built exclusively for Sri Lankans. We combine traditional values — horoscope compatibility, family involvement, cultural and religious matching — with modern technology to help you find a life partner who truly understands where you come from.",
     },
     {
       id: "g2",
       q: "How is SriMatch different from other dating sites?",
-      a: "SriMatch is purpose-built for the Sri Lankan community. Unlike generic dating apps, we offer NIC-verified profiles, district-level location filters, family-assisted profile creation, and cultural compatibility criteria including religion, caste, and ethnicity. Every feature exists to honour Sri Lankan traditions.",
+      a: "SriMatch is purpose-built for the Sri Lankan community. Unlike generic dating apps, we offer NIC-verified profiles, traditional Jyotisha horoscope matching, district-level location filters, family-assisted profile creation, and cultural compatibility criteria including religion, caste, and ethnicity. Every feature exists to honour Sri Lankan traditions.",
     },
     {
       id: "g3",
@@ -398,7 +398,7 @@ const FAQS = {
     {
       id: "g4",
       q: "Can I use SriMatch for free?",
-      a: "Yes. The Free plan lets you create a profile, browse profiles, and send up to 5 connection requests per day. Upgrading to Premium unlocks unlimited likes, voice & video calls, advanced search filters, mutual matches, and much more.",
+      a: "Yes. The Free plan lets you create a profile, browse profiles, and send up to 5 connection requests per day. Upgrading to Premium unlocks unlimited likes, voice & video calls, horoscope reports, advanced search filters, and much more.",
     },
     {
       id: "g5",
@@ -410,7 +410,7 @@ const FAQS = {
     {
       id: "a1",
       q: "How do I create an account on SriMatch?",
-      a: "Click 'Create Free Account' on the homepage. Enter your name, email, and a password, then follow the guided profile builder — personal details, cultural background, lifestyle preferences, and photos. The more complete your profile, the better your matches.",
+      a: "Click 'Create Free Account' on the homepage. Enter your name, email, and a password, then follow the guided profile builder — personal details, cultural background, horoscope information, and photos. The more complete your profile, the better your matches.",
     },
     {
       id: "a2",
@@ -437,12 +437,12 @@ const FAQS = {
     {
       id: "m1",
       q: "How does SriMatch's matching algorithm work?",
-      a: "Our algorithm weighs your stated preferences — religion, ethnicity, education, profession, district, lifestyle, and age range — against those of other members. Premium members also receive prioritized profile visibility and enhanced discovery suggestions. The more complete your profile, the more accurate your matches.",
+      a: "Our algorithm weighs your stated preferences — religion, ethnicity, education, profession, district, lifestyle, and age range — against those of other members. Premium members also receive horoscope-weighted matching, where astrological compatibility influences suggestions. The more complete your profile, the more accurate your matches.",
     },
     {
       id: "m2",
-      q: "How does compatibility scoring work?",
-      a: "We evaluate shared preferences, lifestyle choices, education, and cultural criteria to calculate an intuitive compatibility score. Premium members receive detailed compatibility insights to help make informed decisions.",
+      q: "How does horoscope compatibility work?",
+      a: "We use traditional Sri Lankan Jyotisha astrological principles to calculate chart-to-chart compatibility. When both members have entered their birth date, time, and place, we compute a detailed compatibility score. Premium members receive the full report — a document many Sri Lankan families use as part of their decision-making process.",
     },
     {
       id: "m3",
@@ -491,7 +491,7 @@ const FAQS = {
     {
       id: "p1",
       q: "What does Premium membership include?",
-      a: "Premium unlocks: unlimited daily likes, voice & video calls, 50+ advanced search filters, monthly profile boost, see who liked you, incognito browsing, priority customer support, and the ability to send a message before a connection is accepted (3 messages per match).",
+      a: "Premium unlocks: unlimited daily likes, voice & video calls, detailed Jyotisha horoscope compatibility reports, 50+ advanced search filters, monthly profile boost, see who liked you, incognito browsing, priority customer support, and the ability to send a message before a connection is accepted (3 messages per match).",
     },
     {
       id: "p2",
@@ -623,7 +623,7 @@ const FAQPage = () => {
               <input
                 type="text"
                 className="faq-search-input"
-                placeholder="e.g. compatibility matching, NIC verification, cancel premium…"
+                placeholder="e.g. horoscope matching, NIC verification, cancel premium…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />

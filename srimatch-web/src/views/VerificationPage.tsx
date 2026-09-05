@@ -5,7 +5,6 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { AlertCircle, XCircle, Upload, Clock, Camera, CheckCircle, Info, X, Award, Lock, Star, ShieldCheck, QrCode, RefreshCw } from "lucide-react";
 import VerificationService from "../services/verification.service";
-import { compressImageClientSide } from "../utils/imageCompression.utils";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `

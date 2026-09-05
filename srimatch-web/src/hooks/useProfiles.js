@@ -51,16 +51,12 @@ export const useProfiles = (filters, sortOrder) => {
 
         // Premium filters (backend checks isPremium server-side)
         educationLevel:     mapEnum(filters.education),
-        profession:         filters.profession || null,
-        industry:           filters.industry || null,
         smokingHabits:      mapEnum(filters.smoking),
         drinkingHabits:     mapEnum(filters.drinking),
         dietaryPreference:  mapEnum(filters.dietaryPreferences),
         incomeRange:        filters.income || null,
         bodyType:           mapEnum(filters.bodyType),
-        interests:          Array.isArray(filters.interests) && filters.interests.length > 0
-                              ? filters.interests.join(',')
-                              : (typeof filters.interests === 'string' && filters.interests ? filters.interests : null),
+        horoscopeSign:      mapEnum(filters.horoscopeSign),
 
         // Height range
         minHeight:          filters.heightFrom !== 140 ? filters.heightFrom : null,

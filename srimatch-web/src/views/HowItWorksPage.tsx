@@ -371,7 +371,7 @@ const STEPS = [
       "Personal details — age, education, profession & district",
       "Cultural background — religion, ethnicity & family values",
       "Lifestyle preferences, hobbies & interests",
-      "Background details (education, career, and lifestyle)",
+      "Horoscope details (optional but highly recommended by families)",
       "Upload 3 or more clear, recent photos",
     ],
     tip: "✦  Complete profiles get 3× more connection requests",
@@ -395,11 +395,11 @@ const STEPS = [
     icon: <SearchIcon size={20} style={{ color: "#8b4e2e" }} />,
     label: "Browse Matches",
     heading: "Discover Compatible Profiles",
-    text: "Browse daily AI-powered match suggestions tailored to your preferences, or search with advanced filters. Our algorithm weighs cultural compatibility, location, education, and lifestyle.",
+    text: "Browse daily AI-powered match suggestions tailored to your preferences, or search with advanced filters. Our algorithm weighs cultural compatibility, location, education, lifestyle — and horoscope if you choose.",
     checks: [
       "Daily personalised match suggestions",
       "50+ search filters including district, religion & caste",
-      "Detailed compatibility highlights on every profile",
+      "Horoscope compatibility score on every profile",
       "Save favourites to revisit later",
       "See who's recently active for faster responses",
     ],
@@ -560,7 +560,7 @@ const HowItWorksPage = () => {
                 },
                 {
                   icon: <StarIcon size={22} color="#fff" />,
-                  title: "In-Depth Compatibility Highlights",
+                  title: "Detailed Horoscope Reports",
                   text: "Full Jyotisha chart-to-chart compatibility analysis — the kind of trusted report your family will rely on when considering a match.",
                 },
                 {
@@ -633,8 +633,8 @@ const HowItWorksPage = () => {
                 },
                 {
                   icon: <SparklesIcon size={20} color="#fff" />,
-                  title: "Complete Your Profile Details",
-                  text: "Adding complete details about your background and interests opens the door to members who share your values.",
+                  title: "Include Your Horoscope",
+                  text: "Even if you're undecided about astrology, adding your horoscope details opens the door to families who consider it important.",
                 },
                 {
                   icon: <MessageCircleIcon size={20} color="#fff" />,
@@ -691,7 +691,7 @@ const HowItWorksPage = () => {
             <div className="hiw-trust-row">
               <div className="hiw-trust-item"><CheckIcon size={12} /> Free to join</div>
               <div className="hiw-trust-item"><ShieldCheckIcon size={12} /> NIC verified profiles</div>
-              <div className="hiw-trust-item"><StarIcon size={12} /> Smart compatibility</div>
+              <div className="hiw-trust-item"><StarIcon size={12} /> Horoscope matching</div>
               <div className="hiw-trust-item"><ZapIcon size={12} /> Cancel anytime</div>
             </div>
           </div>

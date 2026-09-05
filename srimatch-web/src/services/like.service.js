@@ -39,13 +39,6 @@ const LikeService = {
      */
     checkInteraction: (targetProfileId) => {
         return API.get(`/likes/check/${targetProfileId}`);
-    },
-
-    /**
-     * Get current user's like quota and remaining likes
-     */
-    getLikeQuota: () => {
-        return API.get('/likes/quota');
     }
 };
 

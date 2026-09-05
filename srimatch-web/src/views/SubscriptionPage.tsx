@@ -29,14 +29,12 @@ import {
   BanknoteIcon,
   CreditCardIcon as CardIcon,
   ClockIcon,
-  VideoIcon,
-  ExternalLinkIcon,
 } from "lucide-react";
 import SubscriptionService from "../services/subscription.service";
 import PaymentService from "../services/payment.service";
 import BoostService from "../services/boost.service";
 import TikTokService from "../services/tiktok.service";
-import { compressImageClientSide } from "../utils/imageCompression.utils";
+import { VideoIcon, ExternalLinkIcon } from "lucide-react";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -646,6 +644,12 @@ const SubscriptionPage = () => {
       premium: "1 boost (5 days)",
     },
     {
+      name: "Horoscope Filter",
+      icon: <StarIcon size={14} style={{ color: "#d4a017" }} />,
+      free: false,
+      premium: true,
+    },
+    {
       name: "Verified Badge",
       icon: <ShieldCheckIcon size={14} style={{ color: "#5aaa7a" }} />,
       free: false,
@@ -679,7 +683,7 @@ const SubscriptionPage = () => {
       initials: "KP",
     },
     {
-      quote: "The value and preference compatibility features are wonderful — very important for our families. Premium was absolutely worth it.",
+      quote: "The horoscope compatibility feature is wonderful — very important for our families. Premium was absolutely worth it.",
       name: "Malini S.",
       loc: "Kandy",
       initials: "MS",
@@ -698,19 +702,8 @@ const SubscriptionPage = () => {
     },
   ];
 
-  const { user } = useAuth();
-  const isPremiumUser = Boolean(
-    user?.premium || 
-    user?.isPremium || 
-    user?.subscription?.plan === 'premium' || 
-    user?.role === 'PREMIUM'
-  );
-  const isPremium = activeSub?.status === "ACTIVE" || isPremiumUser;
-  const subscription = activeSub || (isPremiumUser ? {
-    packageName: "Premium Member",
-    status: "ACTIVE",
-    endDate: user?.premiumExpiryDate
-  } : {});
+  const isPremium = activeSub?.status === "ACTIVE";
+  const subscription = activeSub || {};
   const selectedPlanId = selectedPlan || (plans.length > 0 ? plans[0].id : null);
   const selectedPlanData = plans.find(p => p.id === selectedPlanId);
 
@@ -819,10 +812,6 @@ const SubscriptionPage = () => {
   const handleInitiateSubscription = async (planId) => {
     const targetPlanId = planId || selectedPlanId;
     if (!targetPlanId) return;
-    if (isPremium) {
-      alert("You already have an active Premium subscription! You cannot purchase another package until your current plan expires.");
-      return;
-    }
     if (hasPendingApproval) {
       alert("You already have a payment pending approval. Please wait for the admin to review it.");
       return;
@@ -1354,13 +1343,7 @@ const SubscriptionPage = () => {
                         <input 
                           type="file" 
                           accept="image/*,.pdf" 
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const compressed = await compressImageClientSide(file);
-                              setReceiptFile(compressed);
-                            }
-                          }}
+                          onChange={(e) => setReceiptFile(e.target.files[0])}
                           style={{ opacity: 0, position: 'absolute', inset: 0, cursor: 'pointer' }}
                           required
                           disabled={hasPendingApproval}
@@ -1496,13 +1479,7 @@ const SubscriptionPage = () => {
                         <input
                           type="file"
                           accept="image/*,.pdf"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const compressed = await compressImageClientSide(file);
-                              setBoostReceiptFile(compressed);
-                            }
-                          }}
+                          onChange={(e) => setBoostReceiptFile(e.target.files[0])}
                           style={{ opacity: 0, position: 'absolute', inset: 0, cursor: 'pointer' }}
                           required
                         />
@@ -1565,13 +1542,7 @@ const SubscriptionPage = () => {
                     <input
                       type="file"
                       accept="image/*,.pdf"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const compressed = await compressImageClientSide(file);
-                          setTiktokSlipFile(compressed);
-                        }
-                      }}
+                      onChange={e => setTiktokSlipFile(e.target.files[0])}
                       style={{ opacity: 0, position: 'absolute', inset: 0, cursor: 'pointer' }}
                       required
                     />

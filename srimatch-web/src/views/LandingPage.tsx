@@ -1,7 +1,8 @@
 "use client";
+
 import React, { useEffect, useState, useRef } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from "../context/AuthContext";
 import Footer from "../components/Footer";
 import {
@@ -89,7 +90,7 @@ const styles = `
 
   .lp-hero-bg {
     position: absolute; inset: 0;
-    background-image: url('https://images.unsplash.com/photo-1545289305-8c3aeeaade63?auhref=format&fit=crop&w=2940&q=80');
+    background-image: url('https://images.unsplash.com/photo-1545289305-8c3aeeaade63?auto=format&fit=crop&w=2940&q=80');
     background-size: cover; background-position: center;
     opacity: 0.08; pointer-events: none;
   }
@@ -477,8 +478,8 @@ const FAQS = [
     a: "SriMatch is designed specifically with Sri Lankan culture, traditions, and values in mind. It's ideal for Sri Lankans living both in Sri Lanka and abroad who are looking for a culturally compatible partner.",
   },
   {
-    q: "How does compatibility matching work?",
-    a: "We evaluate cultural alignment, preferences, lifestyle choices, and values to suggest the most suitable matches for meaningful connections.",
+    q: "How does horoscope compatibility work?",
+    a: "We use traditional Sri Lankan astrological principles to calculate compatibility between two horoscope charts. Premium members can view detailed compatibility reports, which many families consider an important factor in matrimonial decisions.",
   },
   {
     q: "How do I get my profile verified?",
@@ -490,23 +491,29 @@ const FAQS = [
   },
   {
     q: "Can I use SriMatch for free?",
-    a: "Yes! The Free plan lets you browse profiles, send up to 5 likes per day, and manage your profile. Upgrading to Premium unlocks unlimited likes, voice & video calls, advanced filters, mutual connections, and much more.",
+    a: "Yes! The Free plan lets you browse profiles, send up to 5 likes per day, and manage your profile. Upgrading to Premium unlocks unlimited likes, voice & video calls, advanced filters, horoscope matching, and much more.",
   },
   {
     q: "How does matching work?",
-    a: "Our algorithm considers your preferences, location, religion, education, lifestyle, and compatibility factors to surface the most relevant profiles. Premium members also benefit from priority discovery and placement.",
+    a: "Our algorithm considers your preferences, location, religion, education, lifestyle, and compatibility factors to surface the most relevant profiles. Premium members also benefit from horoscope-weighted matching and priority placement.",
   },
 ];
 
 /* ─── Component ──────────────────────────────────────────────────────────── */
 const LandingPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const router = useRouter();
   const [openFaq, setOpenFaq] = useState(null);
 
   useEffect(() => {
-    if (isAuthenticated) router.push("/home");
-  }, [isAuthenticated, router]);
+    if (isAuthenticated) {
+      if (user && user.profileCompleted === false) {
+        router.push("/profile-creation");
+      } else {
+        router.push("/home");
+      }
+    }
+  }, [isAuthenticated, user, router]);
 
   const toggleFaq = (i) => setOpenFaq(openFaq === i ? null : i);
 
@@ -548,7 +555,7 @@ const LandingPage = () => {
 
               <p className="lp-hero-subtitle">
                 SriMatch connects you with compatible partners who share your culture,
-                traditions, and values — with verified profiles, intelligent compatibility,
+                traditions, and values — with horoscope matching, verified profiles,
                 and a community built on trust.
               </p>
 
@@ -582,17 +589,17 @@ const LandingPage = () => {
               <div className="lp-mosaic">
                 <img
                   className="lp-mosaic-img a"
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auhref=format&fit=crop&w=400&q=80"
+                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80"
                   alt=""
                 />
                 <img
                   className="lp-mosaic-img b"
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auhref=format&fit=crop&w=400&q=80"
+                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80"
                   alt=""
                 />
                 <img
                   className="lp-mosaic-img c"
-                  src="https://images.unsplash.com/photo-1664575599736-c5197c684de0?auhref=format&fit=crop&w=400&q=80"
+                  src="https://images.unsplash.com/photo-1664575599736-c5197c684de0?auto=format&fit=crop&w=400&q=80"
                   alt=""
                 />
                 <div className="lp-mosaic-badge">
@@ -637,8 +644,8 @@ const LandingPage = () => {
                 },
                 {
                   icon: <StarIcon size={22} color="#fff" />,
-                  title: "Smart Compatibility",
-                  text: "Deep preference and lifestyle compatibility built right into the platform — helping you find partners aligned with your family values.",
+                  title: "Horoscope Matching",
+                  text: "Traditional astrological compatibility built right into the platform — a feature your parents will appreciate as much as you do.",
                 },
                 {
                   icon: <PhoneCallIcon size={22} color="#fff" />,
@@ -697,7 +704,7 @@ const LandingPage = () => {
                 {
                   n: "1",
                   title: "Create Your Profile",
-                  text: "Sign up free and complete your detailed profile — personal info, background, preferences, and photos.",
+                  text: "Sign up free and complete your detailed profile — personal info, horoscope, preferences, and photos.",
                 },
                 {
                   n: "2",
@@ -707,7 +714,7 @@ const LandingPage = () => {
                 {
                   n: "3",
                   title: "Browse Matches",
-                  text: "Explore compatible profiles filtered by your preferences, location, education, and lifestyle.",
+                  text: "Explore compatible profiles filtered by your preferences, location, and horoscope compatibility.",
                 },
                 {
                   n: "4",
@@ -740,7 +747,7 @@ const LandingPage = () => {
                   {[
                     { icon: <HeartIcon size={14} color="#f4a0a0" />, text: "Unlimited daily likes", sub: "No daily limit ever" },
                     { icon: <PhoneCallIcon size={14} color="#a0d0f4" />, text: "Voice & video calls", sub: "Secure in-app calling" },
-                    { icon: <StarIcon size={14} color="#e8c97a" />, text: "Value compatibility", sub: "Deep lifestyle analysis" },
+                    { icon: <StarIcon size={14} color="#e8c97a" />, text: "Horoscope compatibility", sub: "Detailed chart analysis" },
                     { icon: <SlidersIcon size={14} color="#c4f4a0" />, text: "Advanced search filters", sub: "50+ filter combinations" },
                     { icon: <TrendingUpIcon size={14} color="#f4c0a0" />, text: "Monthly profile boost", sub: "Featured at the top" },
                     { icon: <MessageCircleIcon size={14} color="#a0c4f4" />, text: "Message before connect", sub: "3 messages per match" },
@@ -775,7 +782,7 @@ const LandingPage = () => {
                   {[
                     { title: "See who liked you", sub: "Discover profiles that have already expressed interest in you — no guesswork." },
                     { title: "Priority matching", sub: "Your profile is shown first to compatible members who are most likely to respond." },
-                    { title: "Smart value alignment", sub: "In-depth compatibility analysis that ensures shared cultural and family principles." },
+                    { title: "Detailed horoscope reports", sub: "Full chart-to-chart compatibility analysis that your family will trust and respect." },
                     { title: "Incognito browsing", sub: "Explore profiles privately without appearing in their visitors list." },
                   ].map((item, i) => (
                     <div key={i} className="lp-premium-list-item">
@@ -811,45 +818,45 @@ const LandingPage = () => {
               {[
                 {
                   stars: "★★★★★",
-                  quote: "SriMatch helped us find each other based on our shared values and life goals. We're now happily married for 2 years!",
+                  quote: "SriMatch helped us find each other based on our traditional values and horoscope compatibility. We're now happily married for 2 years!",
                   name: "Priya & Sanjay",
                   loc: "Colombo, Sri Lanka",
-                  img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auhref=format&fit=crop&w=100&q=60",
+                  img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=60",
                 },
                 {
                   stars: "★★★★★",
                   quote: "The detailed profiles and verification process made us feel completely safe. We connected over shared interests and values, and got engaged last month!",
                   name: "Nimal & Kumari",
                   loc: "Kandy, Sri Lanka",
-                  img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auhref=format&fit=crop&w=100&q=60",
+                  img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=60",
                 },
                 {
                   stars: "★★★★★",
-                  quote: "The compatibility matching feature was incredibly accurate! Our families were so impressed with how well our values aligned. Thank you SriMatch!",
+                  quote: "The horoscope matching feature was incredibly accurate! Our families were so impressed with how well our charts aligned. Thank you SriMatch!",
                   name: "Dilshan & Malini",
                   loc: "Galle, Sri Lanka",
-                  img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auhref=format&fit=crop&w=100&q=60",
+                  img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=60",
                 },
                 {
                   stars: "★★★★★",
                   quote: "As a Sri Lankan living in London, I never thought I'd find someone who truly understood our culture. SriMatch connected me with my now-wife within weeks.",
                   name: "Roshan & Thilini",
                   loc: "London, UK",
-                  img: "https://images.unsplash.com/photo-1664575599736-c5197c684de0?auhref=format&fit=crop&w=100&q=60",
+                  img: "https://images.unsplash.com/photo-1664575599736-c5197c684de0?auto=format&fit=crop&w=100&q=60",
                 },
                 {
                   stars: "★★★★★",
                   quote: "The profile boost feature worked amazingly — I got so many more views and matched with my fiancée within a month. Absolutely worth upgrading!",
                   name: "Kasun & Nirmala",
                   loc: "Negombo, Sri Lanka",
-                  img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auhref=format&fit=crop&w=100&q=80",
+                  img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80",
                 },
                 {
                   stars: "★★★★★",
                   quote: "My parents were hesitant about online matrimony, but the NIC verification and family involvement features won them over completely.",
                   name: "Dinesh & Sandya",
                   loc: "Colombo, Sri Lanka",
-                  img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auhref=format&fit=crop&w=100&q=80",
+                  img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80",
                 },
               ].map((t, i) => (
                 <div key={i} className="lp-test-card">
@@ -920,7 +927,7 @@ const LandingPage = () => {
             <div className="lp-trust-row">
               <div className="lp-trust-item"><CheckIcon size={12} /> Free to join</div>
               <div className="lp-trust-item"><ShieldCheckIcon size={12} /> NIC verified profiles</div>
-              <div className="lp-trust-item"><StarIcon size={12} /> Smart compatibility</div>
+              <div className="lp-trust-item"><StarIcon size={12} /> Horoscope matching</div>
               <div className="lp-trust-item"><ZapIcon size={12} /> Cancel anytime</div>
             </div>
           </div>

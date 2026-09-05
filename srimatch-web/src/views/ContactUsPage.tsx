@@ -508,7 +508,7 @@ const ContactUsPage = () => {
             </h2>
             <p className="cu-section-sub">
               Our dedicated support team is ready to assist you with anything —
-              from account questions to profile verification.
+              from account questions to horoscope guidance.
             </p>
 
             <div className="cu-hours-card">
@@ -622,7 +622,7 @@ const ContactUsPage = () => {
                           <option value="account">Account Issues</option>
                           <option value="billing">Billing &amp; Payments</option>
                           <option value="verification">NIC Verification</option>
-                          <option value="compatibility">Compatibility & Matching</option>
+                          <option value="horoscope">Horoscope Matching</option>
                           <option value="technical">Technical Support</option>
                           <option value="feedback">Feedback &amp; Suggestions</option>
                           <option value="partnership">Business Partnerships</option>

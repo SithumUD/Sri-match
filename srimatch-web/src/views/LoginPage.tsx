@@ -174,9 +174,8 @@ const LoginPage = () => {
   };
 
   const handleResendOtp = async () => {
-    const targetEmail = loginData?.email || user?.email;
     try {
-      const result = await resendVerification(targetEmail);
+      const result = await resendVerification();
       if (result.success) {
         toast.success("New verification code sent!");
         if (showUnverifiedBox) {

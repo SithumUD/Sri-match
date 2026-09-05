@@ -1,7 +1,8 @@
 "use client";
+
 // ProfileCreationPage.jsx - Redesigned Luxury Version
 import React, { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
 import { useAuth } from "../context/AuthContext";
 import useProfileStore from "../store/useProfileStore";
 import {
@@ -25,6 +26,7 @@ const PROFILE_OPTIONS = {
   smoking: ["Never", "Occasionally", "Regularly", "Trying to Quit"],
   drinking: ["Never", "Socially", "Occasionally", "Regularly"],
   dietary: ["Vegetarian", "Vegan", "Non Vegetarian", "Pescatarian", "No Preference"],
+  horoscope: ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"],
   districts: ["Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", "Mannar", "Matale", "Matara", "Moneragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"],
   languages: ["Sinhala", "Tamil", "English", "French", "German", "Japanese", "Arabic"],
   industries: ["Technology", "Healthcare", "Finance", "Education", "Engineering", "Arts", "Government", "Other"],
@@ -33,7 +35,6 @@ const PROFILE_OPTIONS = {
 };
 
 import ProfileService from "../services/profile.service";
-import CityAutocomplete from "../components/common/CityAutocomplete";
 
 /* ─── Global styles ──────────────────────────────────────────────────────── */
 const styles = `
@@ -310,14 +311,13 @@ const styles = `
   .pc-submit-warn { text-align: center; font-size: 0.78rem; color: #c07030; margin-top: 0.75rem; }
 
   /* Review step */
-  .pc-review-profile { background: linear-gradient(135deg, #fdf5ee, #faf0f8); border-radius: 16px; padding: 1.5rem; }
-  .pc-review-avatar-wrap { display: flex; align-items: flex-start; gap: 1.25rem; margin-bottom: 1.5rem; }
-  .pc-review-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #c9856a; flex-shrink: 0; }
-  .pc-review-avatar-placeholder { width: 80px; height: 80px; border-radius: 50%; background: #ede5e0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .pc-review-name { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 600; color: #2d1810; }
-  .pc-review-sub { font-size: 0.82rem; color: #9a7060; margin-top: 0.2rem; }
-  .pc-review-score { font-size: 1.6rem; font-weight: 700; background: linear-gradient(135deg, #8b4e2e, #c9856a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-
+  .pc-review-profile { background: #fdf8f5; border: 1.5px solid #ede0d8; border-radius: 16px; padding: 1.3rem; margin-bottom: 1.25rem; }
+  .pc-review-avatar-wrap { display: flex; align-items: center; gap: 1.25rem; }
+  .pc-review-avatar { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2.5px solid #c9856a; display: block; flex-shrink: 0; box-shadow: 0 4px 12px rgba(139,78,46,0.15); }
+  .pc-review-avatar-placeholder { width: 72px; height: 72px; border-radius: 50%; background: #f0ddd5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 2px solid #ddd0c8; }
+  .pc-review-name { font-family: 'Cormorant Garamond', serif; font-size: 1.35rem; font-weight: 700; color: #2d1810; }
+  .pc-review-sub { font-size: 0.78rem; color: #9a7060; margin-top: 0.2rem; }
+  .pc-review-score { font-size: 1.4rem; font-weight: 700; color: #8b4e2e; }
   .pc-review-section { border-top: 1px solid #e8ddd8; padding-top: 1rem; margin-top: 1rem; }
   .pc-review-section-title { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #8b4e2e; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.65rem; }
   .pc-review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 1rem; }
@@ -423,7 +423,6 @@ const ProfileCreationPage = () => {
   const [dismissedTips, setDismissedTips] = useState({});
   const [showPreview, setShowPreview] = useState(false);
   const [verifications, setVerifications] = useState({ email: false, phone: false });
-  const [similarProfiles, setSimilarProfiles] = useState([]);
   const [savingDraft, setSavingDraft] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [photoValidationIssues, setPhotoValidationIssues] = useState([]);
@@ -486,7 +485,7 @@ const ProfileCreationPage = () => {
   /* ── Completion score ── */
   useEffect(() => {
     const fields = [
-      { key: "profileImages", w: 10, ok: v => v?.length > 0 },
+      { key: "profileImages", w: 10, ok: v => (v?.length > 0 || pendingImages.length > 0) },
       { key: "about", w: 10, ok: v => v?.length > 50 },
       { key: "interests", w: 10, ok: v => v?.length >= 3 },
       { key: "education", w: 8, ok: v => v },
@@ -496,13 +495,12 @@ const ProfileCreationPage = () => {
       { key: "firstName", w: 5, ok: v => v },
       { key: "gender", w: 5, ok: v => v },
       { key: "dateOfBirth", w: 5, ok: v => v },
-      { key: "district", w: 5, ok: v => v },
-      { key: "city", w: 5, ok: v => v },
+      { key: "city", w: 10, ok: v => v },
       { key: "maritalStatus", w: 6, ok: v => v },
     ];
     const score = fields.reduce((acc, f) => acc + (f.ok(profileCreationData[f.key]) ? f.w : 0), 0);
     setCompletionScore(Math.min(100, score));
-  }, [profileCreationData]);
+  }, [profileCreationData, pendingImages]);
 
   /* ── Auto-save draft ── */
   useEffect(() => {
@@ -522,15 +520,21 @@ const ProfileCreationPage = () => {
 
   /* ── Load draft on mount ── */
   useEffect(() => {
-    const raw = localStorage.getItem("profileDraft");
-    if (raw) {
-      const { data, step, ts } = JSON.parse(raw);
-      if (new Date() - new Date(ts) < 7 * 86400000) {
-        if (window.confirm("We found an incomplete profile draft. Continue where you left off?")) {
-          updateProfileCreationData(data);
-          setProfileCreationStep(step);
+    try {
+      const raw = localStorage.getItem("profileDraft");
+      if (raw) {
+        const { data, step, ts } = JSON.parse(raw);
+        if (new Date() - new Date(ts) < 7 * 86400000) {
+          if (window.confirm("We found an incomplete profile draft. Continue where you left off?")) {
+            if (data && typeof data === 'object') {
+              updateProfileCreationData(data);
+            }
+            setProfileCreationStep(Math.max(1, Math.min(8, Number(step) || 1)));
+          }
         }
       }
+    } catch {
+      localStorage.removeItem("profileDraft");
     }
   }, []);
 
@@ -547,16 +551,6 @@ const ProfileCreationPage = () => {
 
     if (!profileCreationData.profileImages) updateProfileCreationData({ profileImages: [] });
   }, [user, router]);
-
-  useEffect(() => {
-    if ((profileCreationData.interests || []).length > 0) {
-      setSimilarProfiles([
-        { id: 1, name: "Amila P.", matchScore: 85 },
-        { id: 2, name: "Dilini F.", matchScore: 78 },
-        { id: 3, name: "Nuwan S.", matchScore: 72 },
-      ]);
-    }
-  }, [profileCreationData.interests]);
 
   /* ── Handlers ── */
   const handleChange = (e) => {
@@ -577,37 +571,68 @@ const ProfileCreationPage = () => {
     const issues = [];
     if (file.size > 5 * 1024 * 1024) issues.push("File size too large (max 5 MB)");
     const url = URL.createObjectURL(file);
-    await new Promise(res => {
-      const img = new Image();
-      img.onload = () => {
-        if (img.width < 300) issues.push("Low resolution (min 300 px width)");
-        URL.revokeObjectURL(url);
-        res();
-      };
-      img.src = url;
-    });
+    try {
+      await new Promise(res => {
+        const img = new Image();
+        img.onload = () => {
+          if (img.width < 100) issues.push("Low resolution image");
+          URL.revokeObjectURL(url);
+          res();
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          res();
+        };
+        img.src = url;
+      });
+    } catch {
+      // fallback
+    }
     return issues;
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     
-    // Preliminary validation
-    const issues = await validatePhoto(file);
-    if (issues.length > 0) {
-      setPhotoValidationIssues(issues);
-      setCurrentImage(file);
-      setShowImageModal(true);
-      return;
+    const currentTotal = (profileCreationData.profileImages || []).length + pendingImages.length;
+    const availableSlots = Math.max(0, 6 - currentTotal);
+    const filesToAdd = files.slice(0, availableSlots);
+
+    if (files.length > availableSlots) {
+      alert(`You can only upload up to 6 photos. Adding the first ${availableSlots}.`);
     }
 
-    addPendingImage(file);
+    filesToAdd.forEach((file) => {
+      if (!file.type.startsWith("image/")) {
+        alert(`${file.name} is not a valid image file.`);
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} exceeds the 5 MB limit.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const previewUrl = event.target.result;
+        setPendingImages(prev => [...prev, { file, previewUrl }]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (e.target) {
+      e.target.value = "";
+    }
   };
 
   const addPendingImage = (file) => {
-    const previewUrl = URL.createObjectURL(file);
-    setPendingImages(prev => [...prev, { file, previewUrl }]);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const previewUrl = event.target.result;
+      setPendingImages(prev => [...prev, { file, previewUrl }]);
+    };
+    reader.readAsDataURL(file);
   };
 
   const performUpload = async (file) => {
@@ -675,8 +700,14 @@ const ProfileCreationPage = () => {
     }
   };
 
-  const nextStep = () => { setProfileCreationStep(s => s + 1); window.scrollTo(0, 0); };
-  const prevStep = () => { setProfileCreationStep(s => s - 1); window.scrollTo(0, 0); };
+  const nextStep = () => {
+    setProfileCreationStep(s => Math.min(8, (Number(s) || 1) + 1));
+    window.scrollTo(0, 0);
+  };
+  const prevStep = () => {
+    setProfileCreationStep(s => Math.max(1, (Number(s) || 1) - 1));
+    window.scrollTo(0, 0);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -725,30 +756,48 @@ const ProfileCreationPage = () => {
         hasChildren: profileCreationData.hasChildren,
         numberOfChildren: profileCreationData.numberOfChildren || 0,
         
-        district: profileCreationData.district,
         city: profileCreationData.city,
         placeOfBirth: profileCreationData.placeOfBirth,
         
         religion: mapEnum(profileCreationData.religion, 'religion'),
         ethnicity: mapEnum(profileCreationData.ethnicity, 'ethnicity'),
+        religiousPractices: profileCreationData.religiousPractices,
         languages: profileCreationData.languages || [],
         
         education: mapEnum(profileCreationData.education, 'education'),
+        fieldOfStudy: profileCreationData.fieldOfStudy,
         profession: profileCreationData.profession,
         industry: profileCreationData.industry,
+        employer: profileCreationData.employer,
+        workLocation: profileCreationData.workLocation,
         income: profileCreationData.income,
         
-        height: parseInt(profileCreationData.height) || null,
-        bodyType: mapEnum(profileCreationData.bodyType, 'bodyType'),
-        complexion: mapEnum(profileCreationData.complexion, 'complexion'),
+        height: profileCreationData.height ? parseInt(profileCreationData.height) : null,
+        bodyType: profileCreationData.bodyType?.toUpperCase(),
+        complexion: profileCreationData.complexion?.toUpperCase(),
         
         smoking: mapEnum(profileCreationData.smoking, 'smoking'),
         drinking: mapEnum(profileCreationData.drinking, 'drinking'),
         dietaryPreferences: mapEnum(profileCreationData.dietaryPreferences, 'dietary'),
+        healthHabits: profileCreationData.healthHabits,
+        lifestyle: profileCreationData.lifestyle,
+        
+        familyBackground: profileCreationData.familyBackground,
+        culturalValues: profileCreationData.culturalValues,
+        familyInvolvement: profileCreationData.familyInvolvement,
+        weddingPreferences: profileCreationData.weddingPreferences,
+        horoscopeSign: mapEnum(profileCreationData.horoscopeSign, 'horoscope'),
+        birthStar: profileCreationData.birthStar,
+        horoscopeDetails: profileCreationData.horoscopeDetails,
         
         about: profileCreationData.about,
         interests: profileCreationData.interests || [],
+        favoriteThings: profileCreationData.favoriteThings || {},
+        travelPreferences: profileCreationData.travelPreferences,
+        personalityTraits: profileCreationData.personalityTraits,
+        
         partnerPreferences: profileCreationData.partnerPreferences || {},
+        dealbreakers: profileCreationData.dealbreakers,
         quizAnswers: quizAnswers || {},
       };
 
@@ -810,7 +859,10 @@ const ProfileCreationPage = () => {
 
   /* ── Step content ── */
   const renderStep = () => {
-    const step = profileCreationStep;
+    const stepNum = Math.max(1, Math.min(8, Number(profileCreationStep) || 1));
+    const currentStepMeta = STEPS[stepNum - 1] || STEPS[0];
+    const StepIcon = currentStepMeta.icon || User;
+    const step = stepNum;
 
     return (
       <div>
@@ -818,9 +870,9 @@ const ProfileCreationPage = () => {
         <div className="pc-step-header">
           <div className="pc-step-badge">
             <div className="pc-step-icon-wrap">
-              {React.createElement(STEPS[step - 1].icon, { size: 18, style: { color: "#8b4e2e" } })}
+              <StepIcon size={18} style={{ color: "#8b4e2e" }} />
             </div>
-            <h2 className="pc-step-title">{STEPS[step - 1].label}</h2>
+            <h2 className="pc-step-title">{currentStepMeta.label}</h2>
           </div>
           <span className="pc-step-count">Step {step} of 8</span>
         </div>
@@ -854,23 +906,28 @@ const ProfileCreationPage = () => {
                 ))}
                 
                 {/* Pending Local Images */}
-                {pendingImages.map((item, i) => (
-                  <div key={`local-${i}`} className="pc-photo-item pc-pending-photo">
-                    <img src={item.previewUrl} alt="Pending" className="pc-photo-img" style={{ opacity: 0.7 }} />
-                    <div className="pc-photo-overlay visible">
-                      <button type="button" className="pc-photo-action" style={{ background: "#c0392b" }} onClick={() => removeImage((profileCreationData.profileImages || []).length + i)} title="Remove">
-                        <X size={13} color="#fff" />
-                      </button>
+                {pendingImages.map((item, i) => {
+                  const isPrimary = (profileCreationData.profileImages || []).length === 0 && i === 0;
+                  return (
+                    <div key={`local-${i}`} className={`pc-photo-item${isPrimary ? " pc-photo-ring" : ""}`}>
+                      <img src={item.previewUrl} alt={`Selected ${i + 1}`} className="pc-photo-img" style={{ opacity: 1 }} />
+                      <div className="pc-photo-overlay">
+                        <button type="button" className="pc-photo-action" style={{ background: "#c0392b" }} onClick={() => removeImage((profileCreationData.profileImages || []).length + i)} title="Remove">
+                          <X size={13} color="#fff" />
+                        </button>
+                      </div>
+                      <div className="pc-photo-badge" style={{ background: isPrimary ? "linear-gradient(135deg, #8b4e2e, #c9856a)" : "#6b4a3a" }}>
+                        {isPrimary ? "Primary" : "Ready"}
+                      </div>
                     </div>
-                    <div className="pc-photo-badge" style={{ background: "#9a7060" }}>Pending</div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {( (profileCreationData.profileImages || []).length + pendingImages.length ) < 6 && (
-                  <label className="pc-upload-slot">
-                    <Upload size={20} style={{ color: "#c9856a" }} />
+                  <label className="pc-upload-slot" style={{ cursor: "pointer" }}>
+                    <Upload size={22} style={{ color: "#c9856a" }} />
                     <span>Upload Photo<br />JPG/PNG · max 5 MB</span>
-                    <input ref={fileInputRef} type="file" hidden accept="image/jpeg,image/png,image/jpg" onChange={handleImageUpload} />
+                    <input ref={fileInputRef} type="file" hidden multiple accept="image/jpeg,image/png,image/jpg,image/webp" onChange={handleImageUpload} />
                   </label>
                 )}
               </div>
@@ -937,26 +994,14 @@ const ProfileCreationPage = () => {
           <>
             <div className="pc-grid-2">
               <div className="pc-field">
-                <label className="pc-label">District <span className="req">*</span></label>
-                <select name="district" value={profileCreationData.district || ""} onChange={handleChange} className="pc-select">
-                  <option value="">Select district</option>
-                  {(PROFILE_OPTIONS.districts || []).map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
+                <label className="pc-label">City / Current Town <span className="req">*</span></label>
+                <input name="city" type="text" value={profileCreationData.city || ""} onChange={handleChange} className="pc-input" placeholder="e.g. Colombo, Kandy, Galle" />
               </div>
               <div className="pc-field">
-                <label className="pc-label">City <span className="req">*</span></label>
-                <input name="city" type="text" value={profileCreationData.city || ""} onChange={handleChange} className="pc-input" placeholder="e.g. Colombo" />
+                <label className="pc-label">Place of Birth</label>
+                <input name="placeOfBirth" type="text" value={profileCreationData.placeOfBirth || ""} onChange={handleChange} className="pc-input" placeholder="e.g. Matara" />
               </div>
             </div>
-            <div className="pc-field">
-                <label className="pc-label">Place of Birth</label>
-                <CityAutocomplete
-                  value={profileCreationData.placeOfBirth || ""}
-                  onChange={(val) => updateProfileCreationData({ placeOfBirth: val })}
-                  placeholder="e.g. Matara, Kandy"
-                  variant="form"
-                />
-              </div>
             <div className="pc-grid-2">
               <div className="pc-field">
                 <label className="pc-label">Ethnicity</label>
@@ -980,15 +1025,22 @@ const ProfileCreationPage = () => {
             <div className="pc-field">
               <label className="pc-label">Languages Spoken <span className="hint">(select up to 5)</span></label>
               <div className="pc-chips-grid">
-                {(PROFILE_OPTIONS.languages || []).map(lang => (
-                  <button key={lang} type="button"
-                    className={`pc-chip${(profileCreationData.languages || []).includes(lang) ? " selected" : ""}`}
-                    onClick={() => {
-                      const cur = profileCreationData.languages || [];
-                      if (cur.includes(lang)) updateProfileCreationData({ languages: cur.filter(l => l !== lang) });
-                      else if (cur.length < 5) updateProfileCreationData({ languages: [...cur, lang] });
-                    }}>{lang}</button>
-                ))}
+                {(PROFILE_OPTIONS.languages || []).map(lang => {
+                  const rawLang = profileCreationData.languages;
+                  const cur = Array.isArray(rawLang) ? rawLang : typeof rawLang === 'string' ? rawLang.split(',').map(s => s.trim()).filter(Boolean) : [];
+                  const isSelected = cur.includes(lang);
+                  return (
+                    <button key={lang} type="button"
+                      className={`pc-chip${isSelected ? " selected" : ""}`}
+                      onClick={() => {
+                        if (isSelected) {
+                          updateProfileCreationData({ languages: cur.filter(l => l !== lang) });
+                        } else if (cur.length < 5) {
+                          updateProfileCreationData({ languages: [...cur, lang] });
+                        }
+                      }}>{lang}</button>
+                  );
+                })}
               </div>
             </div>
           </>
@@ -1120,41 +1172,23 @@ const ProfileCreationPage = () => {
               <label className="pc-label">Wedding Preferences</label>
               <textarea name="weddingPreferences" rows={2} value={profileCreationData.weddingPreferences || ""} onChange={handleChange} className="pc-textarea" placeholder="e.g. Traditional ceremony, intimate civil wedding, destination wedding" />
             </div>
-            
-
-            {/* Verification — email & phone only */}
-            <div className="pc-verify-card" style={{ marginTop: "1rem" }}>
-              <h4><Award size={16} style={{ color: "#c9856a" }} />Verification Badges</h4>
-              {!verifications.email && (
-                <div className="pc-verify-item" onClick={() => {}}>
-                  <div className="pc-verify-item-left">
-                    <div className="pc-verify-icon" style={{ background: "#f5e8ff" }}><Mail size={15} style={{ color: "#8b4e2e" }} /></div>
-                    <div><div className="pc-verify-title">Verify Email</div><div className="pc-verify-sub">Get the verified badge on your profile</div></div>
-                  </div>
-                  <span className="pc-verify-pts">+50 pts</span>
-                </div>
-              )}
-              {verifications.email && (
-                <div className="pc-verify-item" style={{ background: "#f0faf3" }}>
-                  <div className="pc-verify-item-left">
-                    <div className="pc-verify-icon" style={{ background: "#e0f5e8" }}><CheckCircle size={15} style={{ color: "#4a8a5e" }} /></div>
-                    <div><div className="pc-verify-title" style={{ color: "#4a8a5e" }}>Email Verified</div></div>
-                  </div>
-                  <CheckCircle size={16} style={{ color: "#4a8a5e" }} />
-                </div>
-              )}
-              {!verifications.phone && (
-                <div className="pc-verify-item" onClick={() => {}}>
-                  <div className="pc-verify-item-left">
-                    <div className="pc-verify-icon" style={{ background: "#e8f5ff" }}><Shield size={15} style={{ color: "#3a6ea8" }} /></div>
-                    <div><div className="pc-verify-title">Verify Phone</div><div className="pc-verify-sub">Add trust to your profile</div></div>
-                  </div>
-                  <span className="pc-verify-pts">+30 pts</span>
-                </div>
-              )}
-              <p style={{ fontSize: "0.72rem", color: "#9a7060", marginTop: "0.75rem" }}>
-                Verified profiles get 3× more matches and rank higher in search results.
-              </p>
+            <div className="pc-grid-2">
+              <div className="pc-field">
+                <label className="pc-label">Horoscope / Zodiac Sign</label>
+                <select name="horoscopeSign" value={profileCreationData.horoscopeSign || ""} onChange={handleChange} className="pc-select">
+                  <option value="">Select</option>
+                  {(PROFILE_OPTIONS.horoscope || []).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="pc-field">
+                <label className="pc-label">Birth Star / Nakshatra <span className="hint">(optional)</span></label>
+                <input name="birthStar" type="text" value={profileCreationData.birthStar || ""} onChange={handleChange} className="pc-input" placeholder="e.g. Ashwini" />
+              </div>
+            </div>
+            <div className="pc-field">
+              <label className="pc-label">Additional Horoscope Details</label>
+              <textarea name="horoscopeDetails" rows={2} value={profileCreationData.horoscopeDetails || ""} onChange={handleChange} className="pc-textarea" placeholder="Any astrological details relevant to match compatibility" />
+              <p className="pc-note gold"><Star size={11} />Horoscope compatibility is an important factor in Sri Lankan matrimony</p>
             </div>
           </>
         )}
@@ -1324,100 +1358,197 @@ const ProfileCreationPage = () => {
               <label className="pc-label">Dealbreakers</label>
               <textarea name="dealbreakers" rows={2} value={profileCreationData.dealbreakers || ""} onChange={handleChange} className="pc-textarea" placeholder="What are absolute no-gos? (e.g. smoking, dishonesty)" />
             </div>
-
-            {/* Similar profiles */}
-            {similarProfiles.length > 0 && (
-              <div style={{ marginTop: "1rem" }}>
-                <p style={{ fontSize: "0.8rem", fontWeight: 500, color: "#4a3028", marginBottom: "0.65rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                  <Users size={14} style={{ color: "#8b4e2e" }} />People with similar profiles
-                </p>
-                <div style={{ display: "flex", gap: "0.75rem" }}>
-                  {similarProfiles.map(p => (
-                    <div key={p.id} style={{ textAlign: "center", flexShrink: 0 }}>
-                      <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #ede5e0, #d4c0b8)", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-                        <User size={22} style={{ color: "#9a7060" }} />
-                        <div style={{ position: "absolute", top: -4, right: -4, background: "#5aaa7a", color: "#fff", fontSize: "0.6rem", fontWeight: 600, padding: "1px 4px", borderRadius: "99px" }}>{p.matchScore}%</div>
-                      </div>
-                      <p style={{ fontSize: "0.7rem", fontWeight: 500, marginTop: "0.35rem", color: "#4a3028" }}>{p.name}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </>
         )}
 
         {/* ─── STEP 8 — Review ─── */}
-        {step === 8 && (
-          <>
-            <div className="pc-review-profile">
-              <div className="pc-review-avatar-wrap">
-                {(profileCreationData.profileImages || []).length > 0 ? (
-                  <img src={profileCreationData.profileImage || profileCreationData.profileImages[0]} alt="Profile" className="pc-review-avatar" />
-                ) : (
-                  <div className="pc-review-avatar-placeholder"><User size={32} style={{ color: "#9a7060" }} /></div>
-                )}
-                <div style={{ flex: 1 }}>
-                  <div className="pc-review-name">{profileCreationData.firstName || user?.firstName} {profileCreationData.lastName || user?.lastName}</div>
-                  <div className="pc-review-sub">{calculateAge(profileCreationData.dateOfBirth)} yrs · {profileCreationData.gender || "—"} · {profileCreationData.city || "Location not set"}</div>
-                  <div style={{ display: "flex", gap: "0.35rem", marginTop: "0.4rem" }}>
-                    {verifications.email && <span style={{ fontSize: "0.68rem", background: "#e0f5e8", color: "#4a8a5e", padding: "2px 8px", borderRadius: "99px", fontWeight: 500 }}>✓ Email</span>}
-                    {verifications.phone && <span style={{ fontSize: "0.68rem", background: "#e0f5e8", color: "#4a8a5e", padding: "2px 8px", borderRadius: "99px", fontWeight: 500 }}>✓ Phone</span>}
+        {step === 8 && (() => {
+          const getImgUrl = (item) => {
+            if (!item) return null;
+            if (typeof item === 'string' && item.trim().length > 0) return item;
+            if (typeof item === 'object') {
+              return item.previewUrl || item.url || item.imageUrl || null;
+            }
+            return null;
+          };
+
+          const reviewAvatar = (pendingImages.length > 0 && getImgUrl(pendingImages[0]))
+            || getImgUrl(profileCreationData.profileImage)
+            || (Array.isArray(profileCreationData.profileImages) && profileCreationData.profileImages.length > 0 && getImgUrl(profileCreationData.profileImages[0]))
+            || getImgUrl(user?.profileImage)
+            || getImgUrl(user?.primaryImageUrl);
+
+          const allReviewImages = [
+            ...pendingImages.map(p => getImgUrl(p)),
+            ...(Array.isArray(profileCreationData.profileImages) ? profileCreationData.profileImages.map(img => getImgUrl(img)) : [])
+          ].filter(Boolean);
+
+          return (
+            <>
+              <div className="pc-review-profile">
+                <div className="pc-review-avatar-wrap">
+                  {reviewAvatar ? (
+                    <img src={reviewAvatar} alt="Profile" className="pc-review-avatar" />
+                  ) : (
+                    <div className="pc-review-avatar-placeholder"><User size={32} style={{ color: "#9a7060" }} /></div>
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <div className="pc-review-name">{profileCreationData.firstName || user?.firstName} {profileCreationData.lastName || user?.lastName}</div>
+                    <div className="pc-review-sub">{calculateAge(profileCreationData.dateOfBirth)} yrs · {profileCreationData.gender || "—"} · {profileCreationData.city || "Location not set"}</div>
+                    {allReviewImages.length > 1 && (
+                      <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.5rem" }}>
+                        {allReviewImages.map((src, idx) => (
+                          <img key={idx} src={src} alt={`Selected ${idx + 1}`} style={{ width: 34, height: 34, borderRadius: 6, objectFit: "cover", border: idx === 0 ? "1.5px solid #8b4e2e" : "1px solid #ddd0c8" }} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div className="pc-review-score">{completionScore}%</div>
+                    <div style={{ fontSize: "0.7rem", color: "#9a7060" }}>Complete</div>
                   </div>
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div className="pc-review-score">{completionScore}%</div>
-                  <div style={{ fontSize: "0.7rem", color: "#9a7060" }}>Complete</div>
-                </div>
-              </div>
 
-              <div style={{ maxHeight: "360px", overflowY: "auto" }}>
-                <div className="pc-review-section">
-                  <div className="pc-review-section-title"><User size={12} />Basic Information</div>
+              <div style={{ maxHeight: "420px", overflowY: "auto", paddingRight: "0.25rem" }}>
+                {/* 1. Basic & Location */}
+                <div className="pc-review-section" style={{ borderTop: "none", marginTop: 0, paddingTop: 0 }}>
+                  <div className="pc-review-section-title"><User size={13} />Basic Information & Location</div>
                   <div className="pc-review-grid">
-                    {[["Marital Status", profileCreationData.maritalStatus], ["Children", profileCreationData.hasChildren ? "Yes" : profileCreationData.hasChildren === false ? "No" : "—"], ["Religion", profileCreationData.religion], ["Ethnicity", profileCreationData.ethnicity]].map(([k, v]) => (
+                    {[
+                      ["Marital Status", profileCreationData.maritalStatus],
+                      ["Children", profileCreationData.hasChildren ? `Yes (${profileCreationData.numberOfChildren || 0})` : profileCreationData.hasChildren === false ? "No" : "—"],
+                      ["City", profileCreationData.city],
+                      ["Place of Birth", profileCreationData.placeOfBirth],
+                      ["Religion", profileCreationData.religion],
+                      ["Ethnicity", profileCreationData.ethnicity],
+                    ].map(([k, v]) => (
                       <div key={k} className="pc-review-item"><span>{k}:</span> {v || "—"}</div>
                     ))}
                     <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Languages:</span> {(profileCreationData.languages || []).join(", ") || "—"}</div>
+                    {profileCreationData.religiousPractices && (
+                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Religious Practices:</span> {profileCreationData.religiousPractices}</div>
+                    )}
                   </div>
                 </div>
 
+                {/* 2. Education & Career */}
                 <div className="pc-review-section">
-                  <div className="pc-review-section-title"><GraduationCap size={12} />Education & Career</div>
+                  <div className="pc-review-section-title"><GraduationCap size={13} />Education & Career</div>
                   <div className="pc-review-grid">
-                    {[["Education", profileCreationData.education], ["Profession", profileCreationData.profession], ["Industry", profileCreationData.industry], ["Work Location", profileCreationData.workLocation]].map(([k, v]) => (
+                    {[
+                      ["Education", profileCreationData.education],
+                      ["Field of Study", profileCreationData.fieldOfStudy],
+                      ["Profession", profileCreationData.profession],
+                      ["Industry", profileCreationData.industry],
+                      ["Employer", profileCreationData.employer],
+                      ["Work Location", profileCreationData.workLocation],
+                      ["Income Range", profileCreationData.income],
+                    ].map(([k, v]) => (
                       <div key={k} className="pc-review-item"><span>{k}:</span> {v || "—"}</div>
                     ))}
                   </div>
                 </div>
 
+                {/* 3. Physical & Lifestyle */}
                 <div className="pc-review-section">
-                  <div className="pc-review-section-title"><Heart size={12} />About Me</div>
-                  <p style={{ fontSize: "0.8rem", color: "#6b4a3a", lineHeight: 1.55 }}>{profileCreationData.about || "Not provided"}</p>
-                </div>
-
-                <div className="pc-review-section">
-                  <div className="pc-review-section-title"><Star size={12} />Interests</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                    {(profileCreationData.interests || []).map((it, i) => (
-                      <span key={i} style={{ background: "#fdf0e8", color: "#8b4e2e", fontSize: "0.72rem", padding: "0.25rem 0.6rem", borderRadius: "99px", fontWeight: 500 }}>{it}</span>
-                    ))}
-                    {!(profileCreationData.interests || []).length && <span style={{ color: "#b09080", fontSize: "0.8rem" }}>—</span>}
-                  </div>
-                </div>
-
-                <div className="pc-review-section">
-                  <div className="pc-review-section-title"><Target size={12} />Partner Preferences</div>
+                  <div className="pc-review-section-title"><Activity size={13} />Physical & Lifestyle</div>
                   <div className="pc-review-grid">
-                    {[["Age Range", (profileCreationData.partnerPreferences?.ageRange || []).join(" – ")], ["Location", profileCreationData.partnerPreferences?.locationPreference], ["Education", profileCreationData.partnerPreferences?.educationLevel], ["Religion", profileCreationData.partnerPreferences?.religionPreference]].map(([k, v]) => (
+                    {[
+                      ["Height", profileCreationData.height ? `${profileCreationData.height} cm` : "—"],
+                      ["Body Type", profileCreationData.bodyType],
+                      ["Complexion", profileCreationData.complexion],
+                      ["Dietary Preference", profileCreationData.dietaryPreferences],
+                      ["Smoking", profileCreationData.smoking],
+                      ["Drinking", profileCreationData.drinking],
+                    ].map(([k, v]) => (
                       <div key={k} className="pc-review-item"><span>{k}:</span> {v || "—"}</div>
                     ))}
+                    {profileCreationData.healthHabits && (
+                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Health & Fitness:</span> {profileCreationData.healthHabits}</div>
+                    )}
+                    {profileCreationData.lifestyle && (
+                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Lifestyle:</span> {profileCreationData.lifestyle}</div>
+                    )}
                   </div>
                 </div>
 
+                {/* 4. Cultural & Family Heritage */}
+                <div className="pc-review-section">
+                  <div className="pc-review-section-title"><Home size={13} />Cultural & Family Background</div>
+                  <div className="pc-review-grid">
+                    {[
+                      ["Horoscope Sign", profileCreationData.horoscopeSign],
+                      ["Birth Star", profileCreationData.birthStar],
+                    ].map(([k, v]) => (
+                      <div key={k} className="pc-review-item"><span>{k}:</span> {v || "—"}</div>
+                    ))}
+                    {profileCreationData.familyBackground && (
+                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Family Background:</span> {profileCreationData.familyBackground}</div>
+                    )}
+                    {profileCreationData.culturalValues && (
+                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Cultural Values:</span> {profileCreationData.culturalValues}</div>
+                    )}
+                    {profileCreationData.familyInvolvement && (
+                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Family Involvement:</span> {profileCreationData.familyInvolvement}</div>
+                    )}
+                    {profileCreationData.weddingPreferences && (
+                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Wedding Preferences:</span> {profileCreationData.weddingPreferences}</div>
+                    )}
+                    {profileCreationData.horoscopeDetails && (
+                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Horoscope Details:</span> {profileCreationData.horoscopeDetails}</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 5. About You */}
+                <div className="pc-review-section">
+                  <div className="pc-review-section-title"><Heart size={13} />About Me</div>
+                  <p style={{ fontSize: "0.8rem", color: "#6b4a3a", lineHeight: 1.55, marginBottom: "0.6rem" }}>{profileCreationData.about || "Not provided"}</p>
+                  
+                  <div style={{ marginBottom: "0.6rem" }}>
+                    <span style={{ fontSize: "0.76rem", fontWeight: 600, color: "#2d1810" }}>Interests: </span>
+                    <div style={{ display: "inline-flex", flexWrap: "wrap", gap: "0.35rem", verticalAlign: "middle", marginLeft: "0.3rem" }}>
+                      {(profileCreationData.interests || []).map((it, i) => (
+                        <span key={i} style={{ background: "#fdf0e8", color: "#8b4e2e", fontSize: "0.72rem", padding: "0.2rem 0.55rem", borderRadius: "99px", fontWeight: 500 }}>{it}</span>
+                      ))}
+                      {!(profileCreationData.interests || []).length && <span style={{ color: "#b09080", fontSize: "0.78rem" }}>—</span>}
+                    </div>
+                  </div>
+
+                  <div className="pc-review-grid">
+                    {profileCreationData.favoriteThings?.food && <div className="pc-review-item"><span>Fav Food:</span> {profileCreationData.favoriteThings.food}</div>}
+                    {profileCreationData.favoriteThings?.movies && <div className="pc-review-item"><span>Fav Movies/Shows:</span> {profileCreationData.favoriteThings.movies}</div>}
+                    {profileCreationData.personalityTraits && <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Personality:</span> {profileCreationData.personalityTraits}</div>}
+                    {profileCreationData.travelPreferences && <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Travel Style:</span> {profileCreationData.travelPreferences}</div>}
+                  </div>
+                </div>
+
+                {/* 6. Partner Preferences */}
+                <div className="pc-review-section">
+                  <div className="pc-review-section-title"><Target size={13} />Partner Preferences</div>
+                  <div className="pc-review-grid">
+                    {[
+                      ["Age Range", (profileCreationData.partnerPreferences?.ageRange || []).length ? `${profileCreationData.partnerPreferences.ageRange[0]} – ${profileCreationData.partnerPreferences.ageRange[1]} yrs` : "—"],
+                      ["Location Preference", profileCreationData.partnerPreferences?.locationPreference],
+                      ["Min Education", profileCreationData.partnerPreferences?.educationLevel],
+                      ["Religion Preference", profileCreationData.partnerPreferences?.religionPreference],
+                      ["Marital Status Preference", profileCreationData.partnerPreferences?.maritalStatusPreference],
+                    ].map(([k, v]) => (
+                      <div key={k} className="pc-review-item"><span>{k}:</span> {v || "—"}</div>
+                    ))}
+                    {profileCreationData.partnerPreferences?.lifestyleCompatibility && (
+                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Lifestyle Compatibility:</span> {profileCreationData.partnerPreferences.lifestyleCompatibility}</div>
+                    )}
+                    {profileCreationData.dealbreakers && (
+                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Dealbreakers:</span> {profileCreationData.dealbreakers}</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 7. Quiz Answers */}
                 {Object.keys(quizAnswers).length > 0 && (
                   <div className="pc-review-section">
-                    <div className="pc-review-section-title"><Zap size={12} />Compatibility Quiz</div>
+                    <div className="pc-review-section-title"><Zap size={13} />Compatibility Quiz</div>
                     {Object.entries(quizAnswers).map(([key, val]) => {
                       const q = compatibilityQuestions.find(q => q.id === key);
                       return q ? <div key={key} className="pc-review-item" style={{ marginBottom: "0.25rem" }}><span>{q.question}:</span> {val}</div> : null;
@@ -1446,7 +1577,7 @@ const ProfileCreationPage = () => {
               </p>
             )}
           </>
-        )}
+        )})()}
 
         {/* Navigation */}
         <div className="pc-nav">
@@ -1456,13 +1587,13 @@ const ProfileCreationPage = () => {
           {step < 8
             ? <button type="button" className="pc-btn-next" onClick={nextStep}>Next Step →</button>
             : (
-              <button type="submit" disabled={loading || completionScore < 70} className="pc-btn-submit">
+              <button type="submit" disabled={loading} className="pc-btn-submit">
                 {loading ? <><RefreshCw size={15} style={{ animation: "spin 0.8s linear infinite" }} />Completing…</> : <><CheckCircle size={15} />Complete Profile</>}
               </button>
             )}
         </div>
         {step === 8 && completionScore < 70 && (
-          <p className="pc-submit-warn">⚠ Please complete more sections to unlock better match results</p>
+          <p className="pc-submit-warn">⚠ Tip: A higher completion score helps you get better match results</p>
         )}
       </div>
     );
@@ -1537,7 +1668,7 @@ const ProfileCreationPage = () => {
         <div className="pc-card-wrap">
           <div className="pc-card">
             <div className="pc-card-inner">
-              <form onSubmit={handleSubmit} noValidate>
+              <form onSubmit={handleSubmit} onKeyDown={e => { if (e.key === 'Enter' && profileCreationStep < 8 && e.target.tagName !== 'TEXTAREA') e.preventDefault(); }} noValidate>
                 {renderStep()}
               </form>
             </div>
@@ -1561,6 +1692,8 @@ const ProfileCreationPage = () => {
                 <div style={{ textAlign: "center", marginBottom: "1rem" }}>
                   {(profileCreationData.profileImages || []).length > 0
                     ? <img src={profileCreationData.profileImage || profileCreationData.profileImages[0]} alt="preview" style={{ width: 90, height: 90, borderRadius: "50%", objectFit: "cover", border: "3px solid #c9856a" }} />
+                    : pendingImages.length > 0
+                    ? <img src={pendingImages[0].previewUrl} alt="preview" style={{ width: 90, height: 90, borderRadius: "50%", objectFit: "cover", border: "3px solid #c9856a" }} />
                     : <div style={{ width: 90, height: 90, borderRadius: "50%", background: "#ede5e0", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><User size={36} style={{ color: "#9a7060" }} /></div>}
                   <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.3rem", fontWeight: 600, marginTop: "0.5rem", color: "#2d1810" }}>
                     {profileCreationData.firstName || "Your Name"} {profileCreationData.lastName || ""}
