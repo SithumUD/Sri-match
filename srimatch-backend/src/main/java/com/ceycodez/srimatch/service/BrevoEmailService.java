@@ -4,6 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import sendinblue.ApiClient;
+import sendinblue.Configuration;
+import sendinblue.auth.ApiKeyAuth;
 import sibApi.TransactionalEmailsApi;
 import sibModel.SendSmtpEmail;
 import sibModel.SendSmtpEmailSender;
@@ -20,19 +23,33 @@ public class BrevoEmailService {
     @Value("${brevo.api.key:}")
     private String brevoApiKey;
 
+    @Value("${brevo.sender.email:sithumudayangaofficial@gmail.com}")
+    private String senderEmail;
+
+    @Value("${brevo.sender.name:SriMatch}")
+    private String senderName;
+
     private TransactionalEmailsApi apiInstance;
 
     @PostConstruct
     public void init() {
-        apiInstance = new TransactionalEmailsApi();
         if (brevoApiKey != null && !brevoApiKey.isBlank()) {
             try {
-                apiInstance.getApiClient().setApiKey(brevoApiKey);
-                log.info("Brevo Transactional Emails API initialized");
+                ApiClient defaultClient = Configuration.getDefaultApiClient();
+                ApiKeyAuth apiKey = (ApiKeyAuth) defaultClient.getAuthentication("api-key");
+                if (apiKey != null) {
+                    apiKey.setApiKey(brevoApiKey.trim());
+                } else {
+                    defaultClient.setApiKey(brevoApiKey.trim());
+                }
+                apiInstance = new TransactionalEmailsApi(defaultClient);
+                log.info("Brevo Transactional Emails API initialized successfully (Sender: {})", senderEmail);
             } catch (Exception e) {
                 log.warn("Failed to set Brevo API key: {}", e.getMessage());
+                apiInstance = new TransactionalEmailsApi();
             }
         } else {
+            apiInstance = new TransactionalEmailsApi();
             log.warn("No Brevo API key configured. Emails will be logged locally.");
         }
     }
@@ -44,8 +61,8 @@ public class BrevoEmailService {
         SendSmtpEmail email = new SendSmtpEmail();
 
         SendSmtpEmailSender sender = new SendSmtpEmailSender();
-        sender.setEmail("sithumudayangaofficial@gmail.com");
-        sender.setName("SriMatch");
+        sender.setEmail(senderEmail != null && !senderEmail.isBlank() ? senderEmail.trim() : "sithumudayangaofficial@gmail.com");
+        sender.setName(senderName != null && !senderName.isBlank() ? senderName.trim() : "SriMatch");
         email.setSender(sender);
 
         SendSmtpEmailTo to = new SendSmtpEmailTo();
@@ -78,8 +95,8 @@ public class BrevoEmailService {
         SendSmtpEmail email = new SendSmtpEmail();
 
         SendSmtpEmailSender sender = new SendSmtpEmailSender();
-        sender.setEmail("sithumudayangaofficial@gmail.com");
-        sender.setName("SriMatch");
+        sender.setEmail(senderEmail != null && !senderEmail.isBlank() ? senderEmail.trim() : "sithumudayangaofficial@gmail.com");
+        sender.setName(senderName != null && !senderName.isBlank() ? senderName.trim() : "SriMatch");
         email.setSender(sender);
 
         SendSmtpEmailTo to = new SendSmtpEmailTo();
