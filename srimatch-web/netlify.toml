@@ -33,13 +33,13 @@
 # Direct API Reverse Proxy to Backend
 [[redirects]]
   from = "/api/*"
-  to = "https://api.srimatch.lk/api/:splat"
+  to = "https://api.sithum-dev.online/api/:splat"
   status = 200
   force = true
-  headers = { X-Forwarded-Host = "srimatch.lk" }
+  headers = { X-Forwarded-Host = "sithum-dev.online" }
 
 [[redirects]]
   from = "/ws-chat/*"
-  to = "https://api.srimatch.lk/ws-chat/:splat"
+  to = "https://api.sithum-dev.online/ws-chat/:splat"
   status = 200
   force = true
