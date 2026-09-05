@@ -135,11 +135,22 @@ public class AuthenticationController {
     }
 
     @PostMapping("/resend-verification")
-    public ResponseEntity<ApiResponse<String>> resendVerification(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(401).body(new ApiResponse<>(false, "Unauthorized - You must be logged in", null));
+    public ResponseEntity<ApiResponse<String>> resendVerification(
+            @RequestBody(required = false) Map<String, String> body,
+            Authentication authentication
+    ) {
+        String email = null;
+        if (body != null && body.containsKey("email") && body.get("email") != null && !body.get("email").isBlank()) {
+            email = body.get("email").trim();
+        } else if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
+            email = authentication.getName();
         }
-        authenticationService.resendVerificationEmail(authentication.getName());
+
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.status(400).body(new ApiResponse<>(false, "Email is required to resend verification code", null));
+        }
+
+        authenticationService.resendVerificationEmail(email);
         return ResponseEntity.ok(new ApiResponse<>(true, "Verification email resent successfully.", null));
     }
 

@@ -17,7 +17,7 @@ interface AuthState {
     login: (email: string, password: string, captchaToken?: string | null, totpCode?: string | null) => Promise<any>;
     register: (userData: any) => Promise<any>;
     verifyEmail: (email: string, otp: string) => Promise<any>;
-    resendVerification: () => Promise<any>;
+    resendVerification: (email?: string) => Promise<any>;
     logout: (redirectTo?: string) => Promise<void>;
     adminLogin: (email: string, password: string, totpCode?: string | null) => Promise<any>;
     adminLogout: () => Promise<void>;
@@ -151,9 +151,10 @@ const useAuthStore = create<AuthState>((set, get) => ({
         }
     },
 
-    resendVerification: async () => {
+    resendVerification: async (email?: string) => {
         try {
-            const response = await AuthService.resendVerification();
+            const targetEmail = email || get().user?.email;
+            const response = await AuthService.resendVerification(targetEmail);
             if (response.success) {
                 return { success: true, message: response.message || "Verification email resent" };
             }

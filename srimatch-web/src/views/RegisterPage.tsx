@@ -160,7 +160,7 @@ const RegisterPage = () => {
 
   const handleResendOtp = async () => {
     try {
-      const result = await resendVerification();
+      const result = await resendVerification(formData.email);
       if (result.success) {
         toast.success("New verification code sent!");
       } else {
