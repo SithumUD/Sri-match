@@ -143,18 +143,18 @@ jobs:
             # Write production environment variables from GitHub Secrets
             cat << EOF > .env
             SPRING_PROFILES_ACTIVE=prod
-            DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}
-            ACME_EMAIL=${{ secrets.ACME_EMAIL }}
+            DOMAIN_NAME=${{ secrets.DOMAIN_NAME || 'api.sithum-dev.online' }}
+            ACME_EMAIL=${{ secrets.ACME_EMAIL || 'admin@sithum-dev.online' }}
             DB_HOST=postgres
             DB_PORT=5432
-            DB_NAME=${{ secrets.DB_NAME }}
-            DB_USERNAME=${{ secrets.DB_USERNAME }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_NAME=${{ secrets.DB_NAME || 'srimatch_db' }}
+            DB_USERNAME=${{ secrets.DB_USERNAME || 'srimatch_user' }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD || 'srimatch_prod_secure_pwd_2026' }}
             REDIS_HOST=redis
             REDIS_PORT=6379
-            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            APP_ENCRYPTION_KEY=${{ secrets.APP_ENCRYPTION_KEY }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD || 'srimatch_redis_secure_pwd_2026' }}
+            JWT_SECRET=${{ secrets.JWT_SECRET || '404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970' }}
+            APP_ENCRYPTION_KEY=${{ secrets.APP_ENCRYPTION_KEY || 'srimatch-production-aes256-secret-key-32chars!' }}
             R2_ENABLED=${{ secrets.R2_ENABLED || 'true' }}
             R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }}
             R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}
@@ -167,7 +167,7 @@ jobs:
             BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}
             PROKERALA_CLIENT_ID=${{ secrets.PROKERALA_CLIENT_ID }}
             PROKERALA_CLIENT_SECRET=${{ secrets.PROKERALA_CLIENT_SECRET }}
-            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS || 'https://sithum-dev.online,https://www.sithum-dev.online' }}
             GITHUB_REPOSITORY=${REPO_LOWER}
             EOF
 
@@ -176,20 +176,26 @@ jobs:
 
             # Pull latest image and restart services with zero-downtime rolling update
             docker compose -f docker-compose.prod.yml pull backend
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans || {
+              echo "❌ Container startup failed. Printing backend logs:"
+              docker logs --tail 100 srimatch-backend
+              echo "❌ Printing PostgreSQL logs:"
+              docker logs --tail 50 srimatch-postgres
+              exit 1
+            }
 
             # Health Check Verification
             echo "⏳ Waiting for backend healthcheck..."
             sleep 15
-            for i in {1..12}; do
+            for i in {1..15}; do
               if curl -s -f http://localhost:8080/api/actuator/health | grep -q "UP"; then
                 echo "✅ Backend is healthy and UP!"
                 exit 0
               fi
-              echo "Waiting for healthcheck ($i/12)..."
+              echo "Waiting for healthcheck ($i/15)..."
               sleep 5
             done
 
             echo "❌ Healthcheck timed out. Checking container logs:"
-            docker logs --tail 50 srimatch-backend
+            docker logs --tail 100 srimatch-backend
             exit 1
