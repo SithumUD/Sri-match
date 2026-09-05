@@ -178,7 +178,7 @@ jobs:
             docker compose -f docker-compose.prod.yml pull backend
             docker compose -f docker-compose.prod.yml up -d --remove-orphans || {
               echo "❌ Container startup failed. Printing backend logs:"
-              docker logs --tail 100 srimatch-backend
+              docker logs --tail 300 srimatch-backend
               echo "❌ Printing PostgreSQL logs:"
               docker logs --tail 50 srimatch-postgres
               exit 1
@@ -197,5 +197,5 @@ jobs:
             done
 
             echo "❌ Healthcheck timed out. Checking container logs:"
-            docker logs --tail 100 srimatch-backend
+            docker logs --tail 300 srimatch-backend
             exit 1
