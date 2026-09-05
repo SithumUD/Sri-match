@@ -173,8 +173,8 @@ public class Profile {
     @Builder.Default
     private List<String> interests = new ArrayList<>();
 
-    @Convert(converter = JsonMapConverter.class)
-    @Column(name = "favorite_things", columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "favorite_things", columnDefinition = "jsonb")
     @Builder.Default
     private Map<String, String> favoriteThings = new HashMap<>();
 
