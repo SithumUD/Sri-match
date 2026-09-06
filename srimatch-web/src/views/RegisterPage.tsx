@@ -57,7 +57,7 @@ const TurnstileWidget = ({ onVerify }: { onVerify: (token: string) => void }) =>
     }
 
     let isMounted = true;
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAAEpC8GS9grolKmHU";
 
     const interval = setInterval(() => {
       if ((window as any).turnstile && containerRef.current && !widgetIdRef.current) {
