@@ -1527,7 +1527,7 @@ const SubscriptionPage = () => {
               </button>
             </div>
             <div className="sp-modal-body">
-              <div style={{ background: '#faf5ff', borderRadius: 12, padding: '1rem', marginBottom: '1rem' }}>
+              <div style={{ background: '#faf5ff', borderRadius: 12, padding: '1rem', marginBottom: '1rem', border: '1px solid #f3e8ff' }}>
                 <div style={{ fontWeight: 700, color: '#6b21a8', marginBottom: '4px' }}>{selectedTiktokPkg.name}</div>
                 <div style={{ fontSize: '0.8rem', color: '#9a7060' }}>
                   Duration: {selectedTiktokPkg.durationDays} {selectedTiktokPkg.durationDays === 1 ? 'Day' : 'Days'} · Price: Rs. {Number(selectedTiktokPkg.price).toLocaleString()}
@@ -1535,6 +1535,28 @@ const SubscriptionPage = () => {
                 {selectedTiktokPkg.description && (
                   <div style={{ fontSize: '0.78rem', color: '#6b4a3a', marginTop: '6px' }}>{selectedTiktokPkg.description}</div>
                 )}
+              </div>
+
+              {/* Bank Transfer Details */}
+              <div style={{ background: '#fdf8f5', padding: '1rem', borderRadius: '12px', border: '1px solid #f0ddd5', marginBottom: '1.25rem' }}>
+                <h4 style={{ fontSize: '0.85rem', color: '#8b4e2e', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <BanknoteIcon size={16} /> Bank Transfer Details
+                </h4>
+                {bankDetails && bankDetails.length > 0 ? (
+                  bankDetails.map(bank => (
+                    <div key={bank.id} style={{ marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: '1px dashed #e8ddd8' }}>
+                      <p style={{ fontSize: '0.8rem', color: '#4a3028', margin: '2px 0' }}><strong>Bank:</strong> {bank.bankName}</p>
+                      <p style={{ fontSize: '0.8rem', color: '#4a3028', margin: '2px 0' }}><strong>Branch:</strong> {bank.branchName}</p>
+                      <p style={{ fontSize: '0.8rem', color: '#4a3028', margin: '2px 0' }}><strong>Account:</strong> {bank.accountNumber}</p>
+                      <p style={{ fontSize: '0.8rem', color: '#4a3028', margin: '2px 0' }}><strong>Name:</strong> {bank.accountHolderName}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ fontSize: '0.8rem', color: '#9a7060', marginBottom: '0.5rem' }}>No active bank details found. Please contact support.</p>
+                )}
+                <p style={{ fontSize: '0.75rem', color: '#9a7060', fontStyle: 'italic', margin: 0 }}>
+                  Please transfer <strong>Rs. {Number(selectedTiktokPkg.price).toLocaleString()}</strong> to any account above and upload the slip below.
+                </p>
               </div>
 
               <form onSubmit={handleTiktokSubmit}>
