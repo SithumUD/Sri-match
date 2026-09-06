@@ -40,13 +40,20 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedAdminUser() {
-        if (!userRepository.existsByEmail(defaultAdminEmail)) {
-            log.info("Creating default initial admin user: {}", defaultAdminEmail);
+        String email = (defaultAdminEmail != null && !defaultAdminEmail.isBlank())
+                ? defaultAdminEmail.trim()
+                : "admin@srimatch.lk";
+        String password = (defaultAdminPassword != null && !defaultAdminPassword.isBlank())
+                ? defaultAdminPassword.trim()
+                : "Admin@123";
+
+        if (!userRepository.existsByEmail(email)) {
+            log.info("Creating default initial admin user: {}", email);
             User admin = User.builder()
-                    .firstName(defaultAdminFirstName)
-                    .lastName(defaultAdminLastName)
-                    .email(defaultAdminEmail)
-                    .password(passwordEncoder.encode(defaultAdminPassword))
+                    .firstName(defaultAdminFirstName != null && !defaultAdminFirstName.isBlank() ? defaultAdminFirstName : "Admin")
+                    .lastName(defaultAdminLastName != null && !defaultAdminLastName.isBlank() ? defaultAdminLastName : "SriMatch")
+                    .email(email)
+                    .password(passwordEncoder.encode(password))
                     .role(UserRole.SUPER_ADMIN)
                     .emailVerified(true)
                     .phoneVerified(true)
@@ -56,9 +63,9 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
 
             userRepository.save(admin);
-            log.info("Default admin user created successfully: {}", defaultAdminEmail);
+            log.info("Default admin user created successfully: {}", email);
         } else {
-            log.debug("Admin user {} already exists. Skipping creation.", defaultAdminEmail);
+            log.debug("Admin user {} already exists. Skipping creation.", email);
         }
     }
 }
