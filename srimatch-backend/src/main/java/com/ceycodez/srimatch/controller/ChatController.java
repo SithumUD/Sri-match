@@ -1,7 +1,9 @@
 package com.ceycodez.srimatch.controller;
 
+import com.ceycodez.srimatch.dto.request.CallSignalRequest;
 import com.ceycodez.srimatch.dto.request.MessageRequest;
 import com.ceycodez.srimatch.dto.response.ApiResponse;
+import com.ceycodez.srimatch.dto.response.CallSignalResponse;
 import com.ceycodez.srimatch.dto.response.MessageResponse;
 import com.ceycodez.srimatch.model.User;
 import com.ceycodez.srimatch.service.ChatService;
@@ -63,6 +65,20 @@ public class ChatController {
                 .success(true)
                 .message("Message marked as read")
                 .data(null)
+                .build());
+    }
+
+    @PostMapping("/call/signal")
+    public ResponseEntity<ApiResponse<com.ceycodez.srimatch.dto.response.CallSignalResponse>> sendCallSignal(
+            @RequestBody @Valid com.ceycodez.srimatch.dto.request.CallSignalRequest request,
+            Authentication authentication
+    ) {
+        User sender = userService.getUserByEmail(authentication.getName());
+        com.ceycodez.srimatch.dto.response.CallSignalResponse response = chatService.sendCallSignal(sender, request);
+        return ResponseEntity.ok(ApiResponse.<com.ceycodez.srimatch.dto.response.CallSignalResponse>builder()
+                .success(true)
+                .message("Signal relayed")
+                .data(response)
                 .build());
     }
 }

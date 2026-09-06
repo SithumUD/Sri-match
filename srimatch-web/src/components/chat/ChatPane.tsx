@@ -9,7 +9,7 @@ import {
 import Link from 'next/link';
 import MessageBubble from './MessageBubble';
 import VoiceRecorder from './VoiceRecorder';
-import CallModal from './CallModal';
+import { useCall } from '../../context/CallContext';
 import { toast } from 'sonner';
 
 interface ChatPaneProps {
@@ -36,9 +36,10 @@ const ChatPane = ({
   onSendMedia, 
   onReport, 
   isPremium, 
-  currentUserId,
+  currentUserId, 
   onBack
 }: ChatPaneProps) => {
+  const { startCall } = useCall();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prevMessageCountRef = useRef(messages.length);
@@ -48,7 +49,6 @@ const ChatPane = ({
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
-  const [activeCall, setActiveCall] = useState<'VOICE' | 'VIDEO' | null>(null);
 
   // Controlled, container-only scroll to bottom without page jumping
   const scrollToBottom = useCallback((smooth = true) => {
@@ -191,7 +191,7 @@ const ChatPane = ({
           <button 
             type="button"
             className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-[#8b4e2e] bg-[#fdf5f0] border border-[#f0ddd5] hover:border-[#c9856a] hover:bg-[#f5ede5] transition-all cursor-pointer shadow-2xs"
-            onClick={() => setActiveCall('VOICE')}
+            onClick={() => startCall(otherUser, 'VOICE')}
             title="Voice Call"
             aria-label="Start Voice Call"
           >
@@ -202,7 +202,7 @@ const ChatPane = ({
           <button 
             type="button"
             className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-[#8b4e2e] bg-[#fdf5f0] border border-[#f0ddd5] hover:border-[#c9856a] hover:bg-[#f5ede5] transition-all cursor-pointer shadow-2xs"
-            onClick={() => setActiveCall('VIDEO')}
+            onClick={() => startCall(otherUser, 'VIDEO')}
             title="Video Call"
             aria-label="Start Video Call"
           >
@@ -406,16 +406,6 @@ const ChatPane = ({
             />
           </div>
         </div>
-      )}
-
-      {/* 7. Voice / Video Call Modal */}
-      {activeCall && (
-        <CallModal 
-          type={activeCall}
-          partner={otherUser}
-          isPremium={isPremium}
-          onClose={() => setActiveCall(null)}
-        />
       )}
     </div>
   );

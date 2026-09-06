@@ -48,6 +48,13 @@ const ChatService = {
                 'Content-Type': 'multipart/form-data',
             },
         });
+    },
+
+    /**
+     * Send WebRTC call signaling payload (Offer, Answer, Candidate, Reject, End)
+     */
+    sendCallSignal: (signalData) => {
+        return API.post('/chat/call/signal', signalData);
     }
 };
 

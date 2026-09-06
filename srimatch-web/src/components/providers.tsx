@@ -7,6 +7,10 @@ import { Toaster, toast } from "sonner";
 import wsService from "@/services/websocket.service";
 import { useRouter } from "next/navigation";
 
+import { CallProvider } from "@/context/CallContext";
+import IncomingCallModal from "@/components/chat/IncomingCallModal";
+import CallModal from "@/components/chat/CallModal";
+
 function NotificationListener() {
   const { accessToken, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
@@ -67,9 +71,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <NotificationListener />
-        <Toaster position="top-center" richColors />
-        {children}
+        <CallProvider>
+          <NotificationListener />
+          <IncomingCallModal />
+          <CallModal />
+          <Toaster position="top-center" richColors />
+          {children}
+        </CallProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -1,6 +1,8 @@
 package com.ceycodez.srimatch.service;
 
+import com.ceycodez.srimatch.dto.request.CallSignalRequest;
 import com.ceycodez.srimatch.dto.request.MessageRequest;
+import com.ceycodez.srimatch.dto.response.CallSignalResponse;
 import com.ceycodez.srimatch.dto.response.MessageResponse;
 import com.ceycodez.srimatch.model.Match;
 import com.ceycodez.srimatch.model.Message;
@@ -130,6 +132,48 @@ public class ChatService {
                     mapToResponse(message)
             );
         }
+    }
+
+    public CallSignalResponse sendCallSignal(User sender, com.ceycodez.srimatch.dto.request.CallSignalRequest request) {
+        User receiver = userRepository.findById(request.getReceiverId())
+                .orElseThrow(() -> new RuntimeException("Receiver not found"));
+
+        if ("OFFER".equalsIgnoreCase(request.getSignalType())) {
+            // Check if caller is premium for initiating calls
+            if (!sender.isPremiumActive()) {
+                throw new RuntimeException("A SriMatch Premium subscription is required to initiate Voice and Video calls.");
+            }
+        }
+
+        String senderAvatar = null;
+        if (sender.getProfile() != null) {
+            senderAvatar = sender.getProfile().getPrimaryImageUrl();
+            if (senderAvatar == null && sender.getProfile().getProfileImages() != null && !sender.getProfile().getProfileImages().isEmpty()) {
+                senderAvatar = sender.getProfile().getProfileImages().get(0);
+            }
+        }
+
+        com.ceycodez.srimatch.dto.response.CallSignalResponse signal = com.ceycodez.srimatch.dto.response.CallSignalResponse.builder()
+                .senderId(sender.getId())
+                .senderName(sender.getFullName())
+                .senderAvatar(senderAvatar)
+                .receiverId(receiver.getId())
+                .signalType(request.getSignalType().toUpperCase())
+                .callType(request.getCallType() != null ? request.getCallType().toUpperCase() : "VOICE")
+                .sdp(request.getSdp())
+                .candidate(request.getCandidate())
+                .reason(request.getReason())
+                .timestamp(System.currentTimeMillis())
+                .build();
+
+        // Send via WebSocket STOMP to receiver's private queue
+        messagingTemplate.convertAndSendToUser(
+                receiver.getEmail(),
+                "/queue/call-signal",
+                signal
+        );
+
+        return signal;
     }
 
     private MessageResponse mapToResponse(Message message) {
