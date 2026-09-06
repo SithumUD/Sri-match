@@ -44,6 +44,11 @@ const FacebookIcon = () => (
 const TurnstileWidget = ({ onVerify }: { onVerify: (token: string) => void }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const widgetIdRef = React.useRef<string | null>(null);
+  const onVerifyRef = React.useRef(onVerify);
+
+  React.useEffect(() => {
+    onVerifyRef.current = onVerify;
+  }, [onVerify]);
 
   React.useEffect(() => {
     const scriptId = "cf-turnstile-script";
@@ -68,15 +73,15 @@ const TurnstileWidget = ({ onVerify }: { onVerify: (token: string) => void }) =>
           widgetIdRef.current = (window as any).turnstile.render(containerRef.current, {
             sitekey: siteKey,
             callback: (token: string) => {
-              if (isMounted) onVerify(token);
+              if (isMounted) onVerifyRef.current(token);
             },
             "expired-callback": () => {
-              if (isMounted) onVerify("");
+              if (isMounted) onVerifyRef.current("");
             },
             "error-callback": () => {
-              console.warn("Turnstile verification encounter an issue. Using fallback token in development.");
+              console.warn("Turnstile challenge error. Using dev token in development.");
               if (isMounted && process.env.NODE_ENV !== "production") {
-                onVerify("dev-bypass-token");
+                onVerifyRef.current("dev-bypass-token");
               }
             },
           });
@@ -99,7 +104,7 @@ const TurnstileWidget = ({ onVerify }: { onVerify: (token: string) => void }) =>
         widgetIdRef.current = null;
       }
     };
-  }, [onVerify]);
+  }, []);
 
   return (
     <div ref={containerRef} className="mt-5 mb-4 flex min-h-[65px] justify-center" />
