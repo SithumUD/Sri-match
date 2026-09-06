@@ -88,6 +88,7 @@ export default function MessagesScreen() {
                     id: String(item.id),
                     recipientName: other.name || other.firstName || 'Match',
                     recipientImage: imageUri,
+                    recipientId: String(other.id || other.userId || ''),
                   },
                 })
               }

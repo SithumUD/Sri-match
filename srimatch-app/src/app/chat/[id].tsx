@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,14 +9,30 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Modal,
+  StatusBar,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors, Fonts, Spacing, Radius, Shadows } from '../../constants/theme';
 import { useChatMessages } from '../../hooks/useLikes';
-import { ChatService, ReportService } from '../../services';
+import { ChatService } from '../../services';
 import { ChatBubble } from '../../components/chat/ChatBubble';
-import { ChevronLeft, Send, Flag, Shield, Phone, Video } from 'lucide-react-native';
+import { VoiceRecorder } from '../../components/chat/VoiceRecorder';
+import {
+  ChevronLeft,
+  Send,
+  Shield,
+  Phone,
+  Video,
+  Image as ImageIcon,
+  Mic,
+  X,
+  Maximize2,
+} from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import useAuthStore from '../../store/useAuthStore';
 import useCallStore from '../../store/useCallStore';
 import { useQueryClient } from '@tanstack/react-query';
@@ -24,33 +40,178 @@ import { useQueryClient } from '@tanstack/react-query';
 export default function ChatScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { id, recipientName, recipientImage } = useLocalSearchParams();
+  const { id, recipientName, recipientImage, recipientId } = useLocalSearchParams();
   const { user } = useAuthStore();
   const { startCall } = useCallStore();
+
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [imageCaption, setImageCaption] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
 
+  const flatListRef = useRef<FlatList>(null);
   const { data: messages = [], isLoading } = useChatMessages(id as string);
 
-  const handleSend = async () => {
+  const name = (recipientName as string) || 'Match';
+  const avatarUri =
+    (recipientImage as string) ||
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
+
+  // Resolve other participant user id
+  const targetReceiverId =
+    recipientId ||
+    messages.find((m: any) => m.senderId && m.senderId !== user?.id)?.senderId ||
+    messages.find((m: any) => m.receiverId && m.receiverId !== user?.id)?.receiverId;
+
+  // Auto-scroll on new message
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages.length]);
+
+  const handleSendText = async () => {
     if (!inputText.trim() || sending) return;
     const text = inputText.trim();
     setInputText('');
     setSending(true);
 
     try {
-      await ChatService.sendMessage(id as string, text);
+      if (targetReceiverId) {
+        await ChatService.sendMessage({
+          matchId: Number(id),
+          receiverId: Number(targetReceiverId),
+          content: text,
+          type: 'TEXT',
+        });
+      } else {
+        await ChatService.sendMessage(id as string, text);
+      }
       queryClient.invalidateQueries({ queryKey: ['chat', 'messages', id] });
       queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] });
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Failed to send message:', e);
+      Alert.alert('Error', e?.response?.data?.message || e?.message || 'Could not send message.');
     } finally {
       setSending(false);
     }
   };
 
-  const name = (recipientName as string) || 'Match';
-  const avatarUri = (recipientImage as string) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
+  const handlePickImage = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission required', 'Please grant photo library access to share images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.85,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedImageUri(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.warn('Image picker error:', e);
+    }
+  };
+
+  const handleSendSelectedImage = async () => {
+    if (!selectedImageUri || isUploading) return;
+    try {
+      setIsUploading(true);
+      const uri = selectedImageUri;
+      const filename = uri.split('/').pop() || 'chat_image.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const mimeType = match ? `image/${match[1]}` : 'image/jpeg';
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+        name: filename,
+        type: mimeType,
+      } as any);
+
+      const uploadRes: any = await ChatService.uploadMedia(formData);
+      const mediaUrl = uploadRes?.data?.url || uploadRes?.url;
+
+      if (!mediaUrl) {
+        Alert.alert('Upload Failed', uploadRes?.message || 'Could not upload image.');
+        return;
+      }
+
+      const payload = {
+        matchId: Number(id),
+        receiverId: targetReceiverId ? Number(targetReceiverId) : undefined,
+        content: imageCaption.trim() || 'Image',
+        type: 'IMAGE',
+        mediaUrl: mediaUrl,
+        mediaType: uploadRes?.data?.mediaType || mimeType,
+        mediaSize: uploadRes?.data?.size,
+      };
+
+      await ChatService.sendMessage(payload);
+      setSelectedImageUri(null);
+      setImageCaption('');
+      queryClient.invalidateQueries({ queryKey: ['chat', 'messages', id] });
+      queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] });
+    } catch (err: any) {
+      console.warn('Failed to upload/send image:', err);
+      Alert.alert('Error', err?.message || 'Failed to send image');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleVoiceRecordingComplete = async (audioUri: string, durationSeconds: number) => {
+    try {
+      setIsUploading(true);
+      setIsRecordingVoice(false);
+
+      const filename = audioUri.split('/').pop() || 'voice_note.m4a';
+      const formData = new FormData();
+      formData.append('file', {
+        uri: Platform.OS === 'android' ? audioUri : audioUri.replace('file://', ''),
+        name: filename,
+        type: 'audio/m4a',
+      } as any);
+
+      const uploadRes: any = await ChatService.uploadMedia(formData);
+      const mediaUrl = uploadRes?.data?.url || uploadRes?.url;
+
+      if (!mediaUrl) {
+        Alert.alert('Upload Failed', 'Could not upload voice note.');
+        return;
+      }
+
+      const payload = {
+        matchId: Number(id),
+        receiverId: targetReceiverId ? Number(targetReceiverId) : undefined,
+        content: 'Voice Message',
+        type: 'AUDIO',
+        mediaUrl: mediaUrl,
+        mediaType: uploadRes?.data?.mediaType || 'audio/m4a',
+        mediaSize: uploadRes?.data?.size,
+      };
+
+      await ChatService.sendMessage(payload);
+      queryClient.invalidateQueries({ queryKey: ['chat', 'messages', id] });
+      queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] });
+    } catch (err: any) {
+      console.warn('Voice message delivery error:', err);
+      Alert.alert('Error', err?.message || 'Failed to send voice message');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -59,7 +220,7 @@ export default function ChatScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
         style={styles.container}
       >
-        {/* Chat Header */}
+        {/* Chat Header (Online status removed) */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <ChevronLeft size={24} color={Colors.text} />
@@ -71,7 +232,6 @@ export default function ChatScreen() {
             <Text style={styles.headerName} numberOfLines={1}>
               {name}
             </Text>
-            <Text style={styles.headerStatus}>Online · Matched ✦</Text>
           </View>
 
           {/* Call Actions */}
@@ -87,7 +247,7 @@ export default function ChatScreen() {
               style={styles.headerActionBtn}
               accessibilityLabel="Voice Call"
             >
-              <Phone size={18} color={Colors.primaryMedium} />
+              <Phone size={17} color={Colors.primaryMedium} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -101,7 +261,7 @@ export default function ChatScreen() {
               style={styles.headerActionBtn}
               accessibilityLabel="Video Call"
             >
-              <Video size={18} color={Colors.primaryMedium} />
+              <Video size={17} color={Colors.primaryMedium} />
             </TouchableOpacity>
           </View>
         </View>
@@ -110,41 +270,151 @@ export default function ChatScreen() {
         <View style={styles.safetyBar}>
           <Shield size={13} color={Colors.primaryMedium} />
           <Text style={styles.safetyText}>
-            Never share bank or financial information in messages.
+            Never share financial details or send money in chat.
           </Text>
         </View>
 
         {/* Message Bubble List */}
         <FlatList
+          ref={flatListRef}
           data={messages}
           keyExtractor={(item, index) => `${item.id || index}`}
           contentContainerStyle={styles.messageList}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
             const isMine = item.senderId === user?.id || item.isMine;
-            return <ChatBubble message={item} isMine={isMine} />;
+            return (
+              <ChatBubble
+                message={item}
+                isMine={isMine}
+                avatarUrl={!isMine ? avatarUri : undefined}
+                onImagePress={(url) => setLightboxImageUrl(url)}
+              />
+            );
           }}
         />
 
-        {/* Input Bar */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.textInput}
-            placeholder={`Message ${name}...`}
-            placeholderTextColor={Colors.textLight}
-            value={inputText}
-            onChangeText={setInputText}
-            multiline
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]}
-            onPress={handleSend}
-            disabled={!inputText.trim() || sending}
-          >
-            <Send size={18} color="#ffffff" />
-          </TouchableOpacity>
-        </View>
+        {/* Selected Image Preview Attachment Bar */}
+        {selectedImageUri && (
+          <View style={styles.imagePreviewBar}>
+            <View style={styles.previewThumbWrap}>
+              <Image source={{ uri: selectedImageUri }} style={styles.previewThumb} />
+              <TouchableOpacity
+                style={styles.removeImageBtn}
+                onPress={() => {
+                  setSelectedImageUri(null);
+                  setImageCaption('');
+                }}
+              >
+                <X size={14} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.captionInput}
+              placeholder="Add a caption..."
+              placeholderTextColor={Colors.textLight}
+              value={imageCaption}
+              onChangeText={setImageCaption}
+            />
+
+            <TouchableOpacity
+              style={[styles.sendMediaBtn, isUploading && styles.disabledBtn]}
+              onPress={handleSendSelectedImage}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Send size={16} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Active Voice Recording Bar */}
+        {isRecordingVoice ? (
+          <View style={styles.voiceRecorderContainer}>
+            <VoiceRecorder
+              onRecordingComplete={handleVoiceRecordingComplete}
+              onCancel={() => setIsRecordingVoice(false)}
+            />
+          </View>
+        ) : (
+          /* Standard Input Bar */
+          !selectedImageUri && (
+            <View style={styles.inputContainer}>
+              {/* Image Picker Button */}
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={handlePickImage}
+                disabled={sending || isUploading}
+                accessibilityLabel="Share Image"
+              >
+                <ImageIcon size={20} color={Colors.primaryMedium} />
+              </TouchableOpacity>
+
+              {/* Voice Message Button */}
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={() => setIsRecordingVoice(true)}
+                disabled={sending || isUploading}
+                accessibilityLabel="Record Voice Note"
+              >
+                <Mic size={20} color={Colors.primaryMedium} />
+              </TouchableOpacity>
+
+              {/* Text Input */}
+              <TextInput
+                style={styles.textInput}
+                placeholder={`Message ${name}...`}
+                placeholderTextColor={Colors.textLight}
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+              />
+
+              {/* Send Button */}
+              <TouchableOpacity
+                style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]}
+                onPress={handleSendText}
+                disabled={!inputText.trim() || sending}
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Send size={16} color="#ffffff" />
+                )}
+              </TouchableOpacity>
+            </View>
+          )
+        )}
       </KeyboardAvoidingView>
+
+      {/* Lightbox Image Modal */}
+      <Modal
+        visible={Boolean(lightboxImageUrl)}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLightboxImageUrl(null)}
+      >
+        <View style={styles.lightboxModal}>
+          <StatusBar barStyle="light-content" backgroundColor="#000" />
+          <TouchableOpacity
+            style={styles.closeLightboxBtn}
+            onPress={() => setLightboxImageUrl(null)}
+          >
+            <X size={24} color="#fff" />
+          </TouchableOpacity>
+          {lightboxImageUrl && (
+            <Image
+              source={{ uri: lightboxImageUrl }}
+              style={styles.lightboxImage}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -172,9 +442,9 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   headerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: Colors.primaryExtraLight,
     marginRight: Spacing.sm,
   },
@@ -186,11 +456,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: Colors.text,
-  },
-  headerStatus: {
-    fontSize: 11,
-    color: Colors.verifiedGreen,
-    fontWeight: '600',
   },
   headerActions: {
     flexDirection: 'row',
@@ -234,12 +499,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    gap: Spacing.sm,
+    gap: 8,
+  },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primaryExtraLight,
   },
   textInput: {
     flex: 1,
-    minHeight: 42,
-    maxHeight: 100,
+    minHeight: 40,
+    maxHeight: 90,
     backgroundColor: Colors.surfaceSoft,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -250,15 +523,93 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   sendBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.primaryMedium,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.glow,
+    ...Shadows.subtle,
   },
   sendBtnDisabled: {
     opacity: 0.4,
+  },
+  disabledBtn: {
+    opacity: 0.5,
+  },
+  voiceRecorderContainer: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  imagePreviewBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    gap: 10,
+  },
+  previewThumbWrap: {
+    position: 'relative',
+  },
+  previewThumb: {
+    width: 50,
+    height: 50,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceSoft,
+  },
+  removeImageBtn: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#ef4444',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  captionInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: Colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.full,
+    paddingHorizontal: 14,
+    fontSize: 13,
+    color: Colors.text,
+  },
+  sendMediaBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primaryMedium,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lightboxModal: {
+    flex: 1,
+    backgroundColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeLightboxBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  lightboxImage: {
+    width: '100%',
+    height: '85%',
   },
 });

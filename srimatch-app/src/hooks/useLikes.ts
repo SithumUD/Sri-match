@@ -10,7 +10,9 @@ export const useSentLikes = () => {
     queryFn: async () => {
       const res: any = await LikeService.getSentLikes();
       const content = res?.data?.content || res?.data || [];
+      if (!Array.isArray(content)) return [];
       return content.map((l: any) => ({
+        ...l,
         userId: l.receiver?.id,
         profileId: l.receiver?.profile?.id || l.receiverId || l.receiver?.id,
         type: l.type,
@@ -26,7 +28,7 @@ export const useReceivedLikes = () => {
     queryKey: ['likes', 'received'],
     queryFn: async () => {
       const res: any = await LikeService.getReceivedLikes();
-      return res?.data?.content || res?.data || [];
+      return res?.data?.likes || res?.data?.content || (Array.isArray(res?.data) ? res.data : []);
     },
     enabled: !!isAuthenticated,
   });

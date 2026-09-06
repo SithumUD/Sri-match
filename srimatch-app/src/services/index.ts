@@ -45,8 +45,11 @@ export const ChatService = {
     return API.get(`/chat/history/${matchId}`, { params: { page, size } });
   },
 
-  sendMessage: (matchId: number | string, content: string) => {
-    return API.post('/chat/send', { matchId: Number(matchId), content });
+  sendMessage: (payloadOrMatchId: any, contentMaybe?: string) => {
+    if (typeof payloadOrMatchId === 'object') {
+      return API.post('/chat/send', payloadOrMatchId);
+    }
+    return API.post('/chat/send', { matchId: Number(payloadOrMatchId), content: contentMaybe });
   },
 
   markAsRead: (messageId: number | string) => {
