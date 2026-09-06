@@ -22,6 +22,7 @@ public class SubscriptionResponse {
     private Long hoursRemaining;
 
     public static SubscriptionResponse fromEntity(com.ceycodez.srimatch.model.Subscription sub) {
+        if (sub == null) return null;
         long days = 0;
         long hours = 0;
         if (sub.getEndDate() != null && sub.getEndDate().isAfter(LocalDateTime.now())) {
@@ -29,12 +30,21 @@ public class SubscriptionResponse {
             hours = ChronoUnit.HOURS.between(LocalDateTime.now(), sub.getEndDate()) % 24;
         }
 
+        String pkgName = "Premium Package";
+        try {
+            if (sub.getPremiumPackage() != null && sub.getPremiumPackage().getTitle() != null) {
+                pkgName = sub.getPremiumPackage().getTitle();
+            }
+        } catch (Exception e) {
+            pkgName = "Premium Package";
+        }
+
         return SubscriptionResponse.builder()
                 .id(sub.getId())
-                .packageName(sub.getPremiumPackage().getTitle())
+                .packageName(pkgName)
                 .startDate(sub.getStartDate())
                 .endDate(sub.getEndDate())
-                .status(sub.getStatus().name())
+                .status(sub.getStatus() != null ? sub.getStatus().name() : "ACTIVE")
                 .daysRemaining(days)
                 .hoursRemaining(hours)
                 .build();

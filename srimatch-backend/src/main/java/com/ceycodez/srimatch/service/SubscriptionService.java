@@ -94,6 +94,7 @@ public class SubscriptionService {
         }
     }
 
+    @Transactional(readOnly = true)
     public List<SubscriptionResponse> getUserSubscriptions(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -103,6 +104,7 @@ public class SubscriptionService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public SubscriptionResponse getActiveSubscription(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
