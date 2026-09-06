@@ -11,6 +11,11 @@ function NotificationListener() {
   const { accessToken, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const routerRef = React.useRef(router);
+
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
 
   useEffect(() => {
     if (!isAuthenticated || !accessToken) return;
@@ -26,7 +31,7 @@ function NotificationListener() {
               if (notification.actionUrl.startsWith("http")) {
                 window.open(notification.actionUrl, "_blank");
               } else {
-                router.push(notification.actionUrl);
+                routerRef.current.push(notification.actionUrl);
               }
             }
           } : undefined,
@@ -41,7 +46,7 @@ function NotificationListener() {
     return () => {
       wsService.unsubscribe("/user/queue/notifications");
     };
-  }, [isAuthenticated, accessToken, queryClient, router]);
+  }, [isAuthenticated, accessToken, queryClient]);
 
   return null;
 }

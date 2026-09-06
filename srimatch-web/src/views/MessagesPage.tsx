@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { usePathname } from 'next/navigation';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import MatchService from "../services/match.service";
 import ChatService from "../services/chat.service";
@@ -16,7 +15,6 @@ import ConversationList from "../components/chat/ConversationList";
 import ChatPane from "../components/chat/ChatPane";
 
 const MessagesPage = () => {
-  const pathname = usePathname();
   const [initialUserId, setInitialUserId] = useState<string | null>(null);
   const [initialMatchId, setInitialMatchId] = useState<string | null>(null);
 
@@ -40,6 +38,13 @@ const MessagesPage = () => {
   const [message, setMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   
+  // Refs to prevent dependency-cycle re-renders
+  const activeConversationRef = useRef<any | null>(null);
+  activeConversationRef.current = activeConversation;
+
+  const conversationsRef = useRef<any[]>([]);
+  conversationsRef.current = conversations;
+
   // Report Modal State
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -48,9 +53,11 @@ const MessagesPage = () => {
   const [reportSuccess, setReportSuccess] = useState(false);
 
   /* ─── Fetch Conversations ────────────────────────────────────────────── */
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent && conversationsRef.current.length === 0) {
+        setLoading(true);
+      }
       const response = await MatchService.getMyMatches();
       if (response.success) {
         const convs = Array.isArray(response.data) ? response.data : (response.data?.content || []);
@@ -100,30 +107,33 @@ const MessagesPage = () => {
           }
         } else {
           setConversations(convs);
-          if (convs.length > 0 && !activeConversation && typeof window !== 'undefined' && window.innerWidth >= 768) {
+          if (convs.length > 0 && !activeConversationRef.current && typeof window !== 'undefined' && window.innerWidth >= 768) {
             setActiveConversation(convs[0]);
           }
         }
       }
     } catch (err) {
       console.error("Error fetching conversations:", err);
-      toast.error("Failed to load conversations");
+      if (!silent) {
+        toast.error("Failed to load conversations");
+      }
     } finally {
       setLoading(false);
     }
   }, [initialUserId, initialMatchId]);
 
   /* ─── Fetch Message History ──────────────────────────────────────────── */
-  const fetchMessages = useCallback(async (conv: any) => {
-    if (!conv) return;
+  const fetchMessages = useCallback(async (convId: number | string | null) => {
+    if (!convId) {
+      setMessages([]);
+      return;
+    }
     try {
       setLoadingMessages(true);
-      if (conv.id) {
-        const response = await ChatService.getChatHistory(conv.id);
-        if (response.success) {
-          const content = response.data?.content || response.data || [];
-          setMessages(Array.isArray(content) ? [...content].reverse() : []);
-        }
+      const response = await ChatService.getChatHistory(convId);
+      if (response.success) {
+        const content = response.data?.content || response.data || [];
+        setMessages(Array.isArray(content) ? [...content].reverse() : []);
       } else {
         setMessages([]);
       }
@@ -135,27 +145,29 @@ const MessagesPage = () => {
     }
   }, []);
 
+  const activeConvId = activeConversation?.id;
   useEffect(() => {
-    if (activeConversation) {
-      fetchMessages(activeConversation);
+    if (activeConvId) {
+      fetchMessages(activeConvId);
     } else {
       setMessages([]);
     }
-  }, [activeConversation, fetchMessages]);
+  }, [activeConvId, fetchMessages]);
 
   /* ─── Event Handlers ─────────────────────────────────────────────────── */
   const handleIncomingMessage = useCallback((incomingMsg: any) => {
-    if (activeConversation && (
-      String(incomingMsg.senderId) === String(activeConversation.otherUser?.id) ||
-      String(incomingMsg.senderId) === String(activeConversation.otherUser?.userId)
+    const currentActive = activeConversationRef.current;
+    if (currentActive && (
+      String(incomingMsg.senderId) === String(currentActive.otherUser?.id) ||
+      String(incomingMsg.senderId) === String(currentActive.otherUser?.userId)
     )) {
       setMessages(prev => [...prev, incomingMsg]);
       ChatService.markAsRead(incomingMsg.id);
     } else {
       toast.info(`New message from ${incomingMsg.senderName || 'someone'}`);
-      fetchConversations();
+      fetchConversations(true);
     }
-  }, [activeConversation, fetchConversations]);
+  }, [fetchConversations]);
 
   /* ─── WebSocket Lifecycle ─────────────────────────────────────────────── */
   useEffect(() => {
@@ -167,12 +179,15 @@ const MessagesPage = () => {
       });
     }
 
-    fetchConversations();
-
     return () => {
       wsService.unsubscribe('/user/queue/messages');
     };
-  }, [accessToken, handleIncomingMessage, fetchConversations]);
+  }, [accessToken, handleIncomingMessage]);
+
+  /* ─── Initial Conversations Fetch ─────────────────────────────────────── */
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
 
   const handleSendMessage = async () => {
     if (!message.trim() || !activeConversation) return;
@@ -235,7 +250,7 @@ const MessagesPage = () => {
 
   const filteredConversations = useMemo(() => {
     return conversations.filter(c =>
-      c.otherUser.name.toLowerCase().includes(searchTerm.toLowerCase())
+      c.otherUser?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [conversations, searchTerm]);
 
@@ -290,7 +305,7 @@ const MessagesPage = () => {
             <div className="p-6 sm:p-7">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="font-['Cormorant_Garamond'] text-[1.4rem] sm:text-[1.5rem] font-bold text-[#2d1810]">
-                  Report {activeConversation?.otherUser.name}
+                  Report {activeConversation?.otherUser?.name}
                 </h3>
                 <button 
                   onClick={() => !reportLoading && setShowReportModal(false)}
@@ -301,7 +316,7 @@ const MessagesPage = () => {
               </div>
 
               {reportSuccess ? (
-                <div className="py-8 text-center">
+				<div className="py-8 text-center">
                   <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-50 text-green-600">
                     <Check size={24} />
                   </div>
