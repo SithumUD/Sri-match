@@ -1072,10 +1072,6 @@ const MyProfilePage = () => {
                               </select>
                             </div>
                             <div className="mp-form-group">
-                              <label className="mp-form-label">Place of Birth</label>
-                              <input className="mp-input" type="text" name="placeOfBirth" value={formData.placeOfBirth || ""} onChange={handleChange} placeholder="e.g. Kandy" />
-                            </div>
-                            <div className="mp-form-group">
                               <label className="mp-form-label">Ethnicity</label>
                               <select className="mp-select" name="ethnicity" value={toEnumVal(formData.ethnicity)} onChange={handleChange}>
                                 <option value="">Select ethnicity</option>
@@ -1109,7 +1105,6 @@ const MyProfilePage = () => {
                             {[
                               ["Current Location", user.city || null],
                               ["District", user.district || null],
-                              ["Place of Birth", user.placeOfBirth || null],
                               ["Ethnicity", formatEnum(user.ethnicity)],
                               ["Religion", formatEnum(user.religion)],
                               ["Religious Practices", user.religiousPractices || null],

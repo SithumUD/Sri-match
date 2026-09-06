@@ -23,7 +23,6 @@ public class DetailedProfileResponse {
     private Integer age;
     private String city;
     private String district;
-    private String placeOfBirth;
     private LocalDate dateOfBirth;
     private LocalTime timeOfBirth;
     private Double latitude;

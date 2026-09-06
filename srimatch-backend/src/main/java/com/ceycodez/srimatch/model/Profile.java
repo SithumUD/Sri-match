@@ -71,9 +71,6 @@ public class Profile {
     @Column(length = 100)
     private String city;
 
-    @Column(name = "place_of_birth", length = 100)
-    private String placeOfBirth;
-
     private Double latitude;
     private Double longitude;
 

@@ -414,10 +414,6 @@ const AdminUserProfileModal = ({ userId, initialUser, onClose }) => {
                             <value>{profile.district || "N/A"} / {profile.city || "N/A"}</value>
                           </div>
                           <div className="upm-field-item">
-                            <label>Place of Birth</label>
-                            <value>{profile.placeOfBirth || "N/A"}</value>
-                          </div>
-                          <div className="upm-field-item">
                             <label>Religion & Practices</label>
                             <value>{profile.religion || "N/A"} {profile.religiousPractices ? `(${profile.religiousPractices})` : ""}</value>
                           </div>

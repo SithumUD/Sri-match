@@ -473,7 +473,6 @@ public class ProfileService {
                 .age(profile.getAge())
                 .city(profile.getCity())
                 .district(profile.getDistrict())
-                .placeOfBirth(profile.getPlaceOfBirth())
                 .dateOfBirth(profile.getDateOfBirth())
                 .timeOfBirth(profile.getTimeOfBirth())
                 .latitude(profile.getLatitude())

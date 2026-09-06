@@ -35,6 +35,7 @@ const PROFILE_OPTIONS = {
 };
 
 import ProfileService from "../services/profile.service";
+import CitySearchDropdown from "../components/common/CitySearchDropdown";
 
 /* ─── Global styles ──────────────────────────────────────────────────────── */
 const styles = `
@@ -424,7 +425,7 @@ const ProfileCreationPage = () => {
   const [currentImage, setCurrentImage] = useState(null);
   const [completionScore, setCompletionScore] = useState(0);
   const [showQuiz, setShowQuiz] = useState(false);
-  const [quizAnswers, setQuizAnswers] = useState({});
+  const [quizAnswers, setQuizAnswers] = useState(profileCreationData?.quizAnswers || {});
   const [dismissedTips, setDismissedTips] = useState({});
   const [showPreview, setShowPreview] = useState(false);
   const [verifications, setVerifications] = useState({ email: false, phone: false });
@@ -533,6 +534,9 @@ const ProfileCreationPage = () => {
           if (window.confirm("We found an incomplete profile draft. Continue where you left off?")) {
             if (data && typeof data === 'object') {
               updateProfileCreationData(data);
+              if (data.quizAnswers && typeof data.quizAnswers === 'object') {
+                setQuizAnswers(data.quizAnswers);
+              }
             }
             setProfileCreationStep(Math.max(1, Math.min(8, Number(step) || 1)));
           }
@@ -715,7 +719,15 @@ const ProfileCreationPage = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    if (loading) return;
+
+    // Strict guard: Only submit when user is on the final Review step and clicked Complete Profile
+    if (profileCreationStep !== 8) {
+      console.warn("Submit ignored because current step is not Review (8)");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -762,7 +774,6 @@ const ProfileCreationPage = () => {
         numberOfChildren: profileCreationData.numberOfChildren || 0,
         
         city: profileCreationData.city,
-        placeOfBirth: profileCreationData.placeOfBirth,
         
         religion: mapEnum(profileCreationData.religion, 'religion'),
         ethnicity: mapEnum(profileCreationData.ethnicity, 'ethnicity'),
@@ -997,15 +1008,14 @@ const ProfileCreationPage = () => {
         {/* ─── STEP 2 ─── */}
         {step === 2 && (
           <>
-            <div className="pc-grid-2">
-              <div className="pc-field">
-                <label className="pc-label">City / Current Town <span className="req">*</span></label>
-                <input name="city" type="text" value={profileCreationData.city || ""} onChange={handleChange} className="pc-input" placeholder="e.g. Colombo, Kandy, Galle" />
-              </div>
-              <div className="pc-field">
-                <label className="pc-label">Place of Birth</label>
-                <input name="placeOfBirth" type="text" value={profileCreationData.placeOfBirth || ""} onChange={handleChange} className="pc-input" placeholder="e.g. Matara" />
-              </div>
+            <div className="pc-field">
+              <CitySearchDropdown
+                value={profileCreationData.city || ""}
+                onChange={(selectedCity) => updateProfileCreationData({ city: selectedCity })}
+                label="City / Current Town"
+                required={true}
+                placeholder="Search and select your city or town"
+              />
             </div>
             <div className="pc-grid-2">
               <div className="pc-field">
@@ -1274,7 +1284,11 @@ const ProfileCreationPage = () => {
                         {q.options.map(opt => (
                           <button key={opt} type="button"
                             className={`pc-quiz-opt${quizAnswers[q.id] === opt ? " sel" : ""}`}
-                            onClick={() => setQuizAnswers(p => ({ ...p, [q.id]: opt }))}>{opt}</button>
+                            onClick={() => {
+                              const next = { ...quizAnswers, [q.id]: opt };
+                              setQuizAnswers(next);
+                              updateProfileCreationData({ quizAnswers: next });
+                            }}>{opt}</button>
                         ))}
                       </div>
                     </div>
@@ -1317,10 +1331,20 @@ const ProfileCreationPage = () => {
             </div>
 
             <div className="pc-field">
-              <label className="pc-label">Location Preference</label>
-              <input type="text" value={(profileCreationData.partnerPreferences || {}).locationPreference || ""}
-                onChange={e => updateProfileCreationData({ partnerPreferences: { ...(profileCreationData.partnerPreferences || {}), locationPreference: e.target.value } })}
-                className="pc-input" placeholder="e.g. Colombo, Western Province, open to relocate" />
+              <CitySearchDropdown
+                value={(profileCreationData.partnerPreferences || {}).locationPreference || ""}
+                onChange={(selectedLocation) =>
+                  updateProfileCreationData({
+                    partnerPreferences: {
+                      ...(profileCreationData.partnerPreferences || {}),
+                      locationPreference: selectedLocation,
+                    },
+                  })
+                }
+                label="Location Preference"
+                placeholder="Search preferred city or select Open to all"
+                includeAnyOption={true}
+              />
             </div>
 
             <div className="pc-grid-2">
@@ -1422,8 +1446,7 @@ const ProfileCreationPage = () => {
                     {[
                       ["Marital Status", profileCreationData.maritalStatus],
                       ["Children", profileCreationData.hasChildren ? `Yes (${profileCreationData.numberOfChildren || 0})` : profileCreationData.hasChildren === false ? "No" : "—"],
-                      ["City", profileCreationData.city],
-                      ["Place of Birth", profileCreationData.placeOfBirth],
+                      ["City / Town", profileCreationData.city],
                       ["Religion", profileCreationData.religion],
                       ["Ethnicity", profileCreationData.ethnicity],
                     ].map(([k, v]) => (
@@ -1592,8 +1615,8 @@ const ProfileCreationPage = () => {
           {step < 8
             ? <button type="button" className="pc-btn-next" onClick={nextStep}>Next Step →</button>
             : (
-              <button type="submit" disabled={loading} className="pc-btn-submit">
-                {loading ? <><RefreshCw size={15} style={{ animation: "spin 0.8s linear infinite" }} />Completing…</> : <><CheckCircle size={15} />Complete Profile</>}
+              <button type="button" onClick={handleSubmit} disabled={loading} className="pc-btn-submit">
+                {loading ? <><RefreshCw size={15} style={{ animation: "spin 0.8s linear infinite" }} />Completing Profile…</> : <><CheckCircle size={15} />Complete Profile</>}
               </button>
             )}
         </div>
@@ -1673,7 +1696,7 @@ const ProfileCreationPage = () => {
         <div className="pc-card-wrap">
           <div className="pc-card">
             <div className="pc-card-inner">
-              <form onSubmit={handleSubmit} onKeyDown={e => { if (e.key === 'Enter' && profileCreationStep < 8 && e.target.tagName !== 'TEXTAREA') e.preventDefault(); }} noValidate>
+              <form onSubmit={e => { e.preventDefault(); if (profileCreationStep === 8 && !loading) handleSubmit(e); }} onKeyDown={e => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); }} noValidate>
                 {renderStep()}
               </form>
             </div>

@@ -34,7 +34,6 @@ public class ProfileResponse {
 
     private String district;
     private String city;
-    private String placeOfBirth;
     private Double latitude;
     private Double longitude;
 
