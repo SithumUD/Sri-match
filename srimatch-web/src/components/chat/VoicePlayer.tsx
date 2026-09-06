@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2 } from 'lucide-react';
+import { Play, Pause, Volume2, Loader2 } from 'lucide-react';
 
 interface VoicePlayerProps {
   audioUrl: string;
@@ -12,37 +12,77 @@ const VoicePlayer: React.FC<VoicePlayerProps> = ({ audioUrl, isMine }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Exact duration calculation across all browsers (including WebM/Opus stream blobs)
   useEffect(() => {
+    let isMounted = true;
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
+    audio.preload = "metadata";
+
+    // 1. Fetch & decode via Web Audio API for 100% accurate duration on WebM audio
+    fetch(audioUrl)
+      .then(res => res.arrayBuffer())
+      .then(arrayBuffer => {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          ctx.decodeAudioData(arrayBuffer, (decoded) => {
+            if (isMounted && decoded && decoded.duration > 0) {
+              setDuration(decoded.duration);
+              setIsLoadingAudio(false);
+            }
+            try { ctx.close(); } catch (e) {}
+          }, () => {
+            if (isMounted) setIsLoadingAudio(false);
+          });
+        }
+      })
+      .catch(() => {
+        if (isMounted) setIsLoadingAudio(false);
+      });
 
     const onLoadedMetadata = () => {
-      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+      if (isMounted && audio.duration && !isNaN(audio.duration) && isFinite(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+        setIsLoadingAudio(false);
+      }
+    };
+
+    const onDurationChange = () => {
+      if (isMounted && audio.duration && !isNaN(audio.duration) && isFinite(audio.duration) && audio.duration > 0) {
         setDuration(audio.duration);
       }
     };
 
     const onTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
-        setDuration(audio.duration);
+      if (isMounted) {
+        setCurrentTime(audio.currentTime);
+        if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration) && audio.duration > 0 && !duration) {
+          setDuration(audio.duration);
+        }
       }
     };
 
     const onEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
+      if (isMounted) {
+        setIsPlaying(false);
+        setCurrentTime(0);
+      }
     };
 
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('durationchange', onDurationChange);
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('ended', onEnded);
 
     return () => {
+      isMounted = false;
       audio.pause();
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('durationchange', onDurationChange);
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('ended', onEnded);
       audioRef.current = null;
@@ -55,14 +95,14 @@ const VoicePlayer: React.FC<VoicePlayerProps> = ({ audioUrl, isMine }) => {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      // Pause any other playing audio on the page
+      // Pause any other active audio instances across the app
       document.querySelectorAll('audio').forEach(el => {
         if (el !== audioRef.current) el.pause();
       });
       audioRef.current.play().then(() => {
         setIsPlaying(true);
       }).catch(err => {
-        console.error("Audio playback error:", err);
+        console.error("Voice playback error:", err);
       });
     }
   };
@@ -79,36 +119,46 @@ const VoicePlayer: React.FC<VoicePlayerProps> = ({ audioUrl, isMine }) => {
 
   const formatSeconds = (sec: number) => {
     if (!sec || isNaN(sec) || !isFinite(sec)) return "0:00";
-    const mins = Math.floor(sec / 60);
-    const remainingSecs = Math.floor(sec % 60);
+    const totalSecs = Math.round(sec);
+    const mins = Math.floor(totalSecs / 60);
+    const remainingSecs = totalSecs % 60;
     return `${mins}:${remainingSecs < 10 ? '0' : ''}${remainingSecs}`;
   };
 
-  // Fixed static waveform bar heights for clean visual representation
+  // Fixed visual wave bar distribution
   const barHeights = [
-    30, 60, 45, 90, 75, 40, 65, 100, 80, 50,
-    70, 95, 60, 40, 85, 65, 45, 75, 55, 35
+    25, 45, 70, 90, 60, 35, 75, 100, 85, 50,
+    65, 95, 55, 30, 80, 60, 40, 75, 50, 30
   ];
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  
+  // Decrement countdown while playing, total duration when paused
+  const remainingSeconds = Math.max(0, duration - currentTime);
 
   return (
-    <div className="flex items-center gap-3 py-1 min-w-[200px] sm:min-w-[230px]">
-      {/* Play / Pause Circular Button */}
+    <div className="flex items-center gap-3 py-1 min-w-[210px] sm:min-w-[240px]">
+      {/* Play / Pause / Loading Button */}
       <button
         type="button"
         onClick={togglePlay}
         className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 transition-transform active:scale-95 shadow-sm ${
           isMine 
-            ? "bg-white text-[#5c2a16] hover:bg-white/90" 
+            ? "bg-white text-[#5c2a16] hover:bg-white/95" 
             : "bg-gradient-to-br from-[#74351b] to-[#994d2c] text-white hover:opacity-95"
         }`}
-        aria-label={isPlaying ? "Pause voice message" : "Play voice message"}
+        aria-label={isPlaying ? "Pause voice note" : "Play voice note"}
       >
-        {isPlaying ? <Pause size={15} className="fill-current" /> : <Play size={15} className="fill-current ml-0.5" />}
+        {isLoadingAudio && !duration ? (
+          <Loader2 size={15} className="animate-spin" />
+        ) : isPlaying ? (
+          <Pause size={15} className="fill-current" />
+        ) : (
+          <Play size={15} className="fill-current ml-0.5" />
+        )}
       </button>
 
-      {/* Waveform & Scrubber */}
+      {/* Waveform Scrubber */}
       <div className="flex-1 flex flex-col gap-1.5 cursor-pointer select-none" onClick={handleSeek}>
         <div className="flex items-center gap-[2.5px] h-6">
           {barHeights.map((height, idx) => {
@@ -131,13 +181,13 @@ const VoicePlayer: React.FC<VoicePlayerProps> = ({ audioUrl, isMine }) => {
           })}
         </div>
 
-        {/* Time Progress Display */}
-        <div className="flex items-center justify-between text-[0.66rem] font-medium leading-none">
-          <span className={isMine ? "text-white/80" : "text-[#9a7060]"}>
-            {isPlaying ? formatSeconds(currentTime) : (duration > 0 ? formatSeconds(duration) : "Voice")}
+        {/* Decrement countdown display when playing, full duration when stopped */}
+        <div className="flex items-center justify-between text-[0.68rem] font-mono leading-none">
+          <span className={`font-semibold ${isMine ? "text-white/90" : "text-[#74351b]"}`}>
+            {isPlaying ? `-${formatSeconds(remainingSeconds)}` : (duration > 0 ? formatSeconds(duration) : "0:00")}
           </span>
           <span className={`flex items-center gap-1 ${isMine ? "text-white/60" : "text-[#b09080]"}`}>
-            <Volume2 size={10} />
+            <Volume2 size={11} />
             {duration > 0 ? formatSeconds(duration) : "0:00"}
           </span>
         </div>

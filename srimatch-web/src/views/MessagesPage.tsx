@@ -300,21 +300,24 @@ const MessagesPage = () => {
   }, [conversations, searchTerm]);
 
   return (
-    <div className="min-h-screen bg-[#fdf8f4] px-2 py-4 sm:px-6 sm:py-8 font-['DM_Sans']">
-      <div className="mx-auto max-w-[1100px]">
-        {/* Page title (hidden on mobile when inside an active conversation for maximum chat real estate) */}
-        <div className={`mb-4 sm:mb-6 ${activeConversation ? "hidden md:block" : "block"}`}>
-          <h1 className="font-['Cormorant_Garamond'] text-[1.75rem] sm:text-[2rem] font-semibold text-[#2d1810] leading-tight">
-            Your <span className="bg-gradient-to-br from-[#8b4e2e] to-[#c9856a] bg-clip-text text-transparent">Messages</span>
-          </h1>
-          <p className="text-[0.8rem] sm:text-[0.83rem] text-[#9a7060] mt-0.5">Connect and converse with your potential matches</p>
+    <div className="h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#fdf8f4] flex flex-col p-0 md:p-3 lg:p-5 font-['DM_Sans']">
+      <div className="mx-auto w-full max-w-[1240px] flex-1 flex flex-col h-full min-h-0">
+        
+        {/* Desktop Header */}
+        <div className="hidden md:flex items-center justify-between mb-2.5 px-2 shrink-0">
+          <div>
+            <h1 className="font-['Cormorant_Garamond'] text-[1.6rem] lg:text-[1.8rem] font-bold text-[#2d1810] leading-tight">
+              Your <span className="bg-gradient-to-br from-[#8b4e2e] to-[#c9856a] bg-clip-text text-transparent">Messages</span>
+            </h1>
+            <p className="text-[0.78rem] text-[#9a7060]">Connect, share photos & voice notes with your matches</p>
+          </div>
         </div>
 
-        {/* Chat Container */}
-        <div className="h-[calc(100dvh-170px)] md:h-[680px] bg-white rounded-[20px] sm:rounded-[24px] shadow-[0_20px_50px_rgba(120,60,30,0.08),0_4px_12px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col md:grid md:grid-cols-[320px_1fr]">
+        {/* Chat Container (Locked Viewport on Mobile & Desktop) */}
+        <div className="flex-1 min-h-0 bg-white md:rounded-[24px] md:shadow-[0_16px_50px_rgba(120,60,30,0.08)] md:border md:border-[#f0ddd5] overflow-hidden flex flex-col md:grid md:grid-cols-[340px_1fr] relative">
           
-          {/* Conversation List: full width on mobile when no active chat, or left column on desktop */}
-          <div className={`h-full ${activeConversation ? "hidden md:flex flex-col" : "flex flex-col w-full"}`}>
+          {/* Conversation List: full screen on mobile when no active chat, or left column on desktop */}
+          <div className={`h-full overflow-hidden ${activeConversation ? "hidden md:flex flex-col" : "flex flex-col w-full"}`}>
             <ConversationList 
               conversations={filteredConversations}
               activeConversation={activeConversation}
@@ -325,8 +328,8 @@ const MessagesPage = () => {
             />
           </div>
           
-          {/* Chat Pane: full width on mobile when active chat is chosen, or right column on desktop */}
-          <div className={`h-full ${!activeConversation ? "hidden md:flex flex-col" : "flex flex-col w-full"}`}>
+          {/* Chat Pane: full screen on mobile when active chat is chosen, or right column on desktop */}
+          <div className={`h-full overflow-hidden ${!activeConversation ? "hidden md:flex flex-col" : "flex flex-col w-full"}`}>
             <ChatPane 
               activeConversation={activeConversation}
               messages={messages}
