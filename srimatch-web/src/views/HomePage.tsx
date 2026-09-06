@@ -5,8 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToggleLike } from "../hooks/useLikes";
 import { useSubscription } from "../hooks/useSubscription";
 import { useProfiles } from "../hooks/useProfiles";
-import { Loader2, Search as SearchIcon } from "lucide-react";
-
+import { Loader2, Search as SearchIcon, Filter as FilterIcon, X, SlidersHorizontal } from "lucide-react";
 
 // Modular Components
 import FilterSidebar from "../components/home/FilterSidebar";
@@ -33,8 +32,6 @@ const PROFILE_OPTIONS = {
 
 /**
  * Sort options — all optional, none selected by default.
- * Boost priority, Completion Score, and Dynamic Discovery apply automatically
- * when no sort is selected (handled server-side).
  */
 const SORT_OPTIONS = [
   { key: "newest",      label: "Newest"   },
@@ -50,7 +47,7 @@ const HomePage = () => {
   const { data: subscription = {} } = useSubscription();
 
   const [showAdvanced, setShowAdvanced] = useState(false);
-  // Sort is optional — empty string means "no sort selected" (dynamic discovery mode)
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState("");
 
   const [filters, setFilters] = useState({
@@ -75,13 +72,37 @@ const HomePage = () => {
     return data?.pages.flatMap(page => page.items) || [];
   }, [data]);
 
-  const totalCount = data?.pages[0]?.count || 0;
   const isPremium = subscription?.plan === "premium" || currentUser?.premium;
   const likesRemaining = subscription?.remainingLikes ?? 5;
 
+  // Active filters count for badge indicator
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.gender) count++;
+    if (filters.maritalStatus) count++;
+    if (filters.hasChildren) count++;
+    if (filters.city) count++;
+    if (filters.religion) count++;
+    if (filters.ethnicity) count++;
+    if (filters.education) count++;
+    if (filters.profession) count++;
+    if (filters.industry) count++;
+    if (filters.income) count++;
+    if (filters.verified) count++;
+    if (filters.bodyType) count++;
+    if (filters.smoking) count++;
+    if (filters.drinking) count++;
+    if (filters.dietaryPreferences) count++;
+    if (filters.horoscopeSign) count++;
+    if (filters.interests && filters.interests.length > 0) count += filters.interests.length;
+    if (filters.ageFrom > 18 || filters.ageTo < 60) count++;
+    if (filters.heightFrom > 140 || filters.heightTo < 220) count++;
+    return count;
+  }, [filters]);
+
   // Infinite Scroll Observer
-  const observer = useRef();
-  const lastElementRef = useCallback(node => {
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
     if (isLoading) return;
     if (observer.current) observer.current.disconnect();
 
@@ -94,18 +115,18 @@ const HomePage = () => {
     if (node) observer.current.observe(node);
   }, [isLoading, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const handleFilterChange = useCallback((e) => {
+  const handleFilterChange = useCallback((e: any) => {
     const { name, value, type, checked } = e.target;
     setFilters(p => ({ ...p, [name]: type === "checkbox" ? checked : value }));
   }, []);
 
-  const handleRange = useCallback((name, val, isMax) => {
+  const handleRange = useCallback((name: string, val: number, isMax: boolean) => {
     setFilters(p => ({ ...p, [isMax ? `${name}To` : `${name}From`]: val }));
   }, []);
 
-  const toggleInterest = useCallback((interest) => {
+  const toggleInterest = useCallback((interest: string) => {
     setFilters(p => {
-      const cur = p.interests || [];
+      const cur: string[] = (p.interests as string[]) || [];
       return { ...p, interests: cur.includes(interest) ? cur.filter(i => i !== interest) : [...cur, interest] };
     });
   }, []);
@@ -120,35 +141,82 @@ const HomePage = () => {
     });
   }, []);
 
-  // Toggle: clicking an already-active sort button deselects it (returns to dynamic discovery)
-  const handleSortToggle = useCallback((key) => {
+  const handleSortToggle = useCallback((key: string) => {
     setSortOrder(prev => prev === key ? "" : key);
   }, []);
 
-  const toggleLike = useCallback((profileId, type = 'NORMAL') => mutateToggleLike({ profileId, type }), [mutateToggleLike]);
+  const toggleLike = useCallback((profileId: string | number, type: 'NORMAL' | 'STAR' = 'NORMAL') => {
+    mutateToggleLike({ profileId, type });
+  }, [mutateToggleLike]);
 
   return (
-    <div className="min-h-screen bg-[#fdf8f4] px-4 pt-8 pb-16 font-['DM_Sans'] text-[#2d1810] sm:px-6">
-      
+    <div className="min-h-screen bg-[#fdf8f4] px-3 pt-4 pb-20 font-['DM_Sans'] text-[#2d1810] sm:px-6 sm:pt-6">
+      <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-6 lg:grid-cols-[272px_1fr]">
+        
+        {/* Desktop Sidebar (hidden on mobile) */}
+        <div className="hidden lg:block">
+          <FilterSidebar
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onRangeChange={handleRange}
+            onToggleInterest={toggleInterest}
+            onReset={resetFilters}
+            isPremium={isPremium}
+            showAdvanced={showAdvanced}
+            setShowAdvanced={setShowAdvanced}
+            likesRemaining={likesRemaining}
+            options={PROFILE_OPTIONS}
+          />
+        </div>
 
-      <div className="mx-auto mt-4 grid max-w-[1200px] grid-cols-1 items-start gap-7 lg:grid-cols-[272px_1fr]">
-        <FilterSidebar
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          onRangeChange={handleRange}
-          onToggleInterest={toggleInterest}
-          onReset={resetFilters}
-          isPremium={isPremium}
-          showAdvanced={showAdvanced}
-          setShowAdvanced={setShowAdvanced}
-          likesRemaining={likesRemaining}
-          options={PROFILE_OPTIONS}
-        />
+        {/* Mobile Filter Drawer / Bottom Sheet Modal */}
+        {isMobileFilterOpen && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center lg:hidden">
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" 
+              onClick={() => setIsMobileFilterOpen(false)}
+            />
+            {/* Drawer Sheet */}
+            <div className="relative z-10 w-full max-h-[88vh] overflow-hidden rounded-t-[28px] bg-white shadow-2xl animate-in slide-in-from-bottom duration-300">
+              <FilterSidebar
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onRangeChange={handleRange}
+                onToggleInterest={toggleInterest}
+                onReset={resetFilters}
+                isPremium={isPremium}
+                showAdvanced={showAdvanced}
+                setShowAdvanced={setShowAdvanced}
+                likesRemaining={likesRemaining}
+                options={PROFILE_OPTIONS}
+                onClose={() => setIsMobileFilterOpen(false)}
+              />
+            </div>
+          </div>
+        )}
 
-        <main>
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[0.85rem] text-[#9a7060]">
+        <main className="w-full min-w-0">
+          {/* Header Controls: Mobile Filter Button + Sort Strip */}
+          <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+            
+            <div className="flex items-center justify-between gap-3">
+              {/* Mobile Filter Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(true)}
+                className="flex lg:hidden items-center gap-2 rounded-full border-[1.5px] border-[#8b4e2e]/30 bg-gradient-to-r from-[#fdf5ee] to-[#fff] px-3.5 py-2 text-[0.8rem] font-medium text-[#8b4e2e] shadow-sm transition-all active:scale-95"
+              >
+                <SlidersHorizontal size={15} className="text-[#8b4e2e]" />
+                <span>Filters</span>
+                {activeFiltersCount > 0 && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#8b4e2e] text-[0.68rem] font-bold text-white">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
+
+              <p className="text-[0.82rem] text-[#9a7060]">
                 {sortOrder === "" ? (
                   <span className="italic text-[#c9856a]">Dynamic discovery</span>
                 ) : (
@@ -156,12 +224,14 @@ const HomePage = () => {
                 )}
               </p>
             </div>
-            <div className="flex flex-wrap gap-1.5">
+
+            {/* Horizontally scrollable sort pills on mobile */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar sm:pb-0">
               {SORT_OPTIONS.map(s => (
                 <button
                   key={s.key}
                   id={`sort-${s.key}`}
-                  className={`flex items-center gap-1 rounded-full border-[1.5px] px-3 py-1.5 font-['DM_Sans'] text-[0.74rem] font-medium transition-all duration-200 ${
+                  className={`flex shrink-0 items-center gap-1 rounded-full border-[1.5px] px-3 py-1.5 font-['DM_Sans'] text-[0.74rem] font-medium transition-all duration-200 ${
                     sortOrder === s.key
                       ? "border-transparent bg-gradient-to-br from-[#3d1f12] to-[#8b4e2e] text-white shadow-[0_4px_10px_rgba(139,78,46,0.22)]"
                       : "border-[#e8ddd8] bg-[#fdf8f4] text-[#6b4a3a] hover:border-[#c9856a]"
@@ -175,19 +245,16 @@ const HomePage = () => {
             </div>
           </div>
 
+          {/* Profile Cards Grid */}
           {status === 'loading' ? (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
               {[...Array(6)].map((_, i) => <ProfileCardSkeleton key={i} />)}
             </div>
           ) : profiles.length > 0 ? (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {profiles.map((profile, index) => {
-                // Interaction state comes solely from the embedded `interactionType`
-                // field returned by the cursor endpoint — no secondary /likes/sent
-                // fetch needed. Optimistic updates in useToggleLike keep this
-                // in sync without any extra network call.
-                const isLiked       = profile.interactionType === 'NORMAL';
-                const isStarred     = profile.interactionType === 'STAR';
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
+              {profiles.map((profile: any, index: number) => {
+                const isLiked = profile.interactionType === 'NORMAL';
+                const isStarred = profile.interactionType === 'STAR';
                 const hasInteraction = profile.interactionType != null;
 
                 return (
@@ -204,23 +271,32 @@ const HomePage = () => {
               })}
             </div>
           ) : (
-            <div className="rounded-[20px] bg-white px-8 py-16 text-center shadow-[0_8px_28px_rgba(120,60,30,0.06)]">
-              <div className="mx-auto mb-4 flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gradient-to-br from-[#fdf0e8] to-[#f5ddd0]">
-                <SearchIcon size={28} className="text-[#c9856a]" />
+            <div className="rounded-[20px] bg-white px-6 py-14 text-center shadow-[0_8px_28px_rgba(120,60,30,0.06)] sm:px-8 sm:py-16">
+              <div className="mx-auto mb-4 flex h-[64px] w-[64px] items-center justify-center rounded-full bg-gradient-to-br from-[#fdf0e8] to-[#f5ddd0]">
+                <SearchIcon size={26} className="text-[#c9856a]" />
               </div>
-              <h3 className="mb-1.5 font-['Cormorant_Garamond'] text-[1.5rem] font-semibold text-[#2d1810]">No matches found</h3>
-              <p className="text-[0.85rem] text-[#9a7060]">Try adjusting your filters to discover more profiles.</p>
+              <h3 className="mb-1.5 font-['Cormorant_Garamond'] text-[1.4rem] font-semibold text-[#2d1810] sm:text-[1.5rem]">No matches found</h3>
+              <p className="text-[0.84rem] text-[#9a7060]">Try adjusting your filters to discover more profiles.</p>
+              {activeFiltersCount > 0 && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#fdf0e8] px-4 py-2 text-[0.8rem] font-medium text-[#8b4e2e] hover:bg-[#fae4d4] transition-colors"
+                >
+                  Reset All Filters
+                </button>
+              )}
             </div>
           )}
 
           {isFetchingNextPage && (
             <div className="py-8 text-center text-[#8b4e2e]">
-              <Loader2 className="mx-auto animate-spin" size={32} />
+              <Loader2 className="mx-auto animate-spin" size={30} />
             </div>
           )}
 
           {!hasNextPage && profiles.length > 0 && (
-            <div className="py-8 text-center text-[0.85rem] text-[#9a7060]">
+            <div className="py-8 text-center text-[0.82rem] text-[#9a7060]">
               You've reached the end of the matches ✦
             </div>
           )}

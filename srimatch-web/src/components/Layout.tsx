@@ -3,6 +3,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from './Navbar';
+import MobileBottomNav from './MobileBottomNav';
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -28,7 +29,7 @@ const styles = `
   .layout-main {
     position: relative;
     z-index: 1;
-    padding: 2rem 1.5rem 4rem;
+    padding: 1.5rem 1.25rem 4rem;
   }
 
   .layout-inner {
@@ -36,9 +37,9 @@ const styles = `
     margin: 0 auto;
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 768px) {
     .layout-main {
-      padding: 1.25rem 1rem 3rem;
+      padding: 1rem 0.85rem 6rem;
     }
   }
 `;
@@ -56,6 +57,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             {children}
           </div>
         </main>
+        {user && <MobileBottomNav />}
       </div>
     </>
   );

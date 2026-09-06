@@ -3,8 +3,8 @@
 @layer base {
   /* Custom Scrollbar Styling - SriMatch Premium Theme */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -26,6 +26,7 @@
   * {
     scrollbar-width: thin;
     scrollbar-color: #d4b8a8 #fdf8f4;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Global Smooth Transitions */
@@ -38,5 +39,23 @@
     -moz-osx-font-smoothing: grayscale;
     background: #fdf8f4;
     color: #2d1810;
+    overflow-x: hidden;
   }
+}
+
+/* Utilities for mobile responsiveness */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area insets support for iOS / Android */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+.pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top, 1rem));
 }

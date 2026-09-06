@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { usePathname } from 'next/navigation';
 import { useAuth } from "../context/AuthContext";
 import MatchService from "../services/match.service";
@@ -10,21 +10,26 @@ import wsService from "../services/websocket.service";
 import { toast } from "sonner";
 import { X, Flag, Check, Loader2 } from "lucide-react";
 
-
 // Modular Components
 import ConversationList from "../components/chat/ConversationList";
 import ChatPane from "../components/chat/ChatPane";
 
 const MessagesPage = () => {
   const pathname = usePathname();
-  const queryParams = new URLSearchParams(location.search);
-  const initialUserId = queryParams.get("user");
+  const [initialUserId, setInitialUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const queryParams = new URLSearchParams(window.location.search);
+      setInitialUserId(queryParams.get("user"));
+    }
+  }, []);
 
   const { user, accessToken } = useAuth();
   
-  const [conversations, setConversations] = useState([]);
-  const [activeConversation, setActiveConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [activeConversation, setActiveConversation] = useState<any | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [message, setMessage] = useState("");
@@ -37,27 +42,8 @@ const MessagesPage = () => {
   const [reportLoading, setReportLoading] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
 
-  /* ─── WebSocket Lifecycle ─────────────────────────────────────────────── */
-  useEffect(() => {
-    // Only connect if we have a token
-    if (accessToken) {
-      wsService.connect(accessToken, () => {
-        // Subscribe to private messages queue
-        wsService.subscribe('/user/queue/messages', (incomingMsg) => {
-          handleIncomingMessage(incomingMsg);
-        });
-      });
-    }
-
-    fetchConversations();
-
-    return () => {
-      wsService.disconnect();
-    };
-  }, []);
-
   /* ─── Fetch Conversations ────────────────────────────────────────────── */
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
       const response = await MatchService.getMyMatches();
@@ -65,12 +51,14 @@ const MessagesPage = () => {
         const convs = response.data.content || [];
         setConversations(convs);
         
-        // Handle initial user from query param or auto-select first
+        // Handle initial user from query param or auto-select first on desktop
         if (initialUserId) {
-          const target = convs.find(c => c.otherUser.id === initialUserId || c.otherUser.userId === initialUserId);
+          const target = convs.find((c: any) => c.otherUser.id === initialUserId || c.otherUser.userId === initialUserId);
           if (target) setActiveConversation(target);
         } else if (convs.length > 0 && !activeConversation) {
-          setActiveConversation(convs[0]);
+          if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+            setActiveConversation(convs[0]);
+          }
         }
       }
     } catch (err) {
@@ -79,16 +67,10 @@ const MessagesPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [initialUserId, activeConversation]);
 
   /* ─── Fetch Message History ──────────────────────────────────────────── */
-  useEffect(() => {
-    if (activeConversation) {
-      fetchMessages(activeConversation.id);
-    }
-  }, [activeConversation?.id]);
-
-  const fetchMessages = async (matchId) => {
+  const fetchMessages = useCallback(async (matchId: string | number) => {
     try {
       setLoadingMessages(true);
       const response = await ChatService.getChatHistory(matchId);
@@ -101,23 +83,41 @@ const MessagesPage = () => {
     } finally {
       setLoadingMessages(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (activeConversation?.id) {
+      fetchMessages(activeConversation.id);
+    }
+  }, [activeConversation?.id, fetchMessages]);
 
   /* ─── Event Handlers ─────────────────────────────────────────────────── */
-  const handleIncomingMessage = (incomingMsg) => {
-    // If message is for the current active chat, add it to state
-    // We check if it's from the other user in the active conversation
+  const handleIncomingMessage = useCallback((incomingMsg: any) => {
     if (activeConversation && (incomingMsg.senderId === activeConversation.otherUser.id)) {
       setMessages(prev => [...prev, incomingMsg]);
-      // Mark as read via HTTP
       ChatService.markAsRead(incomingMsg.id);
     } else {
-      // Show notification if it's from someone else
       toast.info(`New message from ${incomingMsg.senderName || 'someone'}`);
-      // Refresh conversations list to show unread badges (if implemented in backend)
       fetchConversations();
     }
-  };
+  }, [activeConversation, fetchConversations]);
+
+  /* ─── WebSocket Lifecycle ─────────────────────────────────────────────── */
+  useEffect(() => {
+    if (accessToken) {
+      wsService.connect(accessToken, () => {
+        wsService.subscribe('/user/queue/messages', (incomingMsg: any) => {
+          handleIncomingMessage(incomingMsg);
+        });
+      });
+    }
+
+    fetchConversations();
+
+    return () => {
+      wsService.disconnect();
+    };
+  }, [accessToken, handleIncomingMessage, fetchConversations]);
 
   const handleSendMessage = async () => {
     if (!message.trim() || !activeConversation) return;
@@ -128,17 +128,11 @@ const MessagesPage = () => {
       content: message,
       type: "TEXT"
     };
-
-    // Optimistic UI update or wait for backend? 
-    // Usually for STOMP we send via WS and wait for our own message back in /user/queue/messages
-    // BUT many backends only send to RECEIVER. So we send via WS and add to our own list.
     
     try {
-      // Send via HTTP (Backend requirement)
       const response = await ChatService.sendMessage(payload);
       
       if (response.success) {
-        // Add to our own list for instant feedback
         const newMsg = response.data;
         setMessages(prev => [...prev, newMsg]);
         setMessage("");
@@ -151,7 +145,7 @@ const MessagesPage = () => {
     }
   };
 
-  const handleReport = async (e) => {
+  const handleReport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportReason || !activeConversation) return;
     try {
@@ -168,7 +162,7 @@ const MessagesPage = () => {
         setReportReason("");
         setReportDesc("");
       }, 2000);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.message || "Failed to submit report");
     } finally {
       setReportLoading(false);
@@ -182,38 +176,46 @@ const MessagesPage = () => {
   }, [conversations, searchTerm]);
 
   return (
-    <div className="min-h-screen bg-[#fdf8f4] px-4 py-8 sm:px-6 lg:px-8 font-['DM_Sans']">
-      
-
+    <div className="min-h-screen bg-[#fdf8f4] px-2 py-4 sm:px-6 sm:py-8 font-['DM_Sans']">
       <div className="mx-auto max-w-[1100px]">
-        <div className="mb-7">
-          <h1 className="font-['Cormorant_Garamond'] text-[2rem] font-semibold text-[#2d1810] leading-tight">
+        {/* Page title (hidden on mobile when inside an active conversation for maximum chat real estate) */}
+        <div className={`mb-4 sm:mb-6 ${activeConversation ? "hidden md:block" : "block"}`}>
+          <h1 className="font-['Cormorant_Garamond'] text-[1.75rem] sm:text-[2rem] font-semibold text-[#2d1810] leading-tight">
             Your <span className="bg-gradient-to-br from-[#8b4e2e] to-[#c9856a] bg-clip-text text-transparent">Messages</span>
           </h1>
-          <p className="text-[0.83rem] text-[#9a7060] mt-1">Connect and converse with your potential matches</p>
+          <p className="text-[0.8rem] sm:text-[0.83rem] text-[#9a7060] mt-0.5">Connect and converse with your potential matches</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] h-[680px] bg-white rounded-[24px] shadow-[0_20px_50px_rgba(120,60,30,0.1),0_4px_12px_rgba(0,0,0,0.04)] overflow-hidden">
-          <ConversationList 
-            conversations={filteredConversations}
-            activeConversation={activeConversation}
-            onSelect={setActiveConversation}
-            loading={loading}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-          />
+        {/* Chat Container */}
+        <div className="h-[calc(100dvh-170px)] md:h-[680px] bg-white rounded-[20px] sm:rounded-[24px] shadow-[0_20px_50px_rgba(120,60,30,0.08),0_4px_12px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col md:grid md:grid-cols-[320px_1fr]">
           
-          <ChatPane 
-            activeConversation={activeConversation}
-            messages={messages}
-            loadingMessages={loadingMessages}
-            message={message}
-            setMessage={setMessage}
-            onSend={handleSendMessage}
-            onReport={() => setShowReportModal(true)}
-            isPremium={user?.premium}
-            currentUserId={user?.id}
-          />
+          {/* Conversation List: full width on mobile when no active chat, or left column on desktop */}
+          <div className={`h-full ${activeConversation ? "hidden md:flex flex-col" : "flex flex-col w-full"}`}>
+            <ConversationList 
+              conversations={filteredConversations}
+              activeConversation={activeConversation}
+              onSelect={setActiveConversation}
+              loading={loading}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+            />
+          </div>
+          
+          {/* Chat Pane: full width on mobile when active chat is chosen, or right column on desktop */}
+          <div className={`h-full ${!activeConversation ? "hidden md:flex flex-col" : "flex flex-col w-full"}`}>
+            <ChatPane 
+              activeConversation={activeConversation}
+              messages={messages}
+              loadingMessages={loadingMessages}
+              message={message}
+              setMessage={setMessage}
+              onSend={handleSendMessage}
+              onReport={() => setShowReportModal(true)}
+              isPremium={user?.premium}
+              currentUserId={user?.id}
+              onBack={() => setActiveConversation(null)}
+            />
+          </div>
         </div>
       </div>
 
@@ -221,9 +223,11 @@ const MessagesPage = () => {
       {showReportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white rounded-[22px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-            <div className="p-7">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-['Cormorant_Garamond'] text-[1.5rem] font-bold text-[#2d1810]">Report {activeConversation?.otherUser.name}</h3>
+            <div className="p-6 sm:p-7">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-['Cormorant_Garamond'] text-[1.4rem] sm:text-[1.5rem] font-bold text-[#2d1810]">
+                  Report {activeConversation?.otherUser.name}
+                </h3>
                 <button 
                   onClick={() => !reportLoading && setShowReportModal(false)}
                   className="h-8 w-8 flex items-center justify-center rounded-full bg-[#f5ede5] text-[#8b4e2e] hover:bg-[#ebdccf] transition-colors"
@@ -242,7 +246,7 @@ const MessagesPage = () => {
                 </div>
               ) : (
                 <form onSubmit={handleReport}>
-                  <div className="mb-5">
+                  <div className="mb-4">
                     <label className="mb-1.5 block text-[0.75rem] font-semibold text-[#8b4e2e] uppercase tracking-wide">Reason for report</label>
                     <select 
                       className="w-full rounded-xl border-[1.5px] border-[#f0ddd5] bg-[#fdfaf8] p-3 text-[0.85rem] text-[#2d1810] outline-none focus:border-[#c9856a] transition-all"
@@ -259,12 +263,12 @@ const MessagesPage = () => {
                       <option value="OTHER">Other</option>
                     </select>
                   </div>
-                  <div className="mb-7">
+                  <div className="mb-6">
                     <label className="mb-1.5 block text-[0.75rem] font-semibold text-[#8b4e2e] uppercase tracking-wide">
                       Description <span className="font-normal text-[#9a7060] normal-case">(optional)</span>
                     </label>
                     <textarea 
-                      className="w-full rounded-xl border-[1.5px] border-[#f0ddd5] bg-[#fdfaf8] p-3 text-[0.85rem] text-[#2d1810] outline-none focus:border-[#c9856a] transition-all min-h-[110px] resize-none"
+                      className="w-full rounded-xl border-[1.5px] border-[#f0ddd5] bg-[#fdfaf8] p-3 text-[0.85rem] text-[#2d1810] outline-none focus:border-[#c9856a] transition-all min-h-[90px] resize-none"
                       placeholder="Please provide any additional details (optional)..."
                       value={reportDesc}
                       onChange={e => setReportDesc(e.target.value)}

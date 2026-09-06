@@ -101,9 +101,6 @@ const styles = `
   .nb-notifications-wrapper {
     position: relative;
   }
-  @media (max-width: 768px) { 
-    .nb-notifications-wrapper { display: none; }
-  }
 
   /* ── Avatar / dropdown ── */
   .nb-avatar-wrap { position: relative; }
@@ -133,7 +130,7 @@ const styles = `
   /* Dropdown */
   .nb-dropdown {
     position: absolute; right: 0; top: calc(100% + 0.6rem);
-    width: 200px;
+    width: 220px; max-width: calc(100vw - 2rem);
     background: #fff; border-radius: 14px;
     box-shadow: 0 16px 48px rgba(30,8,2,0.18), 0 4px 12px rgba(0,0,0,0.08);
     overflow: hidden; z-index: 200;

@@ -675,14 +675,21 @@ const styles = `
   }
 
   @media (max-width: 640px) {
-    .mp-root { padding: 1.25rem 1rem 4rem; }
-    .mp-avatar-row { padding: 0 1.25rem 1.25rem; margin-top: -44px; }
-    .mp-section-body { padding: 0 1.25rem 1.5rem; }
-    .mp-section-toggle { padding: 1rem 1.25rem; }
-    .mp-tabs-nav { padding: 0 0.75rem; }
-    .mp-photos-grid { padding: 1.25rem; }
-    .mp-photos-header { padding: 1.25rem; }
-    .mp-photos-note { padding: 0 1.25rem 1.25rem; }
+    .mp-root { padding: 1rem 0.75rem 6rem; }
+    .mp-cover { height: 180px; }
+    .mp-avatar { width: 80px; height: 80px; }
+    .mp-avatar-ph { width: 80px; height: 80px; }
+    .mp-avatar-row { padding: 0 1rem 1.25rem; margin-top: -40px; }
+    .mp-hero-actions { width: 100%; justify-content: flex-start; }
+    .mp-profile-name { font-size: 1.35rem; }
+    .mp-section-body { padding: 0 1rem 1.25rem; }
+    .mp-section-toggle { padding: 0.9rem 1rem; }
+    .mp-tabs-nav { padding: 0 0.5rem; overflow-x: auto; scrollbar-width: none; }
+    .mp-info-grid { grid-template-columns: 1fr; gap: 0.3rem; }
+    .mp-form-grid, .mp-form-grid-3 { grid-template-columns: 1fr; }
+    .mp-photos-grid { grid-template-columns: 1fr 1fr; padding: 1rem; }
+    .mp-photos-header { padding: 1rem; }
+    .mp-photos-note { padding: 0 1rem 1rem; }
   }
 `;
 

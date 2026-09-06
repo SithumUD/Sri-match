@@ -201,14 +201,14 @@ const LoginPage = () => {
 
       <div className="relative z-10 w-full max-w-[440px] overflow-hidden rounded-[24px] bg-white shadow-[0_32px_80px_rgba(120,60,30,0.12),0_8px_24px_rgba(0,0,0,0.05)]">
         {/* Brand Header */}
-        <div className="relative bg-gradient-to-br from-[#3d1f12] via-[#6b3526] to-[#8b4e2e] px-10 pt-10 pb-8 text-center after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-8 after:rounded-t-[50%] after:bg-white">
-          <Link href="/" className="mb-1 block font-['Cormorant_Garamond'] text-[2.2rem] font-semibold tracking-wide text-white no-underline transition-opacity hover:opacity-85">
+        <div className="relative bg-gradient-to-br from-[#3d1f12] via-[#6b3526] to-[#8b4e2e] px-6 sm:px-10 pt-8 sm:pt-10 pb-6 sm:pb-8 text-center after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-8 after:rounded-t-[50%] after:bg-white">
+          <Link href="/" className="mb-1 block font-['Cormorant_Garamond'] text-[2rem] sm:text-[2.2rem] font-semibold tracking-wide text-white no-underline transition-opacity hover:opacity-85">
             <span className="text-[#e8c97a]">Sri</span>Match<span className="text-[#f4a0a0]"> ♥</span>
           </Link>
-          <p className="text-[0.8rem] font-light tracking-[0.09em] uppercase text-white/60">Where traditions meet forever</p>
+          <p className="text-[0.78rem] sm:text-[0.8rem] font-light tracking-[0.09em] uppercase text-white/60">Where traditions meet forever</p>
         </div>
 
-        <div className="px-10 pt-8 pb-10">
+        <div className="px-5 sm:px-10 pt-6 sm:pt-8 pb-8 sm:pb-10">
           {showUnverifiedBox ? (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="mb-8 rounded-2xl border-[1.5px] border-[#e8c9b8] bg-[#fffaf8] p-6 text-center">

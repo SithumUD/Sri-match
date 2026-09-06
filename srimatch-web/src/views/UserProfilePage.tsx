@@ -315,9 +315,18 @@ const styles = `
   }
 
   @media (max-width: 700px) {
-    .up-root { padding: 1.25rem 1rem 4rem; }
-    .up-gallery { height: 300px; }
-    .up-name { font-size: 1.7rem; }
+    .up-root { padding: 1rem 0.75rem 6rem; }
+    .up-gallery { height: 280px; }
+    .up-identity { padding: 1rem 1.25rem; }
+    .up-name { font-size: 1.6rem; }
+    .up-action-bar { padding: 1rem 1.25rem; flex-direction: column; align-items: stretch; gap: 0.85rem; }
+    .up-action-left { flex-wrap: wrap; gap: 0.5rem; width: 100%; }
+    .up-btn { flex: 1; min-width: 110px; justify-content: center; }
+    .up-match-score { align-items: center; justify-content: center; width: 100%; }
+    .up-tabs-nav { overflow-x: auto; scrollbar-width: none; }
+    .up-tab-body { padding: 1.25rem 1rem; }
+    .up-info-grid { grid-template-columns: 1fr; gap: 0.4rem; }
+    .up-match-hero { flex-direction: column; text-align: center; gap: 1rem; }
   }
 `;
 

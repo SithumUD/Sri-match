@@ -380,11 +380,16 @@ const styles = `
   .pc-quiz-opt.sel { background: linear-gradient(135deg, #3d1f12, #8b4e2e); color: #fff; border-color: transparent; }
 
   @media (max-width: 600px) {
-    .pc-card-inner { padding: 1.5rem 1.25rem; }
-    .pc-grid-2 { grid-template-columns: 1fr; }
+    .pc-header { padding: 1.5rem 1rem 0.5rem; }
+    .pc-header h1 { font-size: 1.55rem; }
+    .pc-card-inner { padding: 1.25rem 1rem; }
+    .pc-grid-2, .pc-grid-3 { grid-template-columns: 1fr; }
     .pc-slider-group { grid-template-columns: 1fr; }
     .pc-review-grid { grid-template-columns: 1fr; }
-    .pc-tabs-wrap, .pc-progress-wrap, .pc-card-wrap { padding: 0 0.75rem; }
+    .pc-tabs-wrap, .pc-progress-wrap, .pc-card-wrap { padding: 0 0.5rem; }
+    .pc-tabs-wrap { overflow-x: auto; scrollbar-width: none; }
+    .pc-nav { flex-direction: row; justify-content: space-between; gap: 0.5rem; }
+    .pc-btn-prev, .pc-btn-next, .pc-btn-submit { padding: 0.6rem 1.2rem; font-size: 0.8rem; }
   }
 `;
 

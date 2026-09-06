@@ -270,9 +270,18 @@ const styles = `
   }
   .vp-benefit-item { display: flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; color: #8b4e2e; }
 
-  @media (max-width: 560px) {
-    .vp-body { padding: 1.5rem 1.25rem 2rem; }
-    .vp-card-top { padding: 1.75rem 1.5rem; }
+  @media (max-width: 640px) {
+    .vp-root { padding: 1rem 0.75rem 6rem; }
+    .vp-card-top { padding: 1.5rem 1.25rem; gap: 0.85rem; }
+    .vp-top-title { font-size: 1.4rem; }
+    .vp-body { padding: 1.25rem 1rem 1.75rem; }
+    .vp-stepper { margin-bottom: 1.5rem; }
+    .vp-step-label { font-size: 0.6rem; }
+    .vp-id-grid { grid-template-columns: 1fr; gap: 0.6rem; }
+    .vp-upload-grid { grid-template-columns: 1fr; }
+    .vp-review-grid { grid-template-columns: 1fr; }
+    .vp-status-card { padding: 2.5rem 1.25rem; }
+    .vp-status-title { font-size: 1.6rem; }
   }
 `;
 

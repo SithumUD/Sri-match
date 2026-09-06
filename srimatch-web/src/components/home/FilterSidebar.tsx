@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Filter, RefreshCw, Crown, Shield, ChevronDown, Heart } from 'lucide-react';
+import { Filter, RefreshCw, Crown, Shield, ChevronDown, Heart, X } from 'lucide-react';
 
 const FilterSidebar = ({ 
   filters, 
@@ -14,20 +14,32 @@ const FilterSidebar = ({
   showAdvanced, 
   setShowAdvanced, 
   likesRemaining,
-  options
+  options,
+  onClose
 }: any) => {
   return (
-    <aside className="sticky top-6 h-fit overflow-hidden rounded-[20px] bg-white shadow-[0_12px_40px_rgba(120,60,30,0.08),0_2px_8px_rgba(0,0,0,0.04)]">
-      <div className="flex items-center justify-between bg-gradient-to-br from-[#3d1f12] via-[#6b3526] to-[#8b4e2e] px-6 py-5">
+    <aside className="sticky top-6 h-fit overflow-hidden rounded-[20px] bg-white shadow-[0_12px_40px_rgba(120,60,30,0.08),0_2px_8px_rgba(0,0,0,0.04)] flex flex-col max-h-[85vh] lg:max-h-none">
+      <div className="flex items-center justify-between bg-gradient-to-br from-[#3d1f12] via-[#6b3526] to-[#8b4e2e] px-6 py-4 sm:py-5 flex-shrink-0">
         <span className="flex items-center gap-2 font-['Cormorant_Garamond'] text-[1.15rem] font-semibold text-white">
           <Filter size={15} /> Filters
         </span>
-        <button 
-          onClick={onReset} 
-          className="flex items-center gap-1 rounded-full bg-white/15 px-[0.65rem] py-[0.3rem] font-['DM_Sans'] text-[0.72rem] text-white transition-colors hover:bg-white/25"
-        >
-          <RefreshCw size={10} /> Reset
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={onReset} 
+            className="flex items-center gap-1 rounded-full bg-white/15 px-[0.65rem] py-[0.3rem] font-['DM_Sans'] text-[0.72rem] text-white transition-colors hover:bg-white/25"
+          >
+            <RefreshCw size={10} /> Reset
+          </button>
+          {onClose && (
+            <button 
+              onClick={onClose}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 transition-colors"
+              aria-label="Close filters"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="max-h-[calc(100vh-120px)] overflow-y-auto px-6 py-5">
@@ -299,6 +311,18 @@ const FilterSidebar = ({
           </div>
         )}
       </div>
+
+      {onClose && (
+        <div className="p-4 border-t border-[#f0ddd5] bg-[#fdf8f4] flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-3 rounded-xl bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] text-white font-medium text-[0.88rem] shadow-[0_4px_14px_rgba(139,78,46,0.25)] transition-all active:scale-[0.98]"
+          >
+            Show Matching Profiles ✦
+          </button>
+        </div>
+      )}
     </aside>
   );
 };

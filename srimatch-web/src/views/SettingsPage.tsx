@@ -297,10 +297,35 @@ const styles = `
     border-top: 1px solid #f5ede8; margin-top: 0.5rem;
   }
 
-  @media (max-width: 640px) {
-    .set-root { padding: 1.25rem 1rem 4rem; }
-    .set-body { padding: 1.25rem; }
-    .set-card-head { padding: 1.25rem; }
+  @media (max-width: 700px) {
+    .set-root { padding: 1rem 0.75rem 6rem; }
+    .set-grid { grid-template-columns: 1fr; gap: 1rem; }
+    .set-sidebar {
+      position: static;
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.4rem;
+      border-radius: 14px;
+      gap: 0.35rem;
+    }
+    .set-sidebar::-webkit-scrollbar { display: none; }
+    .set-nav-btn {
+      width: auto;
+      white-space: nowrap;
+      border-left: none;
+      border-radius: 10px;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.76rem;
+    }
+    .set-nav-btn.active {
+      border-left: none;
+      background: linear-gradient(135deg, #3d1f12, #8b4e2e);
+      color: #fff;
+    }
+    .set-card-head { padding: 1rem 1.25rem; }
+    .set-body { padding: 1.25rem 1rem; }
   }
 `;
 

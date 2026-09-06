@@ -551,14 +551,16 @@ const styles = `
   @keyframes sp-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(201,58,26,0.4); } 50% { box-shadow: 0 0 0 6px rgba(201,58,26,0); } }
 
   @media (max-width: 640px) {
-    .sp-root { padding: 1.25rem 1rem 4rem; }
+    .sp-root { padding: 1rem 0.75rem 6rem; }
     .sp-page-title { font-size: 1.65rem; }
-    .sp-current-header { padding: 1.25rem 1.25rem; }
-    .sp-current-body { padding: 1.25rem; }
-    .sp-modal-body { padding: 1.25rem; }
-    .sp-modal-header { padding: 1.25rem; }
-    .sp-boost-status-bar { margin: 0 1.25rem 1.25rem; }
-    .sp-boost-packages-grid { padding: 1.25rem; }
+    .sp-current-header { padding: 1.25rem 1rem; }
+    .sp-current-body { padding: 1.25rem 1rem; }
+    .sp-plans-grid { grid-template-columns: 1fr; padding: 1.25rem 1rem; gap: 1rem; }
+    .sp-modal-body { padding: 1.25rem 1rem; }
+    .sp-modal-header { padding: 1.25rem 1rem; }
+    .sp-boost-status-bar { margin: 0 1rem 1.25rem; padding: 1rem; }
+    .sp-boost-packages-grid { padding: 1.25rem 1rem; grid-template-columns: 1fr; }
+    .sp-table-wrap { -webkit-overflow-scrolling: touch; }
   }
 `;
 

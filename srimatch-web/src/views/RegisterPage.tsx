@@ -4,10 +4,7 @@ import React, { useState } from "react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from "../context/AuthContext";
-import { 
-  Eye, EyeOff, Mail, Lock, User, Gift, 
-  Shield, AlertCircle, ArrowRight, Loader2, Check, RefreshCw 
-} from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Check, RefreshCw, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -18,14 +15,9 @@ const registerSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number")
-    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
-  referralCode: z.string().optional(),
-  agreeToTerms: z.boolean().refine(val => val === true, "You must agree to the terms"),
+  agreeToTerms: z.boolean().refine(val => val === true, "You must agree to the Terms and Privacy Policy"),
   agreeToMarketing: z.boolean().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
@@ -49,9 +41,9 @@ const FacebookIcon = () => (
 );
 
 /* ─── Turnstile Widget ─────────────────────────────────────────────────── */
-const TurnstileWidget = ({ onVerify }) => {
-  const containerRef = React.useRef(null);
-  const widgetIdRef = React.useRef(null);
+const TurnstileWidget = ({ onVerify }: { onVerify: (token: string) => void }) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const widgetIdRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     const scriptId = "cf-turnstile-script";
@@ -66,17 +58,20 @@ const TurnstileWidget = ({ onVerify }) => {
 
     let isMounted = true;
     const interval = setInterval(() => {
-      if (window.turnstile && containerRef.current && !widgetIdRef.current) {
+      if ((window as any).turnstile && containerRef.current && !widgetIdRef.current) {
         try {
-          widgetIdRef.current = window.turnstile.render(containerRef.current, {
+          widgetIdRef.current = (window as any).turnstile.render(containerRef.current, {
             sitekey: "0x4AAAAAADCRNcxH7bShZFVD", // Always Passes test key
-            callback: (token) => {
+            callback: (token: string) => {
               if (isMounted) onVerify(token);
+            },
+            "error-callback": () => {
+              console.error("Turnstile error");
             }
           });
           clearInterval(interval);
         } catch (e) {
-          console.warn("Turnstile render failed, retrying...");
+          console.warn("Turnstile render failed, retrying...", e);
         }
       }
     }, 250);
@@ -87,16 +82,17 @@ const TurnstileWidget = ({ onVerify }) => {
     };
   }, [onVerify]);
 
-  return <div ref={containerRef} className="mt-5 mb-4 flex min-h-[65px] justify-center" />;
+  return (
+    <div ref={containerRef} className="mt-5 mb-4 flex min-h-[65px] justify-center" />
+  );
 };
 
 const RegisterPage = () => {
   const router = useRouter();
-  const { register: registerUser, verifyEmail, login, resendVerification } = useAuth();
-  
+  const { register: registerUser, verifyEmail, resendVerification, login } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
   const [showOtpStep, setShowOtpStep] = useState(false);
   const [otpValue, setOtpValue] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("dev-bypass");
   const [loading, setLoading] = useState(false);
@@ -112,7 +108,7 @@ const RegisterPage = () => {
 
   const formData = watch();
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: any) => {
     setLoading(true);
     try {
       const result = await registerUser({ ...data, captchaToken });
@@ -129,7 +125,7 @@ const RegisterPage = () => {
     }
   };
 
-  const handleVerifyOtp = async (e) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpValue || otpValue.length < 6) {
       toast.error("Please enter a valid 6-digit code.");
@@ -141,7 +137,6 @@ const RegisterPage = () => {
       const result = await verifyEmail(formData.email, otpValue);
       if (result.success) {
         toast.success("Email verified successfully!");
-        // Attempt automatic login
         const loginResult = await login(formData.email, formData.password, captchaToken);
         if (loginResult.success) {
           router.push("/profile-creation");
@@ -172,25 +167,25 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#fdf8f4] px-4 py-12 font-['DM_Sans']">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#fdf8f4] px-4 py-8 font-['DM_Sans']">
       {/* Decorative Blobs */}
       <div className="fixed top-[-120px] right-[-120px] z-0 h-[520px] w-[520px] rounded-full bg-[#c9856a] opacity-15 blur-[90px] pointer-events-none" />
       <div className="fixed bottom-[-100px] left-[-100px] z-0 h-[420px] w-[420px] rounded-full bg-[#8b6248] opacity-15 blur-[90px] pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-[480px] overflow-hidden rounded-[24px] bg-white shadow-[0_32px_80px_rgba(120,60,30,0.12),0_8px_24px_rgba(0,0,0,0.05)]">
         {/* Brand Header */}
-        <div className="relative bg-gradient-to-br from-[#3d1f12] via-[#6b3526] to-[#8b4e2e] px-10 pt-10 pb-8 text-center after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-8 after:rounded-t-[50%] after:bg-white">
-          <Link href="/" className="mb-1 block font-['Cormorant_Garamond'] text-[2.2rem] font-semibold tracking-wide text-white no-underline transition-opacity hover:opacity-85">
+        <div className="relative bg-gradient-to-br from-[#3d1f12] via-[#6b3526] to-[#8b4e2e] px-6 sm:px-10 pt-8 sm:pt-10 pb-6 sm:pb-8 text-center after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-8 after:rounded-t-[50%] after:bg-white">
+          <Link href="/" className="mb-1 block font-['Cormorant_Garamond'] text-[2rem] sm:text-[2.2rem] font-semibold tracking-wide text-white no-underline transition-opacity hover:opacity-85">
             <span className="text-[#e8c97a]">Sri</span>Match<span className="text-[#f4a0a0]"> ♥</span>
           </Link>
-          <p className="text-[0.8rem] font-light tracking-[0.09em] uppercase text-white/60">Where traditions meet forever</p>
+          <p className="text-[0.78rem] sm:text-[0.8rem] font-light tracking-[0.09em] uppercase text-white/60">Where traditions meet forever</p>
         </div>
 
-        <div className="px-10 pt-8 pb-10">
+        <div className="px-5 sm:px-10 pt-6 sm:pt-8 pb-8 sm:pb-10">
           {!showOtpStep ? (
             <>
-              <h2 className="mb-1 font-['Cormorant_Garamond'] text-[1.75rem] font-semibold leading-tight text-[#2d1810]">Begin your journey</h2>
-              <p className="mb-7 text-[0.85rem] text-[#9a7060]">Create an account to find your perfect match</p>
+              <h2 className="mb-1 font-['Cormorant_Garamond'] text-[1.6rem] sm:text-[1.75rem] font-semibold leading-tight text-[#2d1810]">Begin your journey</h2>
+              <p className="mb-6 sm:mb-7 text-[0.85rem] text-[#9a7060]">Create an account to find your perfect match</p>
 
               <div className="mb-6 grid grid-cols-2 gap-3">
                 <button type="button" className="flex items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] px-4 py-2.5 text-[0.82rem] font-medium text-[#4a3028] transition-all hover:border-[#c9856a] hover:bg-[#fff5f0]">
@@ -206,7 +201,7 @@ const RegisterPage = () => {
               </div>
 
               <form onSubmit={handleSubmit(onSubmit, (err) => console.log("Register form validation errors:", err))} noValidate>
-                <div className="mb-[1.1rem] grid grid-cols-2 gap-3">
+                <div className="mb-[1.1rem] grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#4a3028]">First Name</label>
                     <div className="relative">
@@ -280,122 +275,79 @@ const RegisterPage = () => {
                   {errors.confirmPassword && <p className="mt-1 text-[0.75rem] text-red-500">{errors.confirmPassword.message}</p>}
                 </div>
 
-                <div className="mb-6">
-                  <label className="mb-1.5 block text-[0.8rem] font-medium tracking-wide text-[#4a3028]">Referral Code <span className="text-[#b09080] font-light">(optional)</span></label>
-                  <div className="relative">
-                    <Gift className="absolute top-1/2 left-[0.85rem] -translate-y-1/2 text-[#c4a99a]" size={15} />
+                <div className="mb-6 flex flex-col gap-2.5">
+                  <label className="flex items-start gap-2.5 cursor-pointer text-[0.78rem] text-[#4a3028]">
                     <input
-                      {...register("referralCode")}
-                      className="w-full rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] py-[0.7rem] px-10 text-[0.88rem] text-[#2d1810] outline-none transition-all focus:bg-white focus:border-[#c9856a] placeholder:text-[#c4b0a5]"
-                      placeholder="Unlock 30 days free premium"
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-6 space-y-3">
-                  <div className="flex items-start gap-2.5">
-                    <input 
+                      type="checkbox"
                       {...register("agreeToTerms")}
-                      id="agreeToTerms" type="checkbox" 
-                      className="mt-1 h-[15px] w-[15px] cursor-pointer accent-[#8b4e2e]" 
+                      className="mt-0.5 h-4 w-4 rounded border-[#e8ddd8] text-[#8b4e2e] focus:ring-[#8b4e2e]"
                     />
-                    <label htmlFor="agreeToTerms" className="text-[0.8rem] leading-relaxed text-[#6b4a3a]">
-                      I agree to the <a href="#" className="font-medium text-[#8b4e2e] underline underline-offset-2">Terms & Conditions</a> and <a href="#" className="font-medium text-[#8b4e2e] underline underline-offset-2">Privacy Policy</a>
-                    </label>
-                  </div>
-                  {errors.agreeToTerms && <p className="text-[0.75rem] text-red-500 ml-[25px]">{errors.agreeToTerms.message}</p>}
-                  
-                  <div className="flex items-start gap-2.5">
-                    <input 
-                      {...register("agreeToMarketing")}
-                      id="agreeToMarketing" type="checkbox" 
-                      className="mt-1 h-[15px] w-[15px] cursor-pointer accent-[#8b4e2e]" 
-                    />
-                    <label htmlFor="agreeToMarketing" className="text-[0.8rem] leading-relaxed text-[#6b4a3a]">
-                      Send me match suggestions and updates by email
-                    </label>
-                  </div>
+                    <span>
+                      I agree to the <Link href="/terms" className="text-[#8b4e2e] font-medium underline">Terms & Conditions</Link> and <Link href="/privacy" className="text-[#8b4e2e] font-medium underline">Privacy Policy</Link>
+                    </span>
+                  </label>
+                  {errors.agreeToTerms && <p className="text-[0.75rem] text-red-500">{errors.agreeToTerms.message as string}</p>}
                 </div>
 
-                <button 
-                  type="submit" 
-                  disabled={loading} 
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-none bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] p-[0.85rem] font-['DM_Sans'] text-[0.92rem] font-medium tracking-wide text-white shadow-[0_6px_20px_rgba(139,78,46,0.28)] transition-all hover:translate-y-[-1px] hover:shadow-[0_10px_28px_rgba(139,78,46,0.36)] disabled:cursor-not-allowed disabled:opacity-55"
+                <TurnstileWidget onVerify={(token) => setCaptchaToken(token)} />
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] py-3.5 text-[0.92rem] font-semibold text-white shadow-[0_6px_20px_rgba(139,78,46,0.25)] transition-all hover:translate-y-[-1px] disabled:opacity-60"
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} />
-                      Creating account…
-                    </>
-                  ) : (
-                    <>Create Account <ArrowRight size={16} /></>
-                  )}
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : "Create Account ✦"}
                 </button>
               </form>
 
-              <p className="mt-6 text-center text-[0.82rem] text-[#9a7060]">
-                Already have an account? <Link href="/login" className="font-medium text-[#8b4e2e] no-underline hover:underline hover:underline-offset-2">Sign in</Link>
-              </p>
+              <div className="mt-6 text-center text-[0.82rem] text-[#9a7060]">
+                Already have an account?{" "}
+                <Link href="/login" className="font-semibold text-[#8b4e2e] hover:underline">
+                  Sign In
+                </Link>
+              </div>
             </>
           ) : (
-            /* OTP Step */
-            <div className="text-center">
-              <div className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#fdf5f0] text-[#8b4e2e]">
-                <Mail size={32} />
+            <div className="py-4 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#fdf0e8] text-[#c9856a]">
+                <Mail size={28} />
               </div>
-              <h2 className="mb-2 font-['Cormorant_Garamond'] text-[1.75rem] font-semibold leading-tight text-[#2d1810]">Verify your email</h2>
-              <p className="mb-8 text-[0.85rem] text-[#9a7060]">
-                We've sent a 6-digit verification code to <br />
-                <strong className="text-[#4a3028]">{formData.email}</strong>
+              <h2 className="mb-2 font-['Cormorant_Garamond'] text-[1.75rem] font-semibold text-[#2d1810]">Verify your email</h2>
+              <p className="mb-6 text-[0.84rem] text-[#9a7060]">
+                We sent a 6-digit verification code to <strong className="text-[#4a3028]">{formData.email}</strong>. Please enter it below.
               </p>
 
               <form onSubmit={handleVerifyOtp}>
                 <div className="mb-6">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={otpValue}
-                      onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ""))}
-                      className="w-full rounded-xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] py-3.5 text-center font-['DM_Sans'] text-[1.75rem] font-bold tracking-[0.75rem] text-[#2d1810] outline-none transition-all focus:border-[#c9856a] focus:bg-white placeholder:text-[#c4b0a5]"
-                      placeholder="000000"
-                      autoFocus
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={otpValue}
+                    onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ""))}
+                    placeholder="123456"
+                    className="w-full tracking-[0.4em] text-center text-[1.5rem] font-bold rounded-2xl border-[1.5px] border-[#e8ddd8] bg-[#fdf8f5] py-3 text-[#2d1810] outline-none focus:border-[#c9856a] focus:bg-white"
+                  />
                 </div>
 
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={verificationLoading || otpValue.length < 6}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-none bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] p-[0.85rem] font-['DM_Sans'] text-[0.92rem] font-medium tracking-wide text-white shadow-[0_6px_20px_rgba(139,78,46,0.28)] transition-all hover:translate-y-[-1px] hover:shadow-[0_10px_28px_rgba(139,78,46,0.36)] disabled:cursor-not-allowed disabled:opacity-55"
+                  className="w-full flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-[#3d1f12] via-[#8b4e2e] to-[#c9856a] py-3.5 text-[0.92rem] font-semibold text-white shadow-[0_6px_20px_rgba(139,78,46,0.25)] transition-all hover:translate-y-[-1px] disabled:opacity-60"
                 >
-                  {verificationLoading ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} />
-                      Verifying…
-                    </>
-                  ) : (
-                    <>Verify & Continue <Check size={18} /></>
-                  )}
+                  {verificationLoading ? <Loader2 size={18} className="animate-spin" /> : "Verify & Continue"}
                 </button>
-
-                <div className="mt-8 flex flex-col items-center gap-4">
-                  <button 
-                    type="button" 
-                    onClick={handleResendOtp}
-                    className="flex items-center gap-1.5 text-[0.8rem] font-medium text-[#9a7060] transition-colors hover:text-[#8b4e2e]"
-                  >
-                    <RefreshCw size={14} /> Resend code
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowOtpStep(false)}
-                    className="text-[0.8rem] font-medium text-[#8b4e2e] no-underline hover:underline underline-offset-4"
-                  >
-                    Change email address
-                  </button>
-                </div>
               </form>
+
+              <div className="mt-6 flex flex-col gap-2 text-[0.82rem] text-[#9a7060]">
+                <span>Didn't receive the code?</span>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  className="flex items-center justify-center gap-1 font-semibold text-[#8b4e2e] hover:underline"
+                >
+                  <RefreshCw size={13} /> Resend Code
+                </button>
+              </div>
             </div>
           )}
         </div>
