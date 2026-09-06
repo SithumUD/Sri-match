@@ -47,7 +47,8 @@ public class DataInitializer implements CommandLineRunner {
                 ? defaultAdminPassword.trim()
                 : "Admin@123";
 
-        if (!userRepository.existsByEmail(email)) {
+        var adminOpt = userRepository.findByEmail(email);
+        if (adminOpt.isEmpty()) {
             log.info("Creating default initial admin user: {}", email);
             User admin = User.builder()
                     .firstName(defaultAdminFirstName != null && !defaultAdminFirstName.isBlank() ? defaultAdminFirstName : "Admin")
@@ -65,7 +66,14 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(admin);
             log.info("Default admin user created successfully: {}", email);
         } else {
-            log.debug("Admin user {} already exists. Skipping creation.", email);
+            User admin = adminOpt.get();
+            admin.setPassword(passwordEncoder.encode(password));
+            admin.setFailedLoginAttempts(0);
+            admin.setAccountLockedUntil(null);
+            admin.setEmailVerified(true);
+            admin.setRole(UserRole.SUPER_ADMIN);
+            userRepository.save(admin);
+            log.info("Default admin user password synchronized successfully: {}", email);
         }
     }
 }
