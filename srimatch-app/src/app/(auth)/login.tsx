@@ -16,6 +16,7 @@ import { CustomButton } from '../../components/ui/CustomButton';
 import { Mail, Lock, Heart, ArrowRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import useAuthStore from '../../store/useAuthStore';
+import { SocialAuthButtons } from '../../components/auth/SocialAuthButtons';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -117,21 +118,7 @@ export default function LoginScreen() {
             <View style={styles.divider} />
           </View>
 
-          <View style={styles.socialRow}>
-            <TouchableOpacity
-              style={styles.socialBtn}
-              onPress={() => Alert.alert('Google Sign-In', 'Google authentication is initializing.')}
-            >
-              <Text style={styles.socialBtnText}>Google</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.socialBtn}
-              onPress={() => Alert.alert('Apple Sign-In', 'Apple authentication is initializing.')}
-            >
-              <Text style={styles.socialBtnText}>Apple</Text>
-            </TouchableOpacity>
-          </View>
+          <SocialAuthButtons mode="login" />
 
           {/* Register Prompt */}
           <View style={styles.footerPrompt}>

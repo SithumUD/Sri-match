@@ -45,6 +45,13 @@ public class DetailedProfileResponse {
     @JsonProperty("interactionStatus")
     private String interactionStatus; // PENDING, ACCEPTED, etc., null
 
+    // Basic Details
+    private String gender;
+    private String maritalStatus;
+    private Boolean hasChildren;
+    private Integer numberOfChildren;
+    private String horoscopeSign;
+
     // Physical
     private Integer height;
     private String bodyType;
@@ -70,6 +77,7 @@ public class DetailedProfileResponse {
     private String ethnicity;
     private List<String> languages;
     private String religiousPractices;
+    private String culturalValues;
 
     // Family
     private String familyBackground;
@@ -80,6 +88,7 @@ public class DetailedProfileResponse {
     // Additional
     private Map<String, String> favoriteThings;
     private String personalityTraits;
+    private String travelPreferences;
     private String dealbreakers;
     private Map<String, Object> partnerPreferences;
     private Map<String, String> quizAnswers;

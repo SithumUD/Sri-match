@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   ActivityIndicator,
   Dimensions,
   Alert,
+  FlatList,
+  Modal,
+  StatusBar,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,11 +40,15 @@ import {
   Lock,
   Target,
   Sparkle,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  X,
 } from 'lucide-react-native';
 import { Badge } from '../../components/ui/Badge';
 import { CustomButton } from '../../components/ui/CustomButton';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 type ProfileTab = 'about' | 'details' | 'lifestyle' | 'interests' | 'preferences';
 
@@ -55,6 +62,9 @@ export default function UserProfileScreen() {
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('about');
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [fullScreenVisible, setFullScreenVisible] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
+  const fullScreenFlatListRef = useRef<FlatList>(null);
 
   const interaction = sentLikes.find(
     (l: any) => Number(l.profileId || l.userId) === Number(id)
@@ -130,21 +140,85 @@ export default function UserProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Gallery Hero */}
         <View style={styles.galleryWrapper}>
-          <Image
-            source={{ uri: images[activeImageIdx] || images[0] }}
-            style={styles.galleryImage}
-            resizeMode="cover"
+          <FlatList
+            ref={flatListRef}
+            data={images}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item, index) => `${item}-${index}`}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                activeOpacity={0.96}
+                onPress={() => setFullScreenVisible(true)}
+                style={{ width: width, height: 430 }}
+              >
+                <Image
+                  source={{ uri: item }}
+                  style={styles.galleryImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            )}
+            onMomentumScrollEnd={(e) => {
+              const newIndex = Math.round(e.nativeEvent.contentOffset.x / width);
+              if (newIndex >= 0 && newIndex < images.length) {
+                setActiveImageIdx(newIndex);
+              }
+            }}
           />
-          <LinearGradient colors={['rgba(20,6,2,0.6)', 'transparent', 'rgba(20,6,2,0.85)'] as any} style={styles.galleryOverlay} />
+
+          {/* Overlays */}
+          <LinearGradient
+            colors={['rgba(20,6,2,0.65)', 'transparent', 'rgba(20,6,2,0.88)'] as any}
+            style={styles.galleryOverlay}
+            pointerEvents="none"
+          />
+
+          {/* Story-style Top Segment Bars */}
+          {images.length > 1 && (
+            <View style={styles.storySegmentsContainer}>
+              {images.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.storySegment,
+                    {
+                      backgroundColor:
+                        i === activeImageIdx
+                          ? '#ffffff'
+                          : i < activeImageIdx
+                          ? 'rgba(255,255,255,0.7)'
+                          : 'rgba(255,255,255,0.3)',
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+          )}
 
           {/* Floating Action Buttons on Hero */}
           <TouchableOpacity style={styles.backFloatingBtn} onPress={() => router.back()}>
             <ArrowLeft size={20} color="#fff" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.reportFloatingBtn} onPress={handleReport}>
-            <Flag size={18} color="#fff" />
-          </TouchableOpacity>
+          <View style={styles.topRightActions}>
+            <TouchableOpacity
+              style={styles.floatingActionIconBtn}
+              onPress={() => setFullScreenVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Maximize2 size={16} color="#fff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.floatingActionIconBtn}
+              onPress={handleReport}
+              activeOpacity={0.7}
+            >
+              <Flag size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
 
           {/* Photo Counter */}
           {images.length > 1 && (
@@ -155,8 +229,37 @@ export default function UserProfileScreen() {
             </View>
           )}
 
+          {/* Left / Right Chevron Arrows for quick tap navigation */}
+          {images.length > 1 && activeImageIdx > 0 && (
+            <TouchableOpacity
+              style={[styles.chevronBtn, styles.chevronLeft]}
+              onPress={() => {
+                const prev = activeImageIdx - 1;
+                setActiveImageIdx(prev);
+                flatListRef.current?.scrollToIndex({ index: prev, animated: true });
+              }}
+              activeOpacity={0.8}
+            >
+              <ChevronLeft size={22} color="#ffffff" />
+            </TouchableOpacity>
+          )}
+
+          {images.length > 1 && activeImageIdx < images.length - 1 && (
+            <TouchableOpacity
+              style={[styles.chevronBtn, styles.chevronRight]}
+              onPress={() => {
+                const next = activeImageIdx + 1;
+                setActiveImageIdx(next);
+                flatListRef.current?.scrollToIndex({ index: next, animated: true });
+              }}
+              activeOpacity={0.8}
+            >
+              <ChevronRight size={22} color="#ffffff" />
+            </TouchableOpacity>
+          )}
+
           {/* Identity Info on Image Overlay */}
-          <View style={styles.heroIdentity}>
+          <View style={styles.heroIdentity} pointerEvents="box-none">
             <View style={styles.nameBadgeRow}>
               <Text style={styles.heroName}>
                 {profile.firstName} {profile.lastName || ''}{profile.age ? `, ${profile.age}` : ''}
@@ -185,13 +288,16 @@ export default function UserProfileScreen() {
             </View>
           </View>
 
-          {/* Gallery Dots */}
+          {/* Gallery Dots (Clickable) */}
           {images.length > 1 && (
             <View style={styles.galleryDots}>
               {images.map((_: any, i: number) => (
                 <TouchableOpacity
                   key={i}
-                  onPress={() => setActiveImageIdx(i)}
+                  onPress={() => {
+                    setActiveImageIdx(i);
+                    flatListRef.current?.scrollToIndex({ index: i, animated: true });
+                  }}
                   style={[styles.galleryDot, activeImageIdx === i && styles.activeGalleryDot]}
                 />
               ))}
@@ -264,7 +370,7 @@ export default function UserProfileScreen() {
               </View>
               <View style={styles.bioBox}>
                 <Text style={styles.bioText}>
-                  {profile.about || `${profile.firstName} hasn't written a personal bio yet.`}
+                  {profile.about || `${profile.firstName} hasn't written an introductory bio yet.`}
                 </Text>
               </View>
 
@@ -279,6 +385,16 @@ export default function UserProfileScreen() {
                 <InfoRow label="Body Type" value={profile.bodyType} />
                 <InfoRow label="Complexion" value={profile.complexion} />
                 <InfoRow label="Ethnicity" value={profile.ethnicity} />
+                <InfoRow
+                  label="Children"
+                  value={
+                    profile.hasChildren !== null && profile.hasChildren !== undefined
+                      ? profile.hasChildren
+                        ? `${profile.numberOfChildren || 1} child(ren)`
+                        : 'No children'
+                      : undefined
+                  }
+                />
               </View>
 
               <View style={[styles.sectionHeader, { marginTop: Spacing.lg }]}>
@@ -292,7 +408,7 @@ export default function UserProfileScreen() {
             </View>
           )}
 
-          {/* TAB 2: BACKGROUND (Religion, Education, Career, Family) */}
+          {/* TAB 2: BACKGROUND (Religion, Culture, Education, Career, Family) */}
           {activeTab === 'details' && (
             <View>
               <View style={styles.sectionHeader}>
@@ -301,7 +417,10 @@ export default function UserProfileScreen() {
               <View style={styles.infoTable}>
                 <InfoRow label="Religion" value={profile.religion} />
                 <InfoRow label="Religious Practices" value={profile.religiousPractices} />
+                <InfoRow label="Cultural Values" value={profile.culturalValues} />
+                <InfoRow label="Horoscope Sign" value={profile.horoscopeSign} />
                 <InfoRow label="Family Background" value={profile.familyBackground} />
+                <InfoRow label="Family Type" value={profile.familyType} />
                 <InfoRow label="Family Involvement" value={profile.familyInvolvement} />
                 <InfoRow label="Wedding Preferences" value={profile.weddingPreferences} />
               </View>
@@ -314,7 +433,7 @@ export default function UserProfileScreen() {
                 <View style={styles.tagGrid}>
                   {profile.languages.map((lang: string, i: number) => (
                     <View key={i} style={styles.langTag}>
-                      <Text style={styles.langTagText}>{lang}</Text>
+                      <Text style={styles.langTagText}>{formatCleanValue(lang)}</Text>
                     </View>
                   ))}
                 </View>
@@ -376,13 +495,30 @@ export default function UserProfileScreen() {
                   {profile.interests.map((interest: string, i: number) => (
                     <View key={i} style={styles.interestTag}>
                       <Sparkle size={12} color={Colors.primaryDark} />
-                      <Text style={styles.interestTagText}>{interest}</Text>
+                      <Text style={styles.interestTagText}>{formatCleanValue(interest)}</Text>
                     </View>
                   ))}
                 </View>
               ) : (
                 <Text style={styles.emptyNotice}>No interests listed yet.</Text>
               )}
+
+              {/* Travel Preferences & Traits */}
+              {profile.travelPreferences || profile.personalityTraits ? (
+                <>
+                  <View style={[styles.sectionHeader, { marginTop: Spacing.lg }]}>
+                    <Text style={styles.sectionTitle}>Personality & Travel</Text>
+                  </View>
+                  <View style={styles.infoTable}>
+                    {profile.personalityTraits ? (
+                      <InfoRow label="Personality" value={profile.personalityTraits} />
+                    ) : null}
+                    {profile.travelPreferences ? (
+                      <InfoRow label="Travel Preferences" value={profile.travelPreferences} />
+                    ) : null}
+                  </View>
+                </>
+              ) : null}
 
               {/* Favorite Things */}
               {profile.favoriteThings && Object.keys(profile.favoriteThings).length > 0 ? (
@@ -395,7 +531,7 @@ export default function UserProfileScreen() {
                       <InfoRow
                         key={k}
                         label={k.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
-                        value={String(v)}
+                        value={v}
                       />
                     ))}
                   </View>
@@ -415,8 +551,10 @@ export default function UserProfileScreen() {
                   {Object.entries(profile.partnerPreferences)
                     .filter(([_, val]) => val !== null && val !== undefined && val !== '')
                     .map(([key, val]: [string, any]) => {
-                      let displayValue = String(val);
-                      if (Array.isArray(val)) {
+                      let displayValue: any = val;
+                      if (Array.isArray(val) && val.length === 2 && typeof val[0] === 'number') {
+                        displayValue = `${val[0]} – ${val[1]} ${key.toLowerCase().includes('age') ? 'years' : 'cm'}`;
+                      } else if (Array.isArray(val)) {
                         displayValue = val.join(', ');
                       }
                       const formattedKey = key
@@ -427,7 +565,7 @@ export default function UserProfileScreen() {
                     })}
                 </View>
               ) : (
-                <Text style={styles.emptyNotice}>No partner preferences specified.</Text>
+                <Text style={styles.emptyNotice}>No partner preferences specified yet.</Text>
               )}
 
               {profile.dealbreakers ? (
@@ -487,20 +625,135 @@ export default function UserProfileScreen() {
           </View>
         )}
       </View>
+
+      {/* Full-Screen Photo Viewer Modal */}
+      <Modal
+        visible={fullScreenVisible}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={() => setFullScreenVisible(false)}
+      >
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <View style={styles.fullScreenModal}>
+          {/* Top Bar */}
+          <View style={styles.fullScreenHeader}>
+            <TouchableOpacity
+              style={styles.fullScreenCloseBtn}
+              onPress={() => setFullScreenVisible(false)}
+            >
+              <X size={22} color="#ffffff" />
+            </TouchableOpacity>
+            <Text style={styles.fullScreenCounter}>
+              {activeImageIdx + 1} / {images.length}
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* Full Screen Swiper */}
+          <FlatList
+            ref={fullScreenFlatListRef}
+            data={images}
+            horizontal
+            pagingEnabled
+            initialScrollIndex={activeImageIdx}
+            getItemLayout={(_, index) => ({
+              length: width,
+              offset: width * index,
+              index,
+            })}
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item, index) => `fs-${item}-${index}`}
+            renderItem={({ item }) => (
+              <View style={styles.fullScreenImageContainer}>
+                <Image
+                  source={{ uri: item }}
+                  style={styles.fullScreenImage}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+            onMomentumScrollEnd={(e) => {
+              const newIdx = Math.round(e.nativeEvent.contentOffset.x / width);
+              if (newIdx >= 0 && newIdx < images.length) {
+                setActiveImageIdx(newIdx);
+                flatListRef.current?.scrollToIndex({ index: newIdx, animated: false });
+              }
+            }}
+          />
+
+          {/* Bottom Thumbnails */}
+          {images.length > 1 && (
+            <View style={styles.thumbnailStrip}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.thumbnailScroll}
+              >
+                {images.map((img, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => {
+                      setActiveImageIdx(i);
+                      fullScreenFlatListRef.current?.scrollToIndex({ index: i, animated: true });
+                      flatListRef.current?.scrollToIndex({ index: i, animated: false });
+                    }}
+                    style={[
+                      styles.thumbnailItem,
+                      activeImageIdx === i && styles.thumbnailActive,
+                    ]}
+                  >
+                    <Image source={{ uri: img }} style={styles.thumbnailImg} resizeMode="cover" />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
 
+// Reusable Value Formatter
+function formatCleanValue(val?: any): string {
+  if (val === null || val === undefined || val === '' || val === 'null' || val === 'undefined') {
+    return 'Not specified';
+  }
+  if (typeof val === 'boolean') {
+    return val ? 'Yes' : 'No';
+  }
+  if (Array.isArray(val)) {
+    if (val.length === 0) return 'Not specified';
+    if (val.length === 2 && typeof val[0] === 'number') {
+      return `${val[0]} – ${val[1]}`;
+    }
+    return val.map((v) => formatCleanValue(v)).join(', ');
+  }
+  const str = String(val).trim();
+  if (!str) return 'Not specified';
+
+  // If it's already properly formatted or has units (e.g. 'years', 'cm', or multiple words with spaces and no underscores)
+  if (str.includes(' ') && !str.includes('_')) {
+    return str;
+  }
+
+  // Convert snake_case enum to natural Capitalized text
+  return str
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // Reusable Info Row Component
-function InfoRow({ label, value }: { label: string; value?: string }) {
-  const cleanVal = (value || 'Not Specified').replace(/_/g, ' ');
-  const isPresent = !!value && value !== 'Not Specified';
+function InfoRow({ label, value }: { label: string; value?: any }) {
+  const formatted = formatCleanValue(value);
+  const isSpecified = formatted !== 'Not specified';
 
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={[styles.infoValue, !isPresent && styles.mutedValue]}>
-        {cleanVal}
+      <Text style={[styles.infoValue, !isSpecified && styles.mutedValue]}>
+        {formatted}
       </Text>
     </View>
   );
@@ -542,9 +795,9 @@ const styles = StyleSheet.create({
   /* Gallery Hero */
   galleryWrapper: {
     position: 'relative',
-    height: 420,
+    height: 430,
     width: '100%',
-    backgroundColor: '#2d1810',
+    backgroundColor: '#1a0d08',
   },
   galleryImage: {
     width: '100%',
@@ -553,47 +806,87 @@ const styles = StyleSheet.create({
   galleryOverlay: {
     ...StyleSheet.absoluteFill,
   },
+  storySegmentsContainer: {
+    position: 'absolute',
+    top: 40,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    gap: 4,
+    zIndex: 10,
+  },
+  storySegment: {
+    flex: 1,
+    height: 3,
+    borderRadius: 2,
+  },
   backFloatingBtn: {
     position: 'absolute',
-    top: 48,
+    top: 54,
     left: 16,
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(20,6,2,0.45)',
+    backgroundColor: 'rgba(20,6,2,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 15,
   },
-  reportFloatingBtn: {
+  topRightActions: {
     position: 'absolute',
-    top: 48,
+    top: 54,
     right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 15,
+  },
+  floatingActionIconBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(20,6,2,0.45)',
+    backgroundColor: 'rgba(20,6,2,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  chevronBtn: {
+    position: 'absolute',
+    top: '45%',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(20,6,2,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 12,
+  },
+  chevronLeft: {
+    left: 12,
+  },
+  chevronRight: {
+    right: 12,
+  },
   counterBadge: {
     position: 'absolute',
-    top: 52,
+    top: 58,
     alignSelf: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: 'rgba(20,6,2,0.6)',
+    backgroundColor: 'rgba(20,6,2,0.65)',
+    zIndex: 15,
   },
   counterText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   heroIdentity: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 28,
     left: 16,
     right: 16,
+    zIndex: 10,
   },
   nameBadgeRow: {
     flexDirection: 'row',
@@ -636,10 +929,11 @@ const styles = StyleSheet.create({
   },
   galleryDots: {
     position: 'absolute',
-    bottom: 8,
+    bottom: 10,
     alignSelf: 'center',
     flexDirection: 'row',
     gap: 6,
+    zIndex: 10,
   },
   galleryDot: {
     width: 6,
@@ -648,8 +942,73 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.4)',
   },
   activeGalleryDot: {
-    width: 14,
+    width: 16,
     backgroundColor: '#ffffff',
+  },
+
+  /* Full Screen Lightbox Modal */
+  fullScreenModal: {
+    flex: 1,
+    backgroundColor: '#000000',
+    justifyContent: 'space-between',
+  },
+  fullScreenHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 48,
+    paddingBottom: 12,
+    zIndex: 20,
+  },
+  fullScreenCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullScreenCounter: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  fullScreenImageContainer: {
+    width: width,
+    height: height * 0.72,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: width,
+    height: '100%',
+  },
+  thumbnailStrip: {
+    paddingVertical: 20,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+  },
+  thumbnailScroll: {
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  thumbnailItem: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    opacity: 0.5,
+  },
+  thumbnailActive: {
+    borderColor: Colors.gold,
+    opacity: 1,
+    transform: [{ scale: 1.05 }],
+  },
+  thumbnailImg: {
+    width: '100%',
+    height: '100%',
   },
 
   /* Compat Ribbon */

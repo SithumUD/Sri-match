@@ -13,6 +13,7 @@ interface AuthState {
   loadStoredSession: () => Promise<void>;
   login: (credentials: { email?: string; username?: string; password?: string }) => Promise<any>;
   register: (userData: any) => Promise<any>;
+  socialLogin: (provider: string, token: string) => Promise<any>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -138,6 +139,59 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return {
         success: false,
         message: error?.message || error?.response?.data?.message || 'Registration failed',
+      };
+    } finally {
+      set({ isAuthLoading: false });
+    }
+  },
+
+  socialLogin: async (provider: string, token: string) => {
+    set({ isAuthLoading: true });
+    try {
+      const res: any = await AuthService.socialLogin({ provider, token });
+      if (res?.success && res.data) {
+        const tokenVal = res.data.token || res.data.accessToken;
+        const refreshToken = res.data.refreshToken;
+        const rawUser = res.data.user || res.data;
+        const user = {
+          ...rawUser,
+          verified: Boolean(rawUser.verified || rawUser.isVerified),
+          isVerified: Boolean(rawUser.verified || rawUser.isVerified),
+          premium: Boolean(rawUser.premium || rawUser.isPremium),
+          isPremium: Boolean(rawUser.premium || rawUser.isPremium),
+        };
+
+        if (tokenVal) await AsyncStorage.setItem('srimatch_token', tokenVal);
+        if (refreshToken) await AsyncStorage.setItem('srimatch_refresh_token', refreshToken);
+        if (user) await AsyncStorage.setItem('srimatch_user', JSON.stringify(user));
+
+        set({ user, accessToken: tokenVal, isAuthenticated: true });
+
+        // Refresh profile to get full details
+        try {
+          const profRes: any = await ProfileService.getMyProfile();
+          const p = profRes?.data || profRes;
+          if (p) {
+            const enriched = {
+              ...user,
+              ...p,
+              verified: Boolean(p.isVerified || p.verified || p.idVerified || user.verified),
+              isVerified: Boolean(p.isVerified || p.verified || p.idVerified || user.verified),
+              premium: Boolean(p.isPremium || p.premium || user.premium),
+              isPremium: Boolean(p.isPremium || p.premium || user.premium),
+            };
+            await AsyncStorage.setItem('srimatch_user', JSON.stringify(enriched));
+            set({ user: enriched });
+          }
+        } catch (e) {}
+
+        return { success: true, data: res.data, user };
+      }
+      return { success: false, message: res?.message || 'Social login failed' };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error?.message || error?.response?.data?.message || 'Social login failed',
       };
     } finally {
       set({ isAuthLoading: false });

@@ -468,11 +468,19 @@ const UserProfilePage = () => {
       <div className="up-info-grid">
         {[
           ["Age", profile.age ? `${profile.age} years` : null],
-          ["Marital Status", profile.maritalStatus],
-          ["Gender", profile.gender],
+          ["Marital Status", profile.maritalStatus ? profile.maritalStatus.replace(/_/g, ' ') : null],
+          ["Gender", profile.gender ? profile.gender.replace(/_/g, ' ') : null],
           ["Height", profile.height ? `${profile.height} cm` : null],
-          ["Body Type", profile.bodyType],
-          ["Ethnicity", profile.ethnicity],
+          ["Body Type", profile.bodyType ? profile.bodyType.replace(/_/g, ' ') : null],
+          ["Ethnicity", profile.ethnicity ? profile.ethnicity.replace(/_/g, ' ') : null],
+          [
+            "Children",
+            profile.hasChildren !== null && profile.hasChildren !== undefined
+              ? profile.hasChildren
+                ? `${profile.numberOfChildren || 1} child(ren)`
+                : "No children"
+              : null,
+          ],
         ].map(([label, value]) => (
           <div key={label} className="up-info-item">
             <span className="up-info-label">{label}</span>
@@ -505,9 +513,11 @@ const UserProfilePage = () => {
       <div className="up-subsection-title"><BookOpen size={11} />Religion & Culture</div>
       <div className="up-info-grid">
         {[
-          ["Religion", profile.religion],
+          ["Religion", profile.religion ? profile.religion.replace(/_/g, ' ') : null],
           ["Religious Practices", profile.religiousPractices],
+          ["Cultural Values", profile.culturalValues],
           ["Family Background", profile.familyBackground],
+          ["Family Type", profile.familyType ? profile.familyType.replace(/_/g, ' ') : null],
           ["Wedding Preferences", profile.weddingPreferences],
         ].map(([label, value]) => (
           <div key={label} className="up-info-item">
@@ -522,7 +532,7 @@ const UserProfilePage = () => {
       <div className="up-subsection-title"><Languages size={11} />Languages</div>
       {profile.languages && profile.languages.length > 0 ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-          {profile.languages.map((l, i) => <span key={i} className="up-lang">{l}</span>)}
+          {profile.languages.map((l, i) => <span key={i} className="up-lang">{l.replace(/_/g, ' ')}</span>)}
         </div>
       ) : (
         <p style={{ fontSize: "0.84rem", color: "#9a7060", fontStyle: "italic", margin: "0.25rem 0" }}>
@@ -533,7 +543,7 @@ const UserProfilePage = () => {
       <div className="up-subsection-title"><GraduationCap size={11} />Education & Career</div>
       <div className="up-info-grid">
         {[
-          ["Education", profile.educationLevel],
+          ["Education", profile.educationLevel ? profile.educationLevel.replace(/_/g, ' ') : profile.education ? profile.education.replace(/_/g, ' ') : null],
           ["Field of Study", profile.fieldOfStudy],
           ["Profession", profile.profession],
           ["Industry", profile.industry],
@@ -558,13 +568,30 @@ const UserProfilePage = () => {
         <div className="up-interests" style={{ marginBottom: "1.5rem" }}>
           {profile.interests.map((interest, i) => {
             const IconComp = INTEREST_ICONS[interest] || Sparkles;
-            return <span key={i} className="up-interest"><IconComp size={12} />{interest}</span>;
+            return <span key={i} className="up-interest"><IconComp size={12} />{interest.replace(/_/g, ' ')}</span>;
           })}
         </div>
       ) : (
         <p style={{ fontSize: "0.84rem", color: "#9a7060", fontStyle: "italic", marginBottom: "1.5rem" }}>
           {profile.firstName} hasn't added any interests yet.
         </p>
+      )}
+      {(profile.travelPreferences || profile.personalityTraits) && (
+        <>
+          <div className="up-section-divider" />
+          <div className="up-subsection-title"><Plane size={11} />Personality & Travel</div>
+          <div className="up-info-grid" style={{ marginBottom: "1.5rem" }}>
+            {[
+              ["Personality", profile.personalityTraits],
+              ["Travel Preferences", profile.travelPreferences],
+            ].filter(([_, v]) => Boolean(v)).map(([label, value]) => (
+              <div key={label} className="up-info-item">
+                <span className="up-info-label">{label}</span>
+                <span className="up-info-value" style={{ color: "#4a3028" }}>{value}</span>
+              </div>
+            ))}
+          </div>
+        </>
       )}
       <div className="up-section-divider" />
       <div className="up-subsection-title"><Star size={11} />Favourite Things</div>

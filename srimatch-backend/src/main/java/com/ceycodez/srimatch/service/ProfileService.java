@@ -491,6 +491,12 @@ public class ProfileService {
                 // Interaction
                 .interactionType(interaction != null ? interaction.getType().name() : null)
                 .interactionStatus(interaction != null ? interaction.getStatus().name() : null)
+                // Basic Details
+                .gender(profile.getGender() != null ? profile.getGender().name() : null)
+                .maritalStatus(profile.getMaritalStatus() != null ? profile.getMaritalStatus().name() : null)
+                .hasChildren(profile.getHasChildren())
+                .numberOfChildren(profile.getNumberOfChildren())
+                .horoscopeSign(calculateHoroscopeSign(profile.getDateOfBirth()))
                 // Physical
                 .height(profile.getHeight())
                 .bodyType(profile.getBodyType() != null ? profile.getBodyType().name() : null)
@@ -513,6 +519,7 @@ public class ProfileService {
                 .ethnicity(profile.getEthnicity() != null ? profile.getEthnicity().name() : null)
                 .languages(profile.getLanguages())
                 .religiousPractices(profile.getReligiousPractices())
+                .culturalValues(profile.getCulturalValues())
                 // Family
                 .familyBackground(profile.getFamilyBackground())
                 .familyType(profile.getFamilyType() != null ? profile.getFamilyType().name() : null)
@@ -522,6 +529,7 @@ public class ProfileService {
                 .partnerPreferences(profile.getPartnerPreferences())
                 .favoriteThings(profile.getFavoriteThings())
                 .personalityTraits(profile.getPersonalityTraits())
+                .travelPreferences(profile.getTravelPreferences())
                 .dealbreakers(profile.getDealbreakers())
                 .quizAnswers(profile.getQuizAnswers())
                 // Stats
@@ -530,6 +538,24 @@ public class ProfileService {
                 .premium(profile.getUser().isPremiumActive())
                 .premiumExpiryDate(profile.getUser().getPremiumExpiryDate())
                 .build();
+    }
+
+    public static String calculateHoroscopeSign(LocalDate dob) {
+        if (dob == null) return null;
+        int day = dob.getDayOfMonth();
+        int month = dob.getMonthValue();
+        if ((month == 3 && day >= 21) || (month == 4 && day <= 19)) return "Aries (Mesha)";
+        if ((month == 4 && day >= 20) || (month == 5 && day <= 20)) return "Taurus (Vrishabha)";
+        if ((month == 5 && day >= 21) || (month == 6 && day <= 20)) return "Gemini (Mithuna)";
+        if ((month == 6 && day >= 21) || (month == 7 && day <= 22)) return "Cancer (Kataka)";
+        if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) return "Leo (Simha)";
+        if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return "Virgo (Kanya)";
+        if ((month == 9 && day >= 23) || (month == 10 && day <= 22)) return "Libra (Thula)";
+        if ((month == 10 && day >= 23) || (month == 11 && day <= 21)) return "Scorpio (Vrischika)";
+        if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) return "Sagittarius (Dhanu)";
+        if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) return "Capricorn (Makara)";
+        if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) return "Aquarius (Kumbha)";
+        return "Pisces (Meena)";
     }
 
     private PublicProfileResponse mapToPublicResponse(Profile profile, Profile searcher, Like interaction) {

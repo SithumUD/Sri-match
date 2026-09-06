@@ -16,6 +16,7 @@ import { CustomButton } from '../../components/ui/CustomButton';
 import { User, Mail, Lock, Gift, CheckSquare, Square } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import useAuthStore from '../../store/useAuthStore';
+import { SocialAuthButtons } from '../../components/auth/SocialAuthButtons';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -190,6 +191,15 @@ export default function RegisterScreen() {
             />
           </View>
 
+          {/* Social Logins */}
+          <View style={styles.dividerRow}>
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>or register with</Text>
+            <View style={styles.divider} />
+          </View>
+
+          <SocialAuthButtons mode="register" />
+
           {/* Login Prompt */}
           <View style={styles.footerPrompt}>
             <Text style={styles.promptText}>Already registered?</Text>
@@ -278,6 +288,22 @@ const styles = StyleSheet.create({
   termsHighlight: {
     color: Colors.primaryMedium,
     fontWeight: '600',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.lg,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    paddingHorizontal: Spacing.md,
+    fontWeight: '500',
   },
   footerPrompt: {
     flexDirection: 'row',
