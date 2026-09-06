@@ -276,7 +276,7 @@ export default function UserProfileScreen() {
               <View style={styles.heroMetaItem}>
                 <MapPin size={13} color="#fff" />
                 <Text style={styles.heroMetaText}>
-                  {profile.city || profile.district || 'Sri Lanka'}
+                  {profile.city || 'Sri Lanka'}
                 </Text>
               </View>
               {profile.profession ? (
@@ -402,8 +402,6 @@ export default function UserProfileScreen() {
               </View>
               <View style={styles.infoTable}>
                 <InfoRow label="Current City" value={profile.city} />
-                <InfoRow label="District" value={profile.district} />
-                <InfoRow label="Place of Birth" value={profile.placeOfBirth} />
               </View>
             </View>
           )}

@@ -495,7 +495,6 @@ const UserProfilePage = () => {
       <div className="up-info-grid">
         {[
           ["Current City", profile.city],
-          ["District", profile.district],
         ].map(([label, value]) => (
           <div key={label} className="up-info-item">
             <span className="up-info-label">{label}</span>
