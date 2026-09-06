@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "srimatch-app",
+    "name": "SriMatch - Sri Lankan Matrimony",
     "slug": "srimatch-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.srimatch.app",
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "SriMatch requires camera access for profile selfie verification and photo uploads.",
+        "NSCameraUsageDescription": "SriMatch requires camera access for HD video calling, profile verification, and photo uploads.",
+        "NSMicrophoneUsageDescription": "SriMatch requires microphone access for voice and video calling.",
         "NSPhotoLibraryUsageDescription": "SriMatch requires photo library access to upload photos and bank transfer receipts."
       }
     },
@@ -21,11 +22,13 @@
       "versionCode": 1,
       "permissions": [
         "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#3d1f12",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -41,7 +44,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#3d1f12",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
@@ -51,6 +54,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ea5b8014-73c6-4700-ad99-26b71ba7d641"
+      }
     }
   }
 }

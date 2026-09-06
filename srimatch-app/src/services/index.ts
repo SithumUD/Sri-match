@@ -240,3 +240,5 @@ export const LocationService = {
     return API.get('/locations/cities');
   },
 };
+
+export * from './call.service';

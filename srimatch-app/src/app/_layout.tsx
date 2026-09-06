@@ -5,6 +5,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'react-native';
 import { Colors } from '../constants/theme';
 import useAuthStore from '../store/useAuthStore';
+import MobileIncomingCallModal from '../components/chat/MobileIncomingCallModal';
+import MobileCallModal from '../components/chat/MobileCallModal';
 
 export default function RootLayout() {
   const [queryClient] = useState(
@@ -46,6 +48,8 @@ export default function RootLayout() {
           <Stack.Screen name="help" options={{ headerShown: false }} />
           <Stack.Screen name="network-error" options={{ headerShown: false }} />
         </Stack>
+        <MobileIncomingCallModal />
+        <MobileCallModal />
       </QueryClientProvider>
     </SafeAreaProvider>
   );

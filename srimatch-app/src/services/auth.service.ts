@@ -13,8 +13,11 @@ export const AuthService = {
     return API.post('/auth/social-login', socialData);
   },
 
-  verifyEmail: (otpData: { email: string; otp: string }) => {
-    return API.post('/auth/verify-email', otpData);
+  verifyEmail: (otpData: { identifier?: string; email?: string; otp: string }) => {
+    return API.post('/auth/verify-email', {
+      identifier: otpData.identifier || otpData.email,
+      otp: otpData.otp,
+    });
   },
 
   resendVerification: (email?: string) => {

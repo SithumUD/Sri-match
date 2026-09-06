@@ -16,8 +16,9 @@ import { Colors, Fonts, Spacing, Radius, Shadows } from '../../constants/theme';
 import { useChatMessages } from '../../hooks/useLikes';
 import { ChatService, ReportService } from '../../services';
 import { ChatBubble } from '../../components/chat/ChatBubble';
-import { ChevronLeft, Send, Flag, Shield } from 'lucide-react-native';
+import { ChevronLeft, Send, Flag, Shield, Phone, Video } from 'lucide-react-native';
 import useAuthStore from '../../store/useAuthStore';
+import useCallStore from '../../store/useCallStore';
 import { useQueryClient } from '@tanstack/react-query';
 
 export default function ChatScreen() {
@@ -25,6 +26,7 @@ export default function ChatScreen() {
   const queryClient = useQueryClient();
   const { id, recipientName, recipientImage } = useLocalSearchParams();
   const { user } = useAuthStore();
+  const { startCall } = useCallStore();
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -70,6 +72,37 @@ export default function ChatScreen() {
               {name}
             </Text>
             <Text style={styles.headerStatus}>Online · Matched ✦</Text>
+          </View>
+
+          {/* Call Actions */}
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() =>
+                startCall(
+                  { id: id as string, name, avatar: avatarUri },
+                  'VOICE',
+                  Boolean(user?.isPremium || user?.premium || user?.isPremiumActive)
+                )
+              }
+              style={styles.headerActionBtn}
+              accessibilityLabel="Voice Call"
+            >
+              <Phone size={18} color={Colors.primaryMedium} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() =>
+                startCall(
+                  { id: id as string, name, avatar: avatarUri },
+                  'VIDEO',
+                  Boolean(user?.isPremium || user?.premium || user?.isPremiumActive)
+                )
+              }
+              style={styles.headerActionBtn}
+              accessibilityLabel="Video Call"
+            >
+              <Video size={18} color={Colors.primaryMedium} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -158,6 +191,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.verifiedGreen,
     fontWeight: '600',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   safetyBar: {
     flexDirection: 'row',
