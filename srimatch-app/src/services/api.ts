@@ -23,13 +23,25 @@ export const API = axios.create({
   timeout: 20000,
 });
 
+const AUTH_BYPASS_URLS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/verify-reset-otp',
+  '/auth/reset-password',
+  '/auth/refresh-token',
+];
+
 // Request interceptor to attach JWT token
 API.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('srimatch_token');
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+      const isAuthBypass = AUTH_BYPASS_URLS.some((url) => config.url?.includes(url));
+      if (!isAuthBypass) {
+        const token = await AsyncStorage.getItem('srimatch_token');
+        if (token && config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
     } catch (e) {
       console.warn('Failed to retrieve token from storage', e);

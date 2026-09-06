@@ -13,6 +13,17 @@ const API = axios.create({
     },
 });
 
+// List of endpoints that should NOT send an Authorization header
+const AUTH_BYPASS_URLS = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/social-login',
+    '/auth/forgot-password',
+    '/auth/verify-reset-otp',
+    '/auth/reset-password',
+    '/auth/refresh-token',
+];
+
 // ==============================
 // REQUEST INTERCEPTOR
 // ==============================
@@ -24,8 +35,9 @@ API.interceptors.request.use(
             config.headers['X-XSRF-TOKEN'] = xsrfToken;
         }
 
-        // Attach Authorization header from localStorage if available
-        if (typeof window !== 'undefined') {
+        // Attach Authorization header from localStorage only for authenticated endpoints
+        const isAuthBypass = AUTH_BYPASS_URLS.some((url) => config.url?.includes(url));
+        if (!isAuthBypass && typeof window !== 'undefined') {
             const token = localStorage.getItem('srimatch_access_token');
             if (token && !config.headers['Authorization']) {
                 config.headers['Authorization'] = `Bearer ${token}`;
@@ -79,6 +91,9 @@ API.interceptors.response.use(
 
             } catch (refreshError) {
                 console.warn("Token refresh failed:", refreshError);
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('srimatch_access_token');
+                }
                 return Promise.reject(refreshError);
             }
         }

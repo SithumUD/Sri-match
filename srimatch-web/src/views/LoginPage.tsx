@@ -50,28 +50,47 @@ const TurnstileWidget = ({ onVerify }: { onVerify: (token: string) => void }) =>
     }
 
     let isMounted = true;
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
+
     const interval = setInterval(() => {
       if ((window as any).turnstile && containerRef.current && !widgetIdRef.current) {
         try {
+          if (containerRef.current.childElementCount > 0) {
+            containerRef.current.innerHTML = "";
+          }
           widgetIdRef.current = (window as any).turnstile.render(containerRef.current, {
-            sitekey: "0x4AAAAAADCRNcxH7bShZFVD", // Always Passes test key
+            sitekey: siteKey,
             callback: (token: string) => {
               if (isMounted) onVerify(token);
             },
+            "expired-callback": () => {
+              if (isMounted) onVerify("");
+            },
             "error-callback": () => {
-              console.error("Turnstile error");
-            }
+              console.warn("Turnstile verification encounter an issue. Using fallback token in development.");
+              if (isMounted && process.env.NODE_ENV !== "production") {
+                onVerify("dev-bypass-token");
+              }
+            },
           });
           clearInterval(interval);
         } catch (e) {
           console.warn("Turnstile render failed, retrying...", e);
         }
       }
-    }, 250);
+    }, 200);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
+      if (widgetIdRef.current && (window as any).turnstile) {
+        try {
+          (window as any).turnstile.remove(widgetIdRef.current);
+        } catch (e) {
+          // ignore
+        }
+        widgetIdRef.current = null;
+      }
     };
   }, [onVerify]);
 

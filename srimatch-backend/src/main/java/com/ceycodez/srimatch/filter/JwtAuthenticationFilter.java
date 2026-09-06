@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,6 +21,7 @@ import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
@@ -40,12 +42,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Skip JWT parsing on pure authentication endpoints (login, register, forgot-password)
+        if (isAuthBypassPath(path)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader("Authorization");
         String jwt = null;
-        final String userEmail;
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            jwt = authHeader.substring(7);
+            jwt = authHeader.substring(7).trim();
         } else if (request.getCookies() != null) {
             for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
                 if ("accessToken".equals(cookie.getName())) {
@@ -55,20 +62,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        if (jwt == null) {
+        if (jwt == null || jwt.isBlank()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Phase 2: Check JWT Blacklist before anything else
+        // Check JWT Blacklist before anything else
         if (jwtBlacklistService.isTokenBlacklisted(jwt)) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("{\"error\": \"Token has been revoked. Please login again.\"}");
+            log.debug("Encountered blacklisted JWT token");
+            SecurityContextHolder.clearContext();
+            filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            userEmail = jwtService.extractUsername(jwt);
+            final String userEmail = jwtService.extractUsername(jwt);
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
@@ -83,17 +91,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     );
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.getWriter().write("{\"success\": false, \"message\": \"Session expired or invalid token\"}");
-                    return;
+                    log.debug("JWT token is not valid for user: {}", userEmail);
+                    SecurityContextHolder.clearContext();
                 }
             }
         } catch (Exception e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("{\"success\": false, \"message\": \"Authentication failed: " + e.getMessage() + "\"}");
-            return;
+            log.debug("JWT extraction/validation failed: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isAuthBypassPath(String path) {
+        return path.equals("/v1/auth/login") ||
+               path.equals("/v1/auth/register") ||
+               path.equals("/v1/auth/social-login") ||
+               path.equals("/v1/auth/forgot-password") ||
+               path.equals("/v1/auth/verify-reset-otp") ||
+               path.equals("/v1/auth/reset-password") ||
+               path.equals("/v1/auth/refresh-token");
     }
 }
