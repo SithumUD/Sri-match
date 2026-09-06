@@ -74,21 +74,24 @@ public class SubscriptionService {
         Subscription subscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new RuntimeException("Subscription not found"));
 
-        if (subscription.getStatus() != SubscriptionStatus.PENDING) {
-            throw new RuntimeException("Subscription is not in pending state");
+        int months = 1;
+        if (subscription.getPremiumPackage() != null && subscription.getPremiumPackage().getTimelineMonths() != null) {
+            months = subscription.getPremiumPackage().getTimelineMonths();
         }
 
         LocalDateTime now = LocalDateTime.now();
         subscription.setStartDate(now);
-        subscription.setEndDate(now.plusMonths(subscription.getPremiumPackage().getTimelineMonths()));
+        subscription.setEndDate(now.plusMonths(months));
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscriptionRepository.save(subscription);
 
         // Update User premium status
         User user = subscription.getUser();
-        user.setPremium(true);
-        user.setPremiumExpiryDate(subscription.getEndDate());
-        userRepository.save(user);
+        if (user != null) {
+            user.setPremium(true);
+            user.setPremiumExpiryDate(subscription.getEndDate());
+            userRepository.save(user);
+        }
     }
 
     public List<SubscriptionResponse> getUserSubscriptions(Long userId) {

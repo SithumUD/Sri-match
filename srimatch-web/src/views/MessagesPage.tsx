@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from "../context/AuthContext";
 import MatchService from "../services/match.service";
 import ChatService from "../services/chat.service";
+import ProfileService from "../services/profile.service";
 import ReportService from "../services/report.service";
 import wsService from "../services/websocket.service";
 import { toast } from "sonner";
@@ -17,11 +18,15 @@ import ChatPane from "../components/chat/ChatPane";
 const MessagesPage = () => {
   const pathname = usePathname();
   const [initialUserId, setInitialUserId] = useState<string | null>(null);
+  const [initialMatchId, setInitialMatchId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const queryParams = new URLSearchParams(window.location.search);
-      setInitialUserId(queryParams.get("user"));
+      const userParam = queryParams.get("user") || queryParams.get("userId") || queryParams.get("recipient");
+      const matchParam = queryParams.get("matchId");
+      if (userParam) setInitialUserId(userParam);
+      if (matchParam) setInitialMatchId(matchParam);
     }
   }, []);
 
@@ -48,15 +53,54 @@ const MessagesPage = () => {
       setLoading(true);
       const response = await MatchService.getMyMatches();
       if (response.success) {
-        const convs = response.data.content || [];
-        setConversations(convs);
+        const convs = Array.isArray(response.data) ? response.data : (response.data?.content || []);
         
-        // Handle initial user from query param or auto-select first on desktop
-        if (initialUserId) {
-          const target = convs.find((c: any) => c.otherUser.id === initialUserId || c.otherUser.userId === initialUserId);
-          if (target) setActiveConversation(target);
-        } else if (convs.length > 0 && !activeConversation) {
-          if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+        let foundTarget: any = null;
+
+        if (initialMatchId) {
+          foundTarget = convs.find((c: any) => String(c.id) === String(initialMatchId));
+        }
+        
+        if (!foundTarget && initialUserId) {
+          foundTarget = convs.find((c: any) => 
+            String(c.otherUser?.id) === String(initialUserId) || 
+            String(c.otherUser?.userId) === String(initialUserId)
+          );
+        }
+
+        if (foundTarget) {
+          setConversations(convs);
+          setActiveConversation(foundTarget);
+        } else if (initialUserId) {
+          // Fetch target profile if not currently in matches list
+          try {
+            const pRes = await ProfileService.getPublicProfile(initialUserId);
+            const prof = pRes.data || pRes;
+            if (prof) {
+              const directConv = {
+                id: initialMatchId ? Number(initialMatchId) : null,
+                status: 'ACTIVE',
+                otherUser: {
+                  id: prof.userId || prof.id,
+                  name: `${prof.firstName || ''} ${prof.lastName || ''}`.trim() || 'User',
+                  profileImageUrl: prof.primaryImageUrl || (prof.profileImages && prof.profileImages[0]) || null,
+                  age: prof.age,
+                  profession: prof.profession,
+                  district: prof.district || prof.city,
+                }
+              };
+              setConversations([directConv, ...convs]);
+              setActiveConversation(directConv);
+            } else {
+              setConversations(convs);
+            }
+          } catch (e) {
+            console.error("Error loading target user profile:", e);
+            setConversations(convs);
+          }
+        } else {
+          setConversations(convs);
+          if (convs.length > 0 && !activeConversation && typeof window !== 'undefined' && window.innerWidth >= 768) {
             setActiveConversation(convs[0]);
           }
         }
@@ -67,33 +111,44 @@ const MessagesPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [initialUserId, activeConversation]);
+  }, [initialUserId, initialMatchId]);
 
   /* ─── Fetch Message History ──────────────────────────────────────────── */
-  const fetchMessages = useCallback(async (matchId: string | number) => {
+  const fetchMessages = useCallback(async (conv: any) => {
+    if (!conv) return;
     try {
       setLoadingMessages(true);
-      const response = await ChatService.getChatHistory(matchId);
-      if (response.success) {
-        // Reverse because backend usually sends newest first
-        setMessages((response.data.content || []).reverse());
+      if (conv.id) {
+        const response = await ChatService.getChatHistory(conv.id);
+        if (response.success) {
+          const content = response.data?.content || response.data || [];
+          setMessages(Array.isArray(content) ? [...content].reverse() : []);
+        }
+      } else {
+        setMessages([]);
       }
     } catch (err) {
       console.error("Error fetching messages:", err);
+      setMessages([]);
     } finally {
       setLoadingMessages(false);
     }
   }, []);
 
   useEffect(() => {
-    if (activeConversation?.id) {
-      fetchMessages(activeConversation.id);
+    if (activeConversation) {
+      fetchMessages(activeConversation);
+    } else {
+      setMessages([]);
     }
-  }, [activeConversation?.id, fetchMessages]);
+  }, [activeConversation, fetchMessages]);
 
   /* ─── Event Handlers ─────────────────────────────────────────────────── */
   const handleIncomingMessage = useCallback((incomingMsg: any) => {
-    if (activeConversation && (incomingMsg.senderId === activeConversation.otherUser.id)) {
+    if (activeConversation && (
+      String(incomingMsg.senderId) === String(activeConversation.otherUser?.id) ||
+      String(incomingMsg.senderId) === String(activeConversation.otherUser?.userId)
+    )) {
       setMessages(prev => [...prev, incomingMsg]);
       ChatService.markAsRead(incomingMsg.id);
     } else {
@@ -115,7 +170,7 @@ const MessagesPage = () => {
     fetchConversations();
 
     return () => {
-      wsService.disconnect();
+      wsService.unsubscribe('/user/queue/messages');
     };
   }, [accessToken, handleIncomingMessage, fetchConversations]);
 
@@ -123,8 +178,8 @@ const MessagesPage = () => {
     if (!message.trim() || !activeConversation) return;
 
     const payload = {
-      matchId: activeConversation.id,
-      receiverId: activeConversation.otherUser.id,
+      matchId: activeConversation.id || null,
+      receiverId: activeConversation.otherUser.id || activeConversation.otherUser.userId,
       content: message,
       type: "TEXT"
     };
@@ -136,12 +191,21 @@ const MessagesPage = () => {
         const newMsg = response.data;
         setMessages(prev => [...prev, newMsg]);
         setMessage("");
+
+        // If activeConversation was missing an ID and backend returned matchId, update it
+        if (!activeConversation.id && newMsg.matchId) {
+          setActiveConversation((prev: any) => prev ? { ...prev, id: newMsg.matchId } : prev);
+          setConversations(prev => prev.map(c => 
+            (c.otherUser?.id === activeConversation.otherUser?.id) ? { ...c, id: newMsg.matchId } : c
+          ));
+        }
       } else {
         toast.error(response.message || "Failed to send message");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to send message:", err);
-      toast.error("Message delivery failed");
+      const errMsg = err?.response?.data?.message || err.message || "Message delivery failed";
+      toast.error(errMsg);
     }
   };
 

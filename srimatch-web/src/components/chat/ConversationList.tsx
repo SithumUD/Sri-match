@@ -11,6 +11,11 @@ interface ConversationItemProps {
 }
 
 const ConversationItem = React.memo(({ conv, isActive, onSelect }: ConversationItemProps) => {
+  const other = conv.otherUser || {};
+  const formattedDate = conv.matchedAt 
+    ? new Date(conv.matchedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })
+    : 'Active';
+
   return (
     <div
       className={`flex items-center gap-3 p-4 border-b border-[#fdf5f0] cursor-pointer transition-all ${
@@ -20,20 +25,20 @@ const ConversationItem = React.memo(({ conv, isActive, onSelect }: ConversationI
     >
       <div className="relative flex-shrink-0">
         <img 
-          src={conv.otherUser.profileImageUrl || "/default-avatar.png"} 
-          alt={conv.otherUser.name} 
+          src={other.profileImageUrl || "/default-avatar.png"} 
+          alt={other.name || "User"} 
           className={`h-11 w-11 rounded-full object-cover border-2 ${isActive ? "border-[#c9856a]" : "border-[#f0ddd5]"}`} 
         />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between mb-0.5">
-          <span className="text-[0.84rem] font-semibold text-[#2d1810] truncate">{conv.otherUser.name}</span>
+          <span className="text-[0.84rem] font-semibold text-[#2d1810] truncate">{other.name || "User"}</span>
           <span className="text-[0.68rem] text-[#b09080] flex-shrink-0">
-            {new Date(conv.matchedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+            {formattedDate}
           </span>
         </div>
         <p className="text-[0.76rem] text-[#9a7060] truncate">
-          Click to chat with {conv.otherUser.firstName || conv.otherUser.name}
+          Click to chat with {other.firstName || other.name || "User"}
         </p>
       </div>
     </div>
@@ -82,11 +87,14 @@ const ConversationList = ({
             <p className="text-[0.8rem]">Loading conversations...</p>
           </div>
         ) : conversations.length > 0 ? (
-          conversations.map(conv => (
+          conversations.map((conv, idx) => (
             <ConversationItem 
-              key={conv.id} 
+              key={conv.id || conv.otherUser?.id || idx} 
               conv={conv} 
-              isActive={activeConversation?.id === conv.id} 
+              isActive={
+                (activeConversation?.id && activeConversation?.id === conv.id) ||
+                (activeConversation?.otherUser?.id && String(activeConversation?.otherUser?.id) === String(conv.otherUser?.id))
+              } 
               onSelect={onSelect} 
             />
           ))

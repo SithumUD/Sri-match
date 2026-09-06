@@ -38,10 +38,14 @@ public class PaymentResponse {
 
         if (payment.getSubscription() != null) {
             subId = payment.getSubscription().getId();
-            pkgName = payment.getSubscription().getPremiumPackage().getTitle();
+            if (payment.getSubscription().getPremiumPackage() != null) {
+                pkgName = payment.getSubscription().getPremiumPackage().getTitle();
+            }
         } else if (payment.getBoostPackage() != null) {
             boostPkgId = payment.getBoostPackage().getId();
             pkgName = payment.getBoostPackage().getName();
+        } else if (payment.getTiktokPromotion() != null && payment.getTiktokPromotion().getTiktokPackage() != null) {
+            pkgName = payment.getTiktokPromotion().getTiktokPackage().getName();
         }
 
         String estTime = payment.getPaymentStatus() == com.ceycodez.srimatch.model.enums.PaymentStatus.PENDING

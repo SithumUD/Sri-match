@@ -99,11 +99,20 @@ public class PaymentService {
             if ("BOOST_PACKAGE".equals(payment.getPaymentType()) && payment.getBoostPackage() != null) {
                 // Add boosts to user's balance
                 User user = payment.getUser();
-                user.setBoostCount(user.getBoostCount() + payment.getBoostPackage().getBoostCount());
-                userRepository.save(user);
+                if (user != null) {
+                    int currentBoosts = user.getBoostCount() != null ? user.getBoostCount() : 0;
+                    user.setBoostCount(currentBoosts + payment.getBoostPackage().getBoostCount());
+                    userRepository.save(user);
+                }
             } else if (payment.getSubscription() != null) {
                 // Activate subscription
                 subscriptionService.activateSubscription(payment.getSubscription().getId());
+            } else if (payment.getTiktokPromotion() != null) {
+                // Set promotion to PROCESSING if it was pending
+                if (payment.getTiktokPromotion().getStatus() == com.ceycodez.srimatch.model.enums.TikTokPromotionStatus.PENDING) {
+                    payment.getTiktokPromotion().setStatus(com.ceycodez.srimatch.model.enums.TikTokPromotionStatus.PROCESSING);
+                    payment.getTiktokPromotion().setProcessedBy(admin);
+                }
             }
 
             try {
@@ -113,10 +122,11 @@ public class PaymentService {
                         "Your bank transfer payment of LKR " + payment.getAmount() + " has been approved.",
                         com.ceycodez.srimatch.model.enums.NotificationType.PAYMENT_STATUS_UPDATE,
                         payment.getId(),
-                        "PAYMENT"
+                        "PAYMENT",
+                        "/subscription"
                 );
             } catch (Exception e) {
-                // Log and continue
+                // Notification failure should never fail payment approval
             }
         } else {
             payment.setPaymentStatus(PaymentStatus.FAILED);
@@ -126,6 +136,10 @@ public class PaymentService {
                 Subscription sub = payment.getSubscription();
                 sub.setStatus(SubscriptionStatus.CANCELLED);
                 subscriptionRepository.save(sub);
+            } else if (payment.getTiktokPromotion() != null) {
+                payment.getTiktokPromotion().setStatus(com.ceycodez.srimatch.model.enums.TikTokPromotionStatus.REJECTED);
+                payment.getTiktokPromotion().setRejectionReason(request.getRejectionReason());
+                payment.getTiktokPromotion().setProcessedBy(admin);
             }
 
             try {
@@ -135,14 +149,16 @@ public class PaymentService {
                         "Your payment review was rejected: " + (request.getRejectionReason() != null ? request.getRejectionReason() : "Please resubmit with a clear bank receipt."),
                         com.ceycodez.srimatch.model.enums.NotificationType.PAYMENT_STATUS_UPDATE,
                         payment.getId(),
-                        "PAYMENT"
+                        "PAYMENT",
+                        "/subscription"
                 );
             } catch (Exception e) {
-                // Log and continue
+                // Notification failure should never fail payment rejection
             }
         }
 
-        return PaymentResponse.fromEntity(paymentRepository.save(payment));
+        payment = paymentRepository.save(payment);
+        return PaymentResponse.fromEntity(payment);
     }
 
     @Transactional

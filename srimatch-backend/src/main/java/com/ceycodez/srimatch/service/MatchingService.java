@@ -230,7 +230,8 @@ public class MatchingService {
                             "You matched with " + u2.getFullName() + "!",
                             NotificationType.MATCH_CREATED,
                             match.getId(),
-                            "MATCH"
+                            "MATCH",
+                            "/connections"
                     );
                     
                     notificationService.createNotification(
@@ -239,7 +240,8 @@ public class MatchingService {
                             "You matched with " + u1.getFullName() + "!",
                             NotificationType.MATCH_CREATED,
                             match.getId(),
-                            "MATCH"
+                            "MATCH",
+                            "/connections"
                     );
                     
                     return match;

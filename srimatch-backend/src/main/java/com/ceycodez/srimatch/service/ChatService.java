@@ -45,9 +45,16 @@ public class ChatService {
                 throw new RuntimeException("You are not authorized to send messages in this match");
             }
         } else {
-            // Check if sender is premium for direct messages
-            if (!sender.isPremiumActive()) {
-                throw new RuntimeException("Premium subscription required for direct messages");
+            // Check if there is an existing match between sender and receiver
+            java.util.Optional<Match> existingMatch = matchRepository.findByUsers(sender, receiver);
+            if (existingMatch.isPresent()) {
+                match = existingMatch.get();
+                if (!match.canSendMessage(sender)) {
+                    throw new RuntimeException("You are not authorized to send messages in this match");
+                }
+            } else if (!sender.isPremiumActive()) {
+                // Check if sender is premium for direct messages
+                throw new RuntimeException("Premium subscription required for direct messages without a match");
             }
         }
 

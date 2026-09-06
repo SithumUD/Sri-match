@@ -3,10 +3,23 @@ import { Client, StompSubscription, IMessage, IFrame } from '@stomp/stompjs';
 class WebSocketService {
     private client: Client | null = null;
     private subscriptions: Map<string, StompSubscription> = new Map();
+    private connectCallbacks: Array<(frame: IFrame | null) => void> = [];
 
-    connect(token?: string | null, onConnect?: (frame: IFrame) => void, onError?: (frame: IFrame) => void) {
+    connect(token?: string | null, onConnect?: (frame: IFrame | null) => void, onError?: (frame: IFrame) => void) {
         if (typeof window === 'undefined') return;
-        if (this.client && this.client.connected) return;
+
+        if (this.client && this.client.connected) {
+            if (onConnect) onConnect(null);
+            return;
+        }
+
+        if (onConnect) {
+            this.connectCallbacks.push(onConnect);
+        }
+
+        if (this.client && this.client.active) {
+            return;
+        }
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
@@ -27,7 +40,11 @@ class WebSocketService {
 
         this.client.onConnect = (frame: IFrame) => {
             console.log('Connected to WebSocket');
-            if (onConnect) onConnect(frame);
+            const cbs = [...this.connectCallbacks];
+            this.connectCallbacks = [];
+            cbs.forEach(cb => {
+                try { cb(frame); } catch (e) { console.error('WS callback error', e); }
+            });
         };
 
         this.client.onStompError = (frame: IFrame) => {
@@ -42,6 +59,8 @@ class WebSocketService {
         if (this.client) {
             this.client.deactivate();
             this.subscriptions.clear();
+            this.connectCallbacks = [];
+            this.client = null;
         }
     }
 
@@ -49,6 +68,14 @@ class WebSocketService {
         if (!this.client || !this.client.connected) {
             console.warn('Cannot subscribe, not connected');
             return null;
+        }
+
+        // Unsubscribe existing for the same destination if any
+        if (this.subscriptions.has(destination)) {
+            try {
+                this.subscriptions.get(destination)?.unsubscribe();
+            } catch (e) {}
+            this.subscriptions.delete(destination);
         }
 
         const subscription = this.client.subscribe(destination, (message: IMessage) => {
@@ -66,7 +93,9 @@ class WebSocketService {
     unsubscribe(destination: string) {
         const subscription = this.subscriptions.get(destination);
         if (subscription) {
-            subscription.unsubscribe();
+            try {
+                subscription.unsubscribe();
+            } catch (e) {}
             this.subscriptions.delete(destination);
         }
     }

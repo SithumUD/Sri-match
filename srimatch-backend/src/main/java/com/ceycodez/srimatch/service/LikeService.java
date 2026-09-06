@@ -133,7 +133,7 @@ public class LikeService {
                     matchingService.createMatch(sender, receiver, like.getId());
                 });
 
-        // Send notification for Star Like if not a match already
+        // Send notification for likes if not a match already
         if (request.getType() == LikeType.STAR && like.getStatus() == LikeStatus.PENDING) {
             notificationService.createNotification(
                     receiver,
@@ -141,7 +141,18 @@ public class LikeService {
                     sender.getFullName() + " sent you a Star Like.",
                     NotificationType.STAR_LIKE_RECEIVED,
                     like.getId(),
-                    "LIKE"
+                    "LIKE",
+                    "/connections"
+            );
+        } else if (request.getType() == LikeType.NORMAL && like.getStatus() == LikeStatus.PENDING) {
+            notificationService.createNotification(
+                    receiver,
+                    "You have a new like!",
+                    sender.getFullName() + " liked your profile.",
+                    NotificationType.LIKE_RECEIVED,
+                    like.getId(),
+                    "LIKE",
+                    "/connections"
             );
         }
 

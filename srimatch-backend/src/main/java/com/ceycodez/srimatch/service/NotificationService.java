@@ -25,44 +25,49 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public NotificationResponse createNotification(User user, String title, String message, NotificationType type, Long relatedEntityId, String relatedEntityType) {
         return createNotification(user, title, message, type, relatedEntityId, relatedEntityType, null);
     }
 
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public NotificationResponse createNotification(User user, String title, String message, NotificationType type, Long relatedEntityId, String relatedEntityType, String actionUrl) {
-        com.ceycodez.srimatch.model.Notification notification = com.ceycodez.srimatch.model.Notification.builder()
-                .user(user)
-                .title(title)
-                .message(message)
-                .type(type)
-                .relatedEntityId(relatedEntityId)
-                .relatedEntityType(relatedEntityType)
-                .actionUrl(actionUrl)
-                .build();
-        com.ceycodez.srimatch.model.Notification saved = notificationRepository.save(notification);
-        NotificationResponse response = NotificationResponse.fromEntity(saved);
-
-        // 1. Broadcast via STOMP WebSocket for real-time in-app delivery
         try {
-            if (user != null && user.getEmail() != null) {
-                messagingTemplate.convertAndSendToUser(
-                        user.getEmail(),
-                        "/queue/notifications",
-                        response
-                );
+            com.ceycodez.srimatch.model.Notification notification = com.ceycodez.srimatch.model.Notification.builder()
+                    .user(user)
+                    .title(title)
+                    .message(message)
+                    .type(type)
+                    .relatedEntityId(relatedEntityId)
+                    .relatedEntityType(relatedEntityType)
+                    .actionUrl(actionUrl)
+                    .build();
+            com.ceycodez.srimatch.model.Notification saved = notificationRepository.save(notification);
+            NotificationResponse response = NotificationResponse.fromEntity(saved);
+
+            // 1. Broadcast via STOMP WebSocket for real-time in-app delivery
+            try {
+                if (user != null && user.getEmail() != null) {
+                    messagingTemplate.convertAndSendToUser(
+                            user.getEmail(),
+                            "/queue/notifications",
+                            response
+                    );
+                }
+            } catch (Exception e) {
+                log.warn("Could not send WebSocket notification to {}: {}", user != null ? user.getEmail() : "null", e.getMessage());
             }
+
+            // 2. Send Push Notification if FCM token is present
+            if (user != null && user.getFcmToken() != null && !user.getFcmToken().isEmpty()) {
+                sendPushNotification(user.getFcmToken(), title, message);
+            }
+
+            return response;
         } catch (Exception e) {
-            log.warn("Could not send WebSocket notification to {}: {}", user != null ? user.getEmail() : "null", e.getMessage());
+            log.error("Failed to create notification: {}", e.getMessage());
+            return null;
         }
-
-        // 2. Send Push Notification if FCM token is present
-        if (user != null && user.getFcmToken() != null && !user.getFcmToken().isEmpty()) {
-            sendPushNotification(user.getFcmToken(), title, message);
-        }
-
-        return response;
     }
 
     private void sendPushNotification(String token, String title, String body) {

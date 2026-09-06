@@ -516,7 +516,7 @@ const ConnectionsPage = () => {
                               <Link href={`/profile/${match.otherUser.id}`} className="cp-card-btn" onClick={(e) => e.stopPropagation()}>
                                 <User size={13} /> Profile
                               </Link>
-                              <Link href="/messages" className="cp-card-btn primary" onClick={(e) => e.stopPropagation()}>
+                              <Link href={`/messages?user=${match.otherUser?.id}&matchId=${match.id}`} className="cp-card-btn primary" onClick={(e) => e.stopPropagation()}>
                                 <MessageCircle size={13} /> Message
                               </Link>
                             </div>

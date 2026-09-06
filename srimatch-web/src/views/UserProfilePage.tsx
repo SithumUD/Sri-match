@@ -757,7 +757,7 @@ const UserProfilePage = () => {
                   <Star size={16} fill={isStarred ? "currentColor" : "none"} />
                 </button>
 
-                <Link href={`/chat?recipient=${profile.id}`}
+                <Link href={`/messages?user=${profile.userId || profile.id}`}
                   className="up-btn up-btn-msg"
                   style={{ textDecoration: "none" }}
                 >
