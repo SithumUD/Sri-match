@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Check, CheckCheck, Clock, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { sanitize } from '../../utils/security.utils';
 import VoicePlayer from './VoicePlayer';
 
@@ -112,18 +112,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           />
         )}
 
-        {/* Timestamp & Delivery Status */}
-        <div className={`mt-1 flex items-center gap-1.5 ${isImage ? "px-2 pb-0.5" : ""} ${isMine ? "justify-end text-white/70" : "justify-start text-[#9a7060]"}`}>
+        {/* Message Timestamp (Clean timestamp without read receipts) */}
+        <div className={`mt-1 flex items-center ${isImage ? "px-2 pb-0.5" : ""} ${isMine ? "justify-end text-white/70" : "justify-start text-[#9a7060]"}`}>
           <span className="text-[0.66rem] font-medium tracking-tight">
             {formatTime(message.createdAt)}
           </span>
-          {isMine && (
-            message.read 
-              ? <CheckCheck size={13} className="text-[#a5f3fc]" title="Read" /> 
-              : message.delivered 
-                ? <CheckCheck size={13} className="text-white/70" title="Delivered" />
-                : <Check size={13} className="text-white/60" title="Sent" />
-          )}
         </div>
       </div>
     </div>

@@ -17,6 +17,7 @@ const defaultAuthContext: any = {
   adminLogin: async () => ({ success: false }),
   adminLogout: async () => {},
   updateUserProfile: async () => ({ success: false }),
+  socialLogin: async () => ({ success: false }),
 };
 
 const AuthContext = createContext<any>(defaultAuthContext);

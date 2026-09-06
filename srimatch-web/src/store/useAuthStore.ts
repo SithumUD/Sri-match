@@ -22,6 +22,7 @@ interface AuthState {
     adminLogin: (email: string, password: string, totpCode?: string | null) => Promise<any>;
     adminLogout: () => Promise<void>;
     updateUserProfile: (data: any) => Promise<any>;
+    socialLogin: (provider: string, token: string) => Promise<any>;
 }
 
 const isClient = typeof window !== 'undefined';
@@ -122,6 +123,26 @@ const useAuthStore = create<AuthState>((set, get) => ({
             }
             console.error("Login error:", error);
             return { success: false, message: error.message || "An error occurred during login" };
+        }
+    },
+
+    socialLogin: async (provider: string, token: string) => {
+        try {
+            const response = await AuthService.socialLogin({ provider, token });
+            if (response.success && response.data) {
+                const accessToken = response.data.accessToken;
+                set({ accessToken });
+                if (isClient) {
+                    localStorage.setItem('srimatch_is_logged_in', 'true');
+                    if (accessToken) localStorage.setItem('srimatch_access_token', accessToken);
+                }
+                await get().fetchUserSession();
+                return { success: true, user: response.data };
+            }
+            return { success: false, message: response.message || "Social login failed" };
+        } catch (error: any) {
+            console.error("Social login error:", error);
+            return { success: false, message: error.message || "An error occurred during social login" };
         }
     },
 

@@ -4,11 +4,12 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { 
   Send, Image as ImageIcon, 
   Flag, Crown, Heart, Loader2, MessageCircle, ArrowLeft,
-  Mic, X
+  Mic, X, Phone, Video
 } from 'lucide-react';
 import Link from 'next/link';
 import MessageBubble from './MessageBubble';
 import VoiceRecorder from './VoiceRecorder';
+import CallModal from './CallModal';
 import { toast } from 'sonner';
 
 interface ChatPaneProps {
@@ -47,6 +48,7 @@ const ChatPane = ({
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+  const [activeCall, setActiveCall] = useState<'VOICE' | 'VIDEO' | null>(null);
 
   // Controlled, container-only scroll to bottom without page jumping
   const scrollToBottom = useCallback((smooth = true) => {
@@ -185,7 +187,31 @@ const ChatPane = ({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Voice Call Button */}
           <button 
+            type="button"
+            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-[#8b4e2e] bg-[#fdf5f0] border border-[#f0ddd5] hover:border-[#c9856a] hover:bg-[#f5ede5] transition-all cursor-pointer shadow-2xs"
+            onClick={() => setActiveCall('VOICE')}
+            title="Voice Call"
+            aria-label="Start Voice Call"
+          >
+            <Phone size={15} />
+          </button>
+
+          {/* Video Call Button */}
+          <button 
+            type="button"
+            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-[#8b4e2e] bg-[#fdf5f0] border border-[#f0ddd5] hover:border-[#c9856a] hover:bg-[#f5ede5] transition-all cursor-pointer shadow-2xs"
+            onClick={() => setActiveCall('VIDEO')}
+            title="Video Call"
+            aria-label="Start Video Call"
+          >
+            <Video size={15} />
+          </button>
+
+          {/* Report User Button */}
+          <button 
+            type="button"
             className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-[#9a7060] border border-[#f0ddd5] hover:border-[#c9856a] hover:text-[#8b4e2e] hover:bg-[#fdf0e8] transition-all cursor-pointer"
             onClick={onReport}
             title="Report User"
@@ -380,6 +406,16 @@ const ChatPane = ({
             />
           </div>
         </div>
+      )}
+
+      {/* 7. Voice / Video Call Modal */}
+      {activeCall && (
+        <CallModal 
+          type={activeCall}
+          partner={otherUser}
+          isPremium={isPremium}
+          onClose={() => setActiveCall(null)}
+        />
       )}
     </div>
   );

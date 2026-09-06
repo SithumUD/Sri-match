@@ -430,6 +430,7 @@ public class ProfileService {
     @Transactional
     public DetailedProfileResponse getDetailedProfile(Long profileId, String viewerEmail) {
         Profile profile = profileRepository.findById(profileId)
+                .or(() -> profileRepository.findByUserId(profileId))
                 .orElseThrow(() -> new RuntimeException("Profile not found"));
         
         Profile searcher = null;
