@@ -51,6 +51,10 @@ public class SecurityConfig {
                                 "/v1/packages/**",
                                 "/v1/locations/**",
                                 "/v1/boost/packages",
+                                "/ws-chat/**",
+                                "/ws-chat",
+                                "/api/ws-chat/**",
+                                "/api/ws-chat",
                                 "/actuator/**",
                                 "/error",
 

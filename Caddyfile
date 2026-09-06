@@ -16,9 +16,9 @@
         -Server
     }
 
-    # Handle WebSockets (/ws-chat)
+    # Handle WebSockets (/ws-chat & /api/ws-chat)
     @websockets {
-        path /ws-chat/*
+        path /ws-chat* /api/ws-chat*
         header Connection *Upgrade*
         header Upgrade websocket
     }

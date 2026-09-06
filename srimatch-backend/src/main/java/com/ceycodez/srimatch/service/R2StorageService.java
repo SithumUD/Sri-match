@@ -40,9 +40,10 @@ public class R2StorageService {
 
     public String uploadChatMedia(MultipartFile file) throws IOException {
         byte[] sanitizedBytes = FileValidationUtil.validateAndSanitize(file, FileValidationUtil.FileCategory.CHAT_MEDIA);
-        String extension = getFileExtension(file.getOriginalFilename(), "webp");
+        String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
+        String defaultExt = contentType.startsWith("audio/") ? "webm" : "webp";
+        String extension = getFileExtension(file.getOriginalFilename(), defaultExt);
         String key = "chat/" + UUID.randomUUID() + "." + extension;
-        String contentType = file.getContentType() != null ? file.getContentType() : "image/webp";
 
         return putObject(key, sanitizedBytes, contentType);
     }

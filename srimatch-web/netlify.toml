@@ -9,7 +9,7 @@
   NODE_VERSION = "20"
   NEXT_PUBLIC_BACKEND_URL = "https://api.sithum-dev.online"
   NEXT_PUBLIC_API_URL = "https://api.sithum-dev.online"
-  NEXT_PUBLIC_WS_URL = "wss://api.sithum-dev.online/ws-chat"
+  NEXT_PUBLIC_WS_URL = "wss://api.sithum-dev.online/api/ws-chat"
 
 # Netlify Edge / CDN Redirects & Reverse Proxy to Hetzner Backend
 [[redirects]]
@@ -21,6 +21,6 @@
 
 [[redirects]]
   from = "/ws-chat/*"
-  to = "https://api.sithum-dev.online/ws-chat/:splat"
+  to = "https://api.sithum-dev.online/api/ws-chat/:splat"
   status = 200
   force = true

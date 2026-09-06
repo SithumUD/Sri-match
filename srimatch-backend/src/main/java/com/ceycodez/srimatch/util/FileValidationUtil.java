@@ -77,17 +77,37 @@ public final class FileValidationUtil {
             boolean isGif = startsWith(fileBytes, GIF_MAGIC_87A) || startsWith(fileBytes, GIF_MAGIC_89A);
             boolean isWebp = isWebp(fileBytes);
 
-            if (category == FileCategory.PROFILE_IMAGE || category == FileCategory.CHAT_MEDIA) {
+            if (category == FileCategory.PROFILE_IMAGE) {
                 if (!isJpeg && !isPng && !isWebp && !isGif) {
-                    // Fallback to ImageIO probe before rejecting
                     try {
                         BufferedImage probed = ImageIO.read(new ByteArrayInputStream(fileBytes));
                         if (probed == null) {
                             throw new SecurityException("Invalid image file format. Allowed formats: JPEG, PNG, WEBP, GIF.");
                         }
-                        isJpeg = true; // Safe to process
                     } catch (Exception e) {
                         throw new SecurityException("Invalid image file format. Allowed formats: JPEG, PNG, WEBP, GIF.");
+                    }
+                }
+                return stripExifAndSanitizeImage(fileBytes, isPng ? "png" : "jpg");
+            } else if (category == FileCategory.CHAT_MEDIA) {
+                String mimeType = file.getContentType() != null ? file.getContentType().toLowerCase() : "";
+                boolean isAudio = mimeType.startsWith("audio/") || 
+                        List.of("webm", "ogg", "mp3", "wav", "m4a", "aac", "opus").contains(extension);
+
+                if (isAudio) {
+                    // Audio voice notes / recordings returned directly
+                    return fileBytes;
+                }
+
+                // Image chat media validation & EXIF sanitization
+                if (!isJpeg && !isPng && !isWebp && !isGif) {
+                    try {
+                        BufferedImage probed = ImageIO.read(new ByteArrayInputStream(fileBytes));
+                        if (probed == null) {
+                            throw new SecurityException("Invalid chat media format. Allowed formats: JPEG, PNG, WEBP, GIF, Audio.");
+                        }
+                    } catch (Exception e) {
+                        throw new SecurityException("Invalid chat media format. Allowed formats: JPEG, PNG, WEBP, GIF, Audio.");
                     }
                 }
                 return stripExifAndSanitizeImage(fileBytes, isPng ? "png" : "jpg");

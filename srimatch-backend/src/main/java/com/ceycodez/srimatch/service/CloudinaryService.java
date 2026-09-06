@@ -36,7 +36,7 @@ public class CloudinaryService {
             return r2StorageService.uploadChatMedia(file);
         }
         byte[] sanitizedBytes = FileValidationUtil.validateAndSanitize(file, FileValidationUtil.FileCategory.CHAT_MEDIA);
-        Map uploadResult = cloudinary.uploader().upload(sanitizedBytes, ObjectUtils.emptyMap());
+        Map uploadResult = cloudinary.uploader().upload(sanitizedBytes, ObjectUtils.asMap("resource_type", "auto"));
         return uploadResult.get("secure_url") != null ? uploadResult.get("secure_url").toString() : uploadResult.get("url").toString();
     }
 

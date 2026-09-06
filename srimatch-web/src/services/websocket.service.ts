@@ -21,25 +21,33 @@ class WebSocketService {
             return;
         }
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host;
-        const brokerURL = process.env.NEXT_PUBLIC_WS_URL || `${protocol}//${host}/ws-chat`;
-        
+        let rawUrl = process.env.NEXT_PUBLIC_WS_URL;
+        if (!rawUrl) {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+            if (apiUrl) {
+                rawUrl = apiUrl.replace(/^http/, 'ws') + '/api/ws-chat';
+            } else {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const host = window.location.host;
+                rawUrl = `${protocol}//${host}/api/ws-chat`;
+            }
+        } else if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+            rawUrl = rawUrl.replace(/^http/, 'ws');
+        }
+
         this.client = new Client({
-            brokerURL: brokerURL,
+            brokerURL: rawUrl,
             connectHeaders: {
                 Authorization: token ? `Bearer ${token}` : '',
             },
-            debug: (str: string) => {
-                // console.log(str);
-            },
+            debug: () => {},
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
         });
 
         this.client.onConnect = (frame: IFrame) => {
-            console.log('Connected to WebSocket');
+            console.log('Connected to WebSocket STOMP broker');
             const cbs = [...this.connectCallbacks];
             this.connectCallbacks = [];
             cbs.forEach(cb => {
@@ -48,8 +56,16 @@ class WebSocketService {
         };
 
         this.client.onStompError = (frame: IFrame) => {
-            console.error('STOMP error', frame);
+            console.warn('STOMP error:', frame?.headers?.message || 'Broker connection failed');
             if (onError) onError(frame);
+        };
+
+        this.client.onWebSocketError = (event: Event) => {
+            console.warn('WebSocket connection error:', event);
+        };
+
+        this.client.onWebSocketClose = (event: CloseEvent) => {
+            // Quietly handle connection close - STOMP client will auto-reconnect via reconnectDelay
         };
 
         this.client.activate();

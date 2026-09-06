@@ -224,6 +224,51 @@ const MessagesPage = () => {
     }
   };
 
+  const handleSendMedia = async (file: File, type: 'IMAGE' | 'AUDIO', caption?: string, duration?: number) => {
+    if (!activeConversation) return;
+
+    try {
+      const uploadRes = await ChatService.uploadMedia(file);
+      if (!uploadRes || !uploadRes.success || !uploadRes.data?.url) {
+        toast.error(uploadRes?.message || "Failed to upload media");
+        return;
+      }
+
+      const mediaUrl = uploadRes.data.url;
+      const mediaType = uploadRes.data.mediaType || file.type;
+      const mediaSize = uploadRes.data.size || file.size;
+
+      const payload = {
+        matchId: activeConversation.id || null,
+        receiverId: activeConversation.otherUser.id || activeConversation.otherUser.userId,
+        content: caption || (type === 'AUDIO' ? 'Voice Message' : 'Image'),
+        type: type,
+        mediaUrl: mediaUrl,
+        mediaType: mediaType,
+        mediaSize: mediaSize
+      };
+
+      const response = await ChatService.sendMessage(payload);
+      if (response.success) {
+        const newMsg = response.data;
+        setMessages(prev => [...prev, newMsg]);
+
+        if (!activeConversation.id && newMsg.matchId) {
+          setActiveConversation((prev: any) => prev ? { ...prev, id: newMsg.matchId } : prev);
+          setConversations(prev => prev.map(c => 
+            (c.otherUser?.id === activeConversation.otherUser?.id) ? { ...c, id: newMsg.matchId } : c
+          ));
+        }
+      } else {
+        toast.error(response.message || "Failed to deliver media message");
+      }
+    } catch (err: any) {
+      console.error("Failed to upload/send media:", err);
+      const errMsg = err?.response?.data?.message || err.message || "Failed to send media";
+      toast.error(errMsg);
+    }
+  };
+
   const handleReport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportReason || !activeConversation) return;
@@ -289,6 +334,7 @@ const MessagesPage = () => {
               message={message}
               setMessage={setMessage}
               onSend={handleSendMessage}
+              onSendMedia={handleSendMedia}
               onReport={() => setShowReportModal(true)}
               isPremium={user?.premium}
               currentUserId={user?.id}

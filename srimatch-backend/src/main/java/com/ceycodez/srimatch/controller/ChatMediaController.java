@@ -30,7 +30,7 @@ public class ChatMediaController {
             Authentication authentication
     ) {
         try {
-            String url = cloudinaryService.uploadImage(file);
+            String url = cloudinaryService.uploadChatMedia(file);
             
             Map<String, Object> data = new HashMap<>();
             data.put("url", url);

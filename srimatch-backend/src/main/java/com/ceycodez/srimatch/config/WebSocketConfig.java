@@ -35,18 +35,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        String[] origins = java.util.Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toArray(String[]::new);
-
         // Standard WebSocket endpoint (fast, zero-overhead, no unload deprecation warnings)
-        registry.addEndpoint("/ws-chat")
-                .setAllowedOriginPatterns(origins);
+        registry.addEndpoint("/ws-chat", "/ws-chat/")
+                .setAllowedOriginPatterns("*");
 
         // SockJS fallback endpoint
-        registry.addEndpoint("/ws-chat")
-                .setAllowedOriginPatterns(origins)
+        registry.addEndpoint("/ws-chat", "/ws-chat/")
+                .setAllowedOriginPatterns("*")
                 .withSockJS();
     }
 
