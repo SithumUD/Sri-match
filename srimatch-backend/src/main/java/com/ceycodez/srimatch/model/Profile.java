@@ -23,7 +23,6 @@ import java.util.Map;
 @Table(name = "profiles", indexes = {
         @Index(name = "idx_gender", columnList = "gender"),
         @Index(name = "idx_religion", columnList = "religion"),
-        @Index(name = "idx_district", columnList = "district"),
         @Index(name = "idx_marital_status", columnList = "marital_status"),
         @Index(name = "idx_completion_score", columnList = "completion_score"),
         @Index(name = "idx_last_active", columnList = "last_active_at")
@@ -51,9 +50,6 @@ public class Profile {
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
-    @Column(name = "time_of_birth")
-    private LocalTime timeOfBirth;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "marital_status")
     private MaritalStatus maritalStatus;
@@ -65,9 +61,6 @@ public class Profile {
     private Integer numberOfChildren;
 
     // Location Information
-    @Column(length = 100)
-    private String district;
-
     @Column(length = 100)
     private String city;
 

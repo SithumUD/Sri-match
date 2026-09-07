@@ -56,7 +56,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -90,7 +89,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -115,7 +113,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("maxAge") Integer maxAge,
         @Param("maritalStatus") String maritalStatus,
         @Param("hasChildren") Boolean hasChildren,
-        @Param("district") String district,
         @Param("city") String city,
         @Param("religion") String religion,
         @Param("ethnicity") String ethnicity,
@@ -151,7 +148,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -184,7 +180,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -209,7 +204,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("maxAge") Integer maxAge,
         @Param("maritalStatus") String maritalStatus,
         @Param("hasChildren") Boolean hasChildren,
-        @Param("district") String district,
         @Param("city") String city,
         @Param("religion") String religion,
         @Param("ethnicity") String ethnicity,
@@ -245,7 +239,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -278,7 +271,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -303,7 +295,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("maxAge") Integer maxAge,
         @Param("maritalStatus") String maritalStatus,
         @Param("hasChildren") Boolean hasChildren,
-        @Param("district") String district,
         @Param("city") String city,
         @Param("religion") String religion,
         @Param("ethnicity") String ethnicity,
@@ -339,7 +330,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -372,7 +362,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -397,7 +386,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("maxAge") Integer maxAge,
         @Param("maritalStatus") String maritalStatus,
         @Param("hasChildren") Boolean hasChildren,
-        @Param("district") String district,
         @Param("city") String city,
         @Param("religion") String religion,
         @Param("ethnicity") String ethnicity,
@@ -433,7 +421,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -466,7 +453,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -491,7 +477,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("maxAge") Integer maxAge,
         @Param("maritalStatus") String maritalStatus,
         @Param("hasChildren") Boolean hasChildren,
-        @Param("district") String district,
         @Param("city") String city,
         @Param("religion") String religion,
         @Param("ethnicity") String ethnicity,
@@ -527,7 +512,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -560,7 +544,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
-          AND (:district IS NULL OR p.district = :district)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
           AND (:religion IS NULL OR p.religion = :religion)
           AND (:ethnicity IS NULL OR p.ethnicity = :ethnicity)
@@ -585,7 +568,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("maxAge") Integer maxAge,
         @Param("maritalStatus") String maritalStatus,
         @Param("hasChildren") Boolean hasChildren,
-        @Param("district") String district,
         @Param("city") String city,
         @Param("religion") String religion,
         @Param("ethnicity") String ethnicity,

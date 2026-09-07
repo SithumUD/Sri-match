@@ -55,13 +55,13 @@ class CursorPaginationTest {
         dummyUser = User.builder().id(100L).email("user@example.com").build();
 
         p1 = Profile.builder().id(1L).user(User.builder().id(10L).firstName("Amal").lastName("Perera").build())
-                .completionScore(95).profession("Engineer").district("Colombo").build();
+                .completionScore(95).profession("Engineer").city("Colombo").build();
 
         p2 = Profile.builder().id(2L).user(User.builder().id(20L).firstName("Kamal").lastName("Silva").build())
-                .completionScore(85).profession("Doctor").district("Kandy").build();
+                .completionScore(85).profession("Doctor").city("Kandy").build();
 
         p3 = Profile.builder().id(3L).user(User.builder().id(30L).firstName("Nimal").lastName("Fernando").build())
-                .completionScore(75).profession("Teacher").district("Galle").build();
+                .completionScore(75).profession("Teacher").city("Galle").build();
     }
 
     @Test
@@ -71,7 +71,7 @@ class CursorPaginationTest {
         when(profileRepository.findDiscoveryDynamic(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(Pageable.class)))
+                any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(p1, p2), org.springframework.data.domain.PageRequest.of(0, 2), 3));
 
         ProfileSearchRequest request = new ProfileSearchRequest();
@@ -93,7 +93,7 @@ class CursorPaginationTest {
         when(profileRepository.findDiscoveryDynamic(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(Pageable.class)))
+                any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(p3), org.springframework.data.domain.PageRequest.of(1, 2), 3));
 
         ProfileSearchRequest request = new ProfileSearchRequest();

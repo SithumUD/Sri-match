@@ -64,9 +64,6 @@ public class ProfileSpecification {
             if (request.getHasChildren() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("hasChildren"), request.getHasChildren()));
             }
-            if (request.getDistrict() != null && !request.getDistrict().isBlank()) {
-                predicates.add(criteriaBuilder.equal(root.get("district"), request.getDistrict()));
-            }
             if (request.getCity() != null && !request.getCity().isBlank()) {
                 predicates.add(criteriaBuilder.equal(root.get("city"), request.getCity()));
             }

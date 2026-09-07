@@ -10,6 +10,7 @@ import {
   ChevronDown, ChevronUp, Check, Image as ImageIcon, Plus, ArrowLeft,
   Shield, Eye, EyeOff, Lock, Sparkles, Crown, Target, Home,
 } from "lucide-react";
+
 /* ─── Enum Helpers & Options ────────────────────────────────────────────── */
 export const toEnumVal = (str) => str ? String(str).toUpperCase().replace(/[\s-]+/g, '_') : '';
 
@@ -94,21 +95,16 @@ const PROFILE_OPTIONS = {
     { value: "PESCATARIAN", label: "Pescatarian" },
     { value: "NO_PREFERENCE", label: "No Preference" }
   ],
-  horoscope: [
-    { value: "ARIES", label: "Aries" },
-    { value: "TAURUS", label: "Taurus" },
-    { value: "GEMINI", label: "Gemini" },
-    { value: "CANCER", label: "Cancer" },
-    { value: "LEO", label: "Leo" },
-    { value: "VIRGO", label: "Virgo" },
-    { value: "LIBRA", label: "Libra" },
-    { value: "SCORPIO", label: "Scorpio" },
-    { value: "SAGITTARIUS", label: "Sagittarius" },
-    { value: "CAPRICORN", label: "Capricorn" },
-    { value: "AQUARIUS", label: "Aquarius" },
-    { value: "PISCES", label: "Pisces" }
+  relocationWillingness: [
+    { value: "NOT_WILLING", label: "Not willing to relocate" },
+    { value: "WITHIN_DISTRICT", label: "Within current area" },
+    { value: "WITHIN_SRI_LANKA", label: "Within Sri Lanka" },
+    { value: "ANYWHERE", label: "Anywhere (including abroad)" }
   ],
-  districts: ["Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", "Mannar", "Matale", "Matara", "Moneragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"],
+  familyType: [
+    { value: "NUCLEAR", label: "Nuclear Family" },
+    { value: "EXTENDED", label: "Extended Family" }
+  ],
   languages: ["Sinhala", "Tamil", "English"],
   interests: ["Music", "Travel", "Photography", "Reading", "Movies", "Gaming", "Cooking", "Sports", "Yoga", "Dancing"],
   industries: ["Technology", "Healthcare", "Finance", "Education", "Engineering", "Arts", "Government", "Other"],
@@ -117,6 +113,7 @@ const PROFILE_OPTIONS = {
 
 import ProfileService from "../services/profile.service";
 import { getProfileImage, compressImage } from "../utils/image.utils";
+import CitySearchDropdown from "../components/common/CitySearchDropdown";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -759,7 +756,13 @@ const MyProfilePage = () => {
       if (mappedData.smoking) mappedData.smoking = mapEnum(mappedData.smoking);
       if (mappedData.drinking) mappedData.drinking = mapEnum(mappedData.drinking);
       if (mappedData.dietaryPreferences) mappedData.dietaryPreferences = mapEnum(mappedData.dietaryPreferences);
-      if (mappedData.horoscopeSign) mappedData.horoscopeSign = mapEnum(mappedData.horoscopeSign);
+      if (mappedData.relocationWillingness) mappedData.relocationWillingness = mapEnum(mappedData.relocationWillingness);
+      if (mappedData.familyType) mappedData.familyType = mapEnum(mappedData.familyType);
+      
+      mappedData.hasChildren = Boolean(mappedData.hasChildren);
+      mappedData.numberOfChildren = mappedData.hasChildren ? (parseInt(mappedData.numberOfChildren) || 0) : 0;
+      if (mappedData.height) mappedData.height = parseInt(mappedData.height) || null;
+
       const res = await ProfileService.updateProfile(mappedData);
       if (res.success || res.data) {
         setUser(res.data || res);
@@ -1018,12 +1021,21 @@ const MyProfilePage = () => {
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Children</label>
-                              <select className="mp-select" value={formData.hasChildren !== undefined && formData.hasChildren !== null ? String(formData.hasChildren) : ""} onChange={e => setFormData(p => ({ ...p, hasChildren: e.target.value === "true" }))}>
+                              <select className="mp-select" value={formData.hasChildren !== undefined && formData.hasChildren !== null ? String(formData.hasChildren) : ""} onChange={e => {
+                                const val = e.target.value === "true";
+                                setFormData(p => ({ ...p, hasChildren: val, numberOfChildren: val ? (p.numberOfChildren || 1) : 0 }));
+                              }}>
                                 <option value="">Select</option>
                                 <option value="true">Yes</option>
                                 <option value="false">No</option>
                               </select>
                             </div>
+                            {formData.hasChildren === true && (
+                              <div className="mp-form-group">
+                                <label className="mp-form-label">Number of Children</label>
+                                <input className="mp-input" type="number" min="1" max="20" name="numberOfChildren" value={formData.numberOfChildren || ""} onChange={handleChange} placeholder="e.g. 1" />
+                              </div>
+                            )}
                           </div>
                         </>
                       ) : (
@@ -1033,9 +1045,7 @@ const MyProfilePage = () => {
                             ["Gender", formatEnum(user.gender)],
                             ["Date of Birth", user.dateOfBirth ? `${new Date(user.dateOfBirth).toLocaleDateString("en-LK")} (${calculateAge(user.dateOfBirth)} yrs)` : null],
                             ["Marital Status", formatEnum(user.maritalStatus)],
-                            ["Email", user.email || (user.user?.email) || null],
-                            ["Phone", user.phone || (user.user?.phone) || null],
-                            ["Children", user.hasChildren !== undefined && user.hasChildren !== null ? (user.hasChildren ? "Yes" : "No") : null],
+                            ["Children", user.hasChildren !== undefined && user.hasChildren !== null ? (user.hasChildren ? `Yes (${user.numberOfChildren || 0})` : "No") : null],
                           ].map(([label, value]) => (
                             <div key={label} className="mp-info-item">
                               <span className="mp-info-label">{label}</span>
@@ -1060,16 +1070,14 @@ const MyProfilePage = () => {
                       {editMode === "location" ? (
                         <>
                           <div className="mp-form-grid">
-                            <div className="mp-form-group">
-                              <label className="mp-form-label">City</label>
-                              <input className="mp-input" type="text" name="city" value={formData.city || ""} onChange={handleChange} placeholder="e.g. Colombo" />
-                            </div>
-                            <div className="mp-form-group">
-                              <label className="mp-form-label">District</label>
-                              <select className="mp-select" name="district" value={formData.district || ""} onChange={handleChange}>
-                                <option value="">Select district</option>
-                                {PROFILE_OPTIONS.districts.map(d => <option key={d} value={d}>{d}</option>)}
-                              </select>
+                            <div className="mp-form-group" style={{ gridColumn: "span 2" }}>
+                              <CitySearchDropdown
+                                value={formData.city || ""}
+                                onChange={(selectedCity) => setFormData(p => ({ ...p, city: selectedCity }))}
+                                label="City / Current Town"
+                                required={true}
+                                placeholder="Search and select your city or town"
+                              />
                             </div>
                             <div className="mp-form-group">
                               <label className="mp-form-label">Ethnicity</label>
@@ -1103,8 +1111,7 @@ const MyProfilePage = () => {
                         <>
                           <div className="mp-info-grid" style={{ marginBottom: "1rem" }}>
                             {[
-                              ["Current Location", user.city || null],
-                              ["District", user.district || null],
+                              ["City / Town", user.city || null],
                               ["Ethnicity", formatEnum(user.ethnicity)],
                               ["Religion", formatEnum(user.religion)],
                               ["Religious Practices", user.religiousPractices || null],
@@ -1169,14 +1176,21 @@ const MyProfilePage = () => {
                               <label className="mp-form-label">Work Location</label>
                               <input className="mp-input" type="text" name="workLocation" value={formData.workLocation || ""} onChange={handleChange} placeholder="e.g. Colombo, Remote" />
                             </div>
-                          </div>
-                          <div className="mp-form-group">
-                            <label className="mp-form-label">Monthly Income (LKR)</label>
-                            <select className="mp-select" name="income" value={formData.income || ""} onChange={handleChange}>
-                              <option value="">Select income range</option>
-                              {(PROFILE_OPTIONS.incomeRanges || []).map(r => <option key={r} value={r}>{r}</option>)}
-                            </select>
-                            <p className="mp-field-note">Income information is kept private and used only for matching.</p>
+                            <div className="mp-form-group">
+                              <label className="mp-form-label">Monthly Income (LKR)</label>
+                              <select className="mp-select" name="income" value={formData.income || ""} onChange={handleChange}>
+                                <option value="">Select income range</option>
+                                {(PROFILE_OPTIONS.incomeRanges || []).map(r => <option key={r} value={r}>{r}</option>)}
+                              </select>
+                              <p className="mp-field-note">Income information is kept private and used only for matching.</p>
+                            </div>
+                            <div className="mp-form-group">
+                              <label className="mp-form-label">Relocation Willingness</label>
+                              <select className="mp-select" name="relocationWillingness" value={formData.relocationWillingness || ""} onChange={handleChange}>
+                                <option value="">Select</option>
+                                {PROFILE_OPTIONS.relocationWillingness.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                              </select>
+                            </div>
                           </div>
                         </>
                       ) : (
@@ -1189,6 +1203,7 @@ const MyProfilePage = () => {
                             ["Employer", user.employer],
                             ["Work Location", user.workLocation],
                             ["Income Range", user.income],
+                            ["Relocation Willingness", PROFILE_OPTIONS.relocationWillingness.find(r => r.value === user.relocationWillingness)?.label || user.relocationWillingness || null],
                           ].map(([label, value]) => (
                             <div key={label} className="mp-info-item">
                               <span className="mp-info-label">{label}</span>
@@ -1299,6 +1314,13 @@ const MyProfilePage = () => {
                       {editMode === "cultural" ? (
                         <>
                           <div className="mp-form-group">
+                            <label className="mp-form-label">Family Type</label>
+                            <select className="mp-select" name="familyType" value={formData.familyType || ""} onChange={handleChange}>
+                              <option value="">Select family type</option>
+                              {PROFILE_OPTIONS.familyType.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                            </select>
+                          </div>
+                          <div className="mp-form-group">
                             <label className="mp-form-label">Family Background</label>
                             <textarea className="mp-textarea" rows={2} name="familyBackground" value={formData.familyBackground || ""} onChange={handleChange} placeholder="e.g. Parents (father - businessman, mother - teacher), two siblings" />
                           </div>
@@ -1314,29 +1336,15 @@ const MyProfilePage = () => {
                             <label className="mp-form-label">Wedding Preferences</label>
                             <textarea className="mp-textarea" rows={2} name="weddingPreferences" value={formData.weddingPreferences || ""} onChange={handleChange} placeholder="e.g. Traditional Buddhist ceremony" />
                           </div>
-                          <div className="mp-form-grid">
-                            <div className="mp-form-group">
-                              <label className="mp-form-label">Horoscope Sign</label>
-                              <select className="mp-select" name="horoscopeSign" value={toEnumVal(formData.horoscopeSign)} onChange={handleChange}>
-                                <option value="">Select sign</option>
-                                {PROFILE_OPTIONS.horoscope.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                              </select>
-                            </div>
-                            <div className="mp-form-group">
-                              <label className="mp-form-label">Horoscope Details</label>
-                              <textarea className="mp-textarea" rows={2} name="horoscopeDetails" value={formData.horoscopeDetails || ""} onChange={handleChange} placeholder="e.g. Moon in 7th house" />
-                            </div>
-                          </div>
                         </>
                       ) : (
                         <div className="mp-info-grid">
                           {[
+                            ["Family Type", PROFILE_OPTIONS.familyType.find(f => f.value === user.familyType)?.label || user.familyType || null],
                             ["Family Background", user.familyBackground],
                             ["Cultural Values", user.culturalValues],
                             ["Family Involvement", user.familyInvolvement],
                             ["Wedding Preferences", user.weddingPreferences],
-                            ["Horoscope Sign", formatEnum(user.horoscopeSign || user.horoscope?.sign)],
-                            ["Horoscope Details", user.horoscopeDetails || user.horoscope?.details],
                           ].map(([label, value]) => (
                             <div key={label} className="mp-info-item">
                               <span className="mp-info-label">{label}</span>
@@ -1516,19 +1524,24 @@ const MyProfilePage = () => {
                       <label className="mp-form-label">Partner Height Range (cm)</label>
                       <div className="mp-form-grid">
                         <div>
-                          <p className="mp-range-label">Min: {(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180])[0]} cm</p>
-                          <input type="range" min="140" max="200" value={(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180])[0]} onChange={e => { const v = +e.target.value; const cur = Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180]; handleNestedChange("partnerPreferences", "heightPreference", [v, Math.max(v, cur[1])]); }} />
+                          <p className="mp-range-label">Min: {(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 140, formData.partnerPreferences?.maxHeight || 220])[0]} cm</p>
+                          <input type="range" min="140" max="220" value={(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 140, formData.partnerPreferences?.maxHeight || 220])[0]} onChange={e => { const v = +e.target.value; const cur = Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 140, formData.partnerPreferences?.maxHeight || 220]; handleNestedChange("partnerPreferences", "heightPreference", [v, Math.max(v, cur[1])]); }} />
                         </div>
                         <div>
-                          <p className="mp-range-label">Max: {(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180])[1]} cm</p>
-                          <input type="range" min="140" max="200" value={(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180])[1]} onChange={e => { const v = +e.target.value; const cur = Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 180]; handleNestedChange("partnerPreferences", "heightPreference", [Math.min(v, cur[0]), v]); }} />
+                          <p className="mp-range-label">Max: {(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 140, formData.partnerPreferences?.maxHeight || 220])[1]} cm</p>
+                          <input type="range" min="140" max="220" value={(Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 140, formData.partnerPreferences?.maxHeight || 220])[1]} onChange={e => { const v = +e.target.value; const cur = Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 140, formData.partnerPreferences?.maxHeight || 220]; handleNestedChange("partnerPreferences", "heightPreference", [Math.min(v, cur[0]), v]); }} />
                         </div>
                       </div>
                     </div>
                     <div className="mp-form-grid">
                       <div className="mp-form-group">
-                        <label className="mp-form-label">Location Preference</label>
-                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).locationPreference || (formData.partnerPreferences || {}).location || ""} onChange={e => handleNestedChange("partnerPreferences", "locationPreference", e.target.value)} placeholder="e.g. Colombo or willing to relocate" />
+                        <CitySearchDropdown
+                          value={(formData.partnerPreferences || {}).locationPreference || (formData.partnerPreferences || {}).location || ""}
+                          onChange={(selectedLoc) => handleNestedChange("partnerPreferences", "locationPreference", selectedLoc)}
+                          label="Location Preference"
+                          placeholder="Search preferred city or select Open to all"
+                          includeAnyOption={true}
+                        />
                       </div>
                       <div className="mp-form-group">
                         <label className="mp-form-label">Min. Education Preference</label>
@@ -1631,7 +1644,7 @@ const MyProfilePage = () => {
                   {[
                     { label: "Who can see my profile", sub: "Control who can view your full profile details", type: "select" },
                     { label: "Show my online status", sub: "Let others know when you're active", type: "toggle", defaultChecked: true },
-                    { label: "Show my location", sub: "Display your city/district to other users", type: "toggle", defaultChecked: true },
+                    { label: "Show my location", sub: "Display your city to other users", type: "toggle", defaultChecked: true },
                   ].map((item, i) => (
                     <div key={i} className="mp-privacy-row">
                       <div>
@@ -1686,7 +1699,6 @@ const MyProfilePage = () => {
                   <div className="mp-privacy-title"><Lock size={16} style={{ color: "#8b4e2e" }} />Information Privacy</div>
                   {[
                     { label: "Show my income range", sub: "Display income information to others", type: "toggle", defaultChecked: false },
-                    { label: "Show horoscope details", sub: "Make detailed horoscope information visible", type: "toggle", defaultChecked: true },
                     { label: "Show family details", sub: "Display family background information", type: "toggle", defaultChecked: true },
                   ].map((item, i) => (
                     <div key={i} className="mp-privacy-row">

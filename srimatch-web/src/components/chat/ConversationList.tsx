@@ -51,7 +51,7 @@ const ConversationItem = React.memo(({ conv, isActive, onSelect }: ConversationI
         </div>
         <p className="text-[0.76rem] text-[#9a7060] truncate flex items-center gap-1">
           {other.profession ? (
-            <span>{other.profession} · {other.district || "Sri Lanka"}</span>
+            <span>{other.profession} · {other.city || "Sri Lanka"}</span>
           ) : (
             <span>Click to start conversation</span>
           )}

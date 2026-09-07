@@ -26,13 +26,11 @@ public class ProfileResponse {
     
     private Gender gender;
     private LocalDate dateOfBirth;
-    private LocalTime timeOfBirth;
     private Integer age;
     private MaritalStatus maritalStatus;
     private Boolean hasChildren;
     private Integer numberOfChildren;
 
-    private String district;
     private String city;
     private Double latitude;
     private Double longitude;
@@ -49,6 +47,7 @@ public class ProfileResponse {
     private String employer;
     private String workLocation;
     private String income;
+    private RelocationWillingness relocationWillingness;
 
     private Integer height;
     private BodyType bodyType;
@@ -64,6 +63,7 @@ public class ProfileResponse {
     private String culturalValues;
     private String familyInvolvement;
     private String weddingPreferences;
+    private FamilyType familyType;
 
     private String about;
     private List<String> interests;

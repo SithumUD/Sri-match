@@ -32,7 +32,6 @@ public class ReceivedLikeResponse {
         private String firstName;
         private Integer age;
         private String city;
-        private String district;
         private String profession;
         private String education;
         private String religion;

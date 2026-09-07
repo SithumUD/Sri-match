@@ -516,7 +516,8 @@ const UserProfilePage = () => {
           ["Religious Practices", profile.religiousPractices],
           ["Cultural Values", profile.culturalValues],
           ["Family Background", profile.familyBackground],
-          ["Family Type", profile.familyType ? profile.familyType.replace(/_/g, ' ') : null],
+          ["Family Type", profile.familyType ? (profile.familyType === 'NUCLEAR' ? 'Nuclear Family' : profile.familyType === 'EXTENDED' ? 'Extended Family' : profile.familyType.replace(/_/g, ' ')) : null],
+          ["Relocation Willingness", profile.relocationWillingness ? (profile.relocationWillingness === 'WITHIN_DISTRICT' ? 'Within current area' : profile.relocationWillingness === 'WITHIN_SRI_LANKA' ? 'Within Sri Lanka' : profile.relocationWillingness === 'ANYWHERE' ? 'Anywhere (including abroad)' : profile.relocationWillingness.replace(/_/g, ' ')) : null],
           ["Wedding Preferences", profile.weddingPreferences],
         ].map(([label, value]) => (
           <div key={label} className="up-info-item">
@@ -667,8 +668,6 @@ const UserProfilePage = () => {
           <p>Based on shared interests and preferences between you and {profile.firstName}.</p>
         </div>
       </div>
-      <div className="up-subsection-title"><Star size={11} />Horoscope Sign</div>
-      <div className="up-horoscope-pill"><Star size={13} />{profile.horoscopeSign || "Not shared"}</div>
     </>
   );
 
@@ -681,7 +680,15 @@ const UserProfilePage = () => {
           preferencesEntries.map(([key, val]) => {
             let displayValue = val;
             if (Array.isArray(val) && val.length === 2) {
-              displayValue = `${val[0]} – ${val[1]} ${key === 'ageRange' ? 'years' : ''}`;
+              if (key === 'ageRange') {
+                displayValue = `${val[0]} – ${val[1]} years`;
+              } else if (key === 'heightPreference') {
+                displayValue = `${val[0]} – ${val[1]} cm`;
+              } else {
+                displayValue = `${val[0]} – ${val[1]}`;
+              }
+            } else if (key === 'minHeight' || key === 'maxHeight') {
+              displayValue = `${val} cm`;
             } else if (Array.isArray(val)) {
               displayValue = val.join(", ");
             }

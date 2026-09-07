@@ -257,7 +257,6 @@ public class ProfileService {
         Long excludeId = (searcher != null) ? searcher.getId() : null;
         String gender = request.getGender() != null ? request.getGender().name() : null;
         String maritalStatus = request.getMaritalStatus() != null ? request.getMaritalStatus().name() : null;
-        String district = (request.getDistrict() != null && !request.getDistrict().isBlank()) ? request.getDistrict().trim() : null;
         String city = (request.getCity() != null && !request.getCity().isBlank()) ? request.getCity().trim() : null;
         String religion = request.getReligion() != null ? request.getReligion().name() : null;
         String ethnicity = request.getEthnicity() != null ? request.getEthnicity().name() : null;
@@ -291,7 +290,7 @@ public class ProfileService {
             case "newest":
                 page = profileRepository.findDiscoveryNewest(
                     excludeId, gender, request.getMinAge(), request.getMaxAge(),
-                    maritalStatus, request.getHasChildren(), district, city,
+                    maritalStatus, request.getHasChildren(), city,
                     religion, ethnicity, request.getVerifiedOnly(),
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
@@ -301,7 +300,7 @@ public class ProfileService {
             case "age_asc":
                 page = profileRepository.findDiscoveryAgeAsc(
                     excludeId, gender, request.getMinAge(), request.getMaxAge(),
-                    maritalStatus, request.getHasChildren(), district, city,
+                    maritalStatus, request.getHasChildren(), city,
                     religion, ethnicity, request.getVerifiedOnly(),
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
@@ -311,7 +310,7 @@ public class ProfileService {
             case "age_desc":
                 page = profileRepository.findDiscoveryAgeDesc(
                     excludeId, gender, request.getMinAge(), request.getMaxAge(),
-                    maritalStatus, request.getHasChildren(), district, city,
+                    maritalStatus, request.getHasChildren(), city,
                     religion, ethnicity, request.getVerifiedOnly(),
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
@@ -321,7 +320,7 @@ public class ProfileService {
             case "height_asc":
                 page = profileRepository.findDiscoveryHeightAsc(
                     excludeId, gender, request.getMinAge(), request.getMaxAge(),
-                    maritalStatus, request.getHasChildren(), district, city,
+                    maritalStatus, request.getHasChildren(), city,
                     religion, ethnicity, request.getVerifiedOnly(),
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
@@ -331,7 +330,7 @@ public class ProfileService {
             case "height_desc":
                 page = profileRepository.findDiscoveryHeightDesc(
                     excludeId, gender, request.getMinAge(), request.getMaxAge(),
-                    maritalStatus, request.getHasChildren(), district, city,
+                    maritalStatus, request.getHasChildren(), city,
                     religion, ethnicity, request.getVerifiedOnly(),
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
@@ -342,7 +341,7 @@ public class ProfileService {
                 // Dynamic discovery: boost → completionScore → random → id
                 page = profileRepository.findDiscoveryDynamic(
                     excludeId, gender, request.getMinAge(), request.getMaxAge(),
-                    maritalStatus, request.getHasChildren(), district, city,
+                    maritalStatus, request.getHasChildren(), city,
                     religion, ethnicity, request.getVerifiedOnly(),
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
@@ -394,7 +393,7 @@ public class ProfileService {
 
         for (PublicProfileResponse p : list) {
             String combo = (p.getProfession() != null ? p.getProfession() : "unknown")
-                    + "|" + (p.getDistrict() != null ? p.getDistrict() : "unknown");
+                    + "|" + (p.getCity() != null ? p.getCity() : "unknown");
             int count = comboCount.getOrDefault(combo, 0);
             if (count < 2) {
                 prioritised.add(p);
@@ -479,9 +478,7 @@ public class ProfileService {
                 .lastName(profile.getUser().getLastName())
                 .age(profile.getAge())
                 .city(profile.getCity())
-                .district(profile.getDistrict())
                 .dateOfBirth(profile.getDateOfBirth())
-                .timeOfBirth(profile.getTimeOfBirth())
                 .latitude(profile.getLatitude())
                 .longitude(profile.getLongitude())
                 .profession(profile.getProfession())
@@ -575,7 +572,6 @@ public class ProfileService {
                 .firstName(profile.getUser().getFirstName())
                 .age(profile.getAge())
                 .city(profile.getCity())
-                .district(profile.getDistrict())
                 .profession(profile.getProfession())
                 .education(profile.getEducation() != null ? profile.getEducation().name() : null)
                 .religion(profile.getReligion() != null ? profile.getReligion().name() : null)

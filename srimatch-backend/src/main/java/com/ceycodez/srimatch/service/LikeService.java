@@ -232,7 +232,6 @@ public class LikeService {
                     .firstName(sender.getFirstName())
                     .age(senderProfile != null ? senderProfile.getAge() : null)
                     .city(senderProfile != null ? senderProfile.getCity() : null)
-                    .district(senderProfile != null ? senderProfile.getDistrict() : null)
                     .profession(senderProfile != null ? senderProfile.getProfession() : null)
                     .education(senderProfile != null && senderProfile.getEducation() != null ? senderProfile.getEducation().name() : null)
                     .religion(senderProfile != null && senderProfile.getReligion() != null ? senderProfile.getReligion().name() : null)
@@ -253,7 +252,6 @@ public class LikeService {
                     .profileImage(senderProfile != null ? senderProfile.getPrimaryImageUrl() : null) // Frontend handle blurring
                     .age(null)
                     .city(null)
-                    .district(null)
                     .profession(null)
                     .interactionType(like.getType())
                     .interactionStatus(like.getStatus())

@@ -30,6 +30,6 @@ public class MatchResponse {
         private String profileImageUrl;
         private Integer age;
         private String profession;
-        private String district;
+        private String city;
     }
 }

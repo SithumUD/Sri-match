@@ -17,7 +17,6 @@ public class ProfileSearchRequest {
     private Integer maxAge;
     private MaritalStatus maritalStatus;
     private Boolean hasChildren;
-    private String district;
     private String city;
     private Religion religion;
     private Ethnicity ethnicity;
@@ -48,7 +47,7 @@ public class ProfileSearchRequest {
     public boolean hasNoFilters() {
         return gender == null && minAge == null && maxAge == null &&
                 maritalStatus == null && hasChildren == null &&
-                district == null && city == null && religion == null &&
+                city == null && religion == null &&
                 ethnicity == null && verifiedOnly == null &&
                 educationLevel == null && profession == null &&
                 industry == null && incomeRange == null &&

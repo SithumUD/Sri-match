@@ -93,7 +93,7 @@ const MessagesPage = () => {
                   profileImageUrl: prof.primaryImageUrl || (prof.profileImages && prof.profileImages[0]) || null,
                   age: prof.age,
                   profession: prof.profession,
-                  district: prof.district || prof.city,
+                  city: prof.city,
                 }
               };
               setConversations([directConv, ...convs]);

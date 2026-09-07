@@ -410,8 +410,8 @@ const AdminUserProfileModal = ({ userId, initialUser, onClose }) => {
                         </div>
                         <div className="upm-field-grid">
                           <div className="upm-field-item">
-                            <label>District / City</label>
-                            <value>{profile.district || "N/A"} / {profile.city || "N/A"}</value>
+                            <label>City / Town</label>
+                            <value>{profile.city || "N/A"}</value>
                           </div>
                           <div className="upm-field-item">
                             <label>Religion & Practices</label>
@@ -445,27 +445,6 @@ const AdminUserProfileModal = ({ userId, initialUser, onClose }) => {
                           <div className="upm-field-item">
                             <label>Income & Location</label>
                             <value>{profile.income || "N/A"} • {profile.workLocation || "N/A"}</value>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Horoscope */}
-                      <div className="upm-section-card">
-                        <div className="upm-section-title">
-                          <StarIcon size={16} color="#8b4e2e" /> Horoscope & Astrology
-                        </div>
-                        <div className="upm-field-grid">
-                          <div className="upm-field-item">
-                            <label>Rashi (Sign)</label>
-                            <value>{profile.horoscopeSign || "N/A"}</value>
-                          </div>
-                          <div className="upm-field-item">
-                            <label>Birth Star (Nekatha)</label>
-                            <value>{profile.birthStar || "N/A"}</value>
-                          </div>
-                          <div className="upm-field-item" style={{ gridColumn: "1 / -1" }}>
-                            <label>Astrological Details</label>
-                            <value>{profile.horoscopeDetails || "Not provided"}</value>
                           </div>
                         </div>
                       </div>

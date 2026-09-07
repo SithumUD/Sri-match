@@ -15,7 +15,6 @@ import {
   Sparkles, Gift, Bell, Lock, Upload, Save, RefreshCw, Eye,
   Target, Check, XCircle, Info, AlertCircle, Calendar,
 } from "lucide-react";
-/* ─── Options Data ──────────────────────────────────────────────────────── */
 const PROFILE_OPTIONS = {
   maritalStatus: ["Never Married", "Divorced", "Widowed", "Separated", "Annulled"],
   religion: ["Buddhist", "Hindu", "Muslim", "Christian", "Catholic", "No Religion", "Other"],
@@ -26,8 +25,16 @@ const PROFILE_OPTIONS = {
   smoking: ["Never", "Occasionally", "Regularly", "Trying to Quit"],
   drinking: ["Never", "Socially", "Occasionally", "Regularly"],
   dietary: ["Vegetarian", "Vegan", "Non Vegetarian", "Pescatarian", "No Preference"],
-  horoscope: ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"],
-  districts: ["Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", "Mannar", "Matale", "Matara", "Moneragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"],
+  relocationWillingness: [
+    { value: "NOT_WILLING", label: "Not willing to relocate" },
+    { value: "WITHIN_DISTRICT", label: "Within current area" },
+    { value: "WITHIN_SRI_LANKA", label: "Within Sri Lanka" },
+    { value: "ANYWHERE", label: "Anywhere (including abroad)" }
+  ],
+  familyType: [
+    { value: "NUCLEAR", label: "Nuclear Family" },
+    { value: "EXTENDED", label: "Extended Family" }
+  ],
   languages: ["Sinhala", "Tamil", "English", "French", "German", "Japanese", "Arabic"],
   industries: ["Technology", "Healthcare", "Finance", "Education", "Engineering", "Arts", "Government", "Other"],
   incomeRanges: ["Less than 50k", "50k - 100k", "100k - 200k", "200k - 500k", "Above 500k"],
@@ -804,8 +811,8 @@ const ProfileCreationPage = () => {
         gender: profileCreationData.gender?.toUpperCase(),
         dateOfBirth: profileCreationData.dateOfBirth,
         maritalStatus: mapEnum(profileCreationData.maritalStatus, 'maritalStatus'),
-        hasChildren: profileCreationData.hasChildren,
-        numberOfChildren: profileCreationData.numberOfChildren || 0,
+        hasChildren: Boolean(profileCreationData.hasChildren),
+        numberOfChildren: profileCreationData.hasChildren ? (parseInt(profileCreationData.numberOfChildren) || 0) : 0,
         
         city: profileCreationData.city,
         
@@ -821,6 +828,7 @@ const ProfileCreationPage = () => {
         employer: profileCreationData.employer,
         workLocation: profileCreationData.workLocation,
         income: profileCreationData.income,
+        relocationWillingness: profileCreationData.relocationWillingness || 'NOT_WILLING',
         
         height: profileCreationData.height ? parseInt(profileCreationData.height) : null,
         bodyType: profileCreationData.bodyType?.toUpperCase(),
@@ -833,12 +841,10 @@ const ProfileCreationPage = () => {
         lifestyle: profileCreationData.lifestyle,
         
         familyBackground: profileCreationData.familyBackground,
+        familyType: profileCreationData.familyType || 'NUCLEAR',
         culturalValues: profileCreationData.culturalValues,
         familyInvolvement: profileCreationData.familyInvolvement,
         weddingPreferences: profileCreationData.weddingPreferences,
-        horoscopeSign: mapEnum(profileCreationData.horoscopeSign, 'horoscope'),
-        birthStar: profileCreationData.birthStar,
-        horoscopeDetails: profileCreationData.horoscopeDetails,
         
         about: profileCreationData.about,
         interests: profileCreationData.interests || [],
@@ -1030,12 +1036,26 @@ const ProfileCreationPage = () => {
             <div className="pc-field">
               <label className="pc-label">Do you have children?</label>
               <select value={profileCreationData.hasChildren !== undefined ? String(profileCreationData.hasChildren) : ""}
-                onChange={e => updateProfileCreationData({ hasChildren: e.target.value === "true" })} className="pc-select">
+                onChange={e => {
+                  const val = e.target.value === "true";
+                  updateProfileCreationData({ hasChildren: val, numberOfChildren: val ? (profileCreationData.numberOfChildren || 1) : 0 });
+                }} className="pc-select">
                 <option value="">Select</option>
                 <option value="true">Yes</option>
                 <option value="false">No</option>
               </select>
             </div>
+
+            {profileCreationData.hasChildren === true && (
+              <div className="pc-field">
+                <label className="pc-label">Number of Children</label>
+                <input name="numberOfChildren" type="number" min="1" max="20"
+                  value={profileCreationData.numberOfChildren || ""}
+                  onChange={handleChange}
+                  className="pc-input"
+                  placeholder="e.g. 1" />
+              </div>
+            )}
           </>
         )}
 
@@ -1134,13 +1154,22 @@ const ProfileCreationPage = () => {
                 <input name="workLocation" type="text" value={profileCreationData.workLocation || ""} onChange={handleChange} className="pc-input" placeholder="e.g. Colombo, Remote" />
               </div>
             </div>
-            <div className="pc-field">
-              <label className="pc-label">Monthly Income Range (LKR)</label>
-              <select name="income" value={profileCreationData.income || ""} onChange={handleChange} className="pc-select">
-                <option value="">Select range</option>
-                {(PROFILE_OPTIONS.incomeRanges || []).map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-              <p className="pc-note"><Shield size={11} />Used for matching only — never shown publicly</p>
+            <div className="pc-grid-2">
+              <div className="pc-field">
+                <label className="pc-label">Monthly Income Range (LKR)</label>
+                <select name="income" value={profileCreationData.income || ""} onChange={handleChange} className="pc-select">
+                  <option value="">Select range</option>
+                  {(PROFILE_OPTIONS.incomeRanges || []).map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <p className="pc-note"><Shield size={11} />Used for matching only — never shown publicly</p>
+              </div>
+              <div className="pc-field">
+                <label className="pc-label">Relocation Willingness</label>
+                <select name="relocationWillingness" value={profileCreationData.relocationWillingness || ""} onChange={handleChange} className="pc-select">
+                  <option value="">Select</option>
+                  {(PROFILE_OPTIONS.relocationWillingness || []).map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+              </div>
             </div>
           </>
         )}
@@ -1206,6 +1235,13 @@ const ProfileCreationPage = () => {
         {step === 5 && (
           <>
             <div className="pc-field">
+              <label className="pc-label">Family Type</label>
+              <select name="familyType" value={profileCreationData.familyType || ""} onChange={handleChange} className="pc-select">
+                <option value="">Select</option>
+                {(PROFILE_OPTIONS.familyType || []).map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+              </select>
+            </div>
+            <div className="pc-field">
               <label className="pc-label">Family Background</label>
               <textarea name="familyBackground" rows={3} value={profileCreationData.familyBackground || ""} onChange={handleChange} className="pc-textarea" placeholder="e.g. Father is a businessman, mother a teacher, one older sibling — we're a close family." />
             </div>
@@ -1220,24 +1256,6 @@ const ProfileCreationPage = () => {
             <div className="pc-field">
               <label className="pc-label">Wedding Preferences</label>
               <textarea name="weddingPreferences" rows={2} value={profileCreationData.weddingPreferences || ""} onChange={handleChange} className="pc-textarea" placeholder="e.g. Traditional ceremony, intimate civil wedding, destination wedding" />
-            </div>
-            <div className="pc-grid-2">
-              <div className="pc-field">
-                <label className="pc-label">Horoscope / Zodiac Sign</label>
-                <select name="horoscopeSign" value={profileCreationData.horoscopeSign || ""} onChange={handleChange} className="pc-select">
-                  <option value="">Select</option>
-                  {(PROFILE_OPTIONS.horoscope || []).map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="pc-field">
-                <label className="pc-label">Birth Star / Nakshatra <span className="hint">(optional)</span></label>
-                <input name="birthStar" type="text" value={profileCreationData.birthStar || ""} onChange={handleChange} className="pc-input" placeholder="e.g. Ashwini" />
-              </div>
-            </div>
-            <div className="pc-field">
-              <label className="pc-label">Additional Horoscope Details</label>
-              <textarea name="horoscopeDetails" rows={2} value={profileCreationData.horoscopeDetails || ""} onChange={handleChange} className="pc-textarea" placeholder="Any astrological details relevant to match compatibility" />
-              <p className="pc-note gold"><Star size={11} />Horoscope compatibility is an important factor in Sri Lankan matrimony</p>
             </div>
           </>
         )}
@@ -1359,6 +1377,34 @@ const ProfileCreationPage = () => {
                       const cur = profileCreationData.partnerPreferences || {};
                       const range = cur.ageRange || [18, 60];
                       updateProfileCreationData({ partnerPreferences: { ...cur, ageRange: [Math.min(v, range[0]), v] } });
+                    }} />
+                </div>
+              </div>
+            </div>
+
+            <div className="pc-field">
+              <label className="pc-label">Partner Height Range (cm)</label>
+              <div className="pc-slider-group">
+                <div>
+                  <p className="pc-slider-label">Minimum: {(profileCreationData.partnerPreferences?.heightPreference || [])[0] || 140} cm</p>
+                  <input type="range" min="140" max="220"
+                    value={(profileCreationData.partnerPreferences?.heightPreference || [])[0] || 140}
+                    onChange={e => {
+                      const v = parseInt(e.target.value);
+                      const cur = profileCreationData.partnerPreferences || {};
+                      const range = cur.heightPreference || [140, 220];
+                      updateProfileCreationData({ partnerPreferences: { ...cur, heightPreference: [v, Math.max(v, range[1])] } });
+                    }} />
+                </div>
+                <div>
+                  <p className="pc-slider-label">Maximum: {(profileCreationData.partnerPreferences?.heightPreference || [])[1] || 220} cm</p>
+                  <input type="range" min="140" max="220"
+                    value={(profileCreationData.partnerPreferences?.heightPreference || [])[1] || 220}
+                    onChange={e => {
+                      const v = parseInt(e.target.value);
+                      const cur = profileCreationData.partnerPreferences || {};
+                      const range = cur.heightPreference || [140, 220];
+                      updateProfileCreationData({ partnerPreferences: { ...cur, heightPreference: [Math.min(v, range[0]), v] } });
                     }} />
                 </div>
               </div>
@@ -1514,6 +1560,7 @@ const ProfileCreationPage = () => {
                       ["Employer", profileCreationData.employer],
                       ["Work Location", profileCreationData.workLocation],
                       ["Income Range", profileCreationData.income],
+                      ["Relocation Willingness", PROFILE_OPTIONS.relocationWillingness.find(r => r.value === profileCreationData.relocationWillingness)?.label || profileCreationData.relocationWillingness],
                     ].map(([k, v]) => (
                       <div key={k} className="pc-review-item"><span>{k}:</span> {v || "—"}</div>
                     ))}
@@ -1548,8 +1595,7 @@ const ProfileCreationPage = () => {
                   <div className="pc-review-section-title"><Home size={13} />Cultural & Family Background</div>
                   <div className="pc-review-grid">
                     {[
-                      ["Horoscope Sign", profileCreationData.horoscopeSign],
-                      ["Birth Star", profileCreationData.birthStar],
+                      ["Family Type", PROFILE_OPTIONS.familyType.find(f => f.value === profileCreationData.familyType)?.label || profileCreationData.familyType],
                     ].map(([k, v]) => (
                       <div key={k} className="pc-review-item"><span>{k}:</span> {v || "—"}</div>
                     ))}
@@ -1564,9 +1610,6 @@ const ProfileCreationPage = () => {
                     )}
                     {profileCreationData.weddingPreferences && (
                       <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Wedding Preferences:</span> {profileCreationData.weddingPreferences}</div>
-                    )}
-                    {profileCreationData.horoscopeDetails && (
-                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Horoscope Details:</span> {profileCreationData.horoscopeDetails}</div>
                     )}
                   </div>
                 </div>
@@ -1600,6 +1643,7 @@ const ProfileCreationPage = () => {
                   <div className="pc-review-grid">
                     {[
                       ["Age Range", (profileCreationData.partnerPreferences?.ageRange || []).length ? `${profileCreationData.partnerPreferences.ageRange[0]} – ${profileCreationData.partnerPreferences.ageRange[1]} yrs` : "—"],
+                      ["Height Range", (profileCreationData.partnerPreferences?.heightPreference || []).length ? `${profileCreationData.partnerPreferences.heightPreference[0]} – ${profileCreationData.partnerPreferences.heightPreference[1]} cm` : "—"],
                       ["Location Preference", profileCreationData.partnerPreferences?.locationPreference],
                       ["Min Education", profileCreationData.partnerPreferences?.educationLevel],
                       ["Religion Preference", profileCreationData.partnerPreferences?.religionPreference],

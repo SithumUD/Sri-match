@@ -180,7 +180,7 @@ const ChatPane = ({
                 {otherUser.name || "User"}
               </h3>
               <p className="text-[0.72rem] sm:text-[0.75rem] text-[#9a7060] truncate mt-0.5">
-                {otherUser.profession ? `${otherUser.profession} · ` : ""}{otherUser.district || "Sri Lanka"}
+                {otherUser.profession ? `${otherUser.profession} · ` : ""}{otherUser.city || "Sri Lanka"}
               </p>
             </Link>
           </div>

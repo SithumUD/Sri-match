@@ -33,15 +33,12 @@ public class ProfileRequest {
     @NotNull(message = "Date of birth is required")
     private LocalDate dateOfBirth;
 
-    private LocalTime timeOfBirth;
-
     @NotNull(message = "Marital status is required")
     private MaritalStatus maritalStatus;
 
     private Boolean hasChildren;
     private Integer numberOfChildren;
 
-    private String district;
     private String city;
     private Double latitude;
     private Double longitude;
@@ -58,6 +55,7 @@ public class ProfileRequest {
     private String employer;
     private String workLocation;
     private String income;
+    private RelocationWillingness relocationWillingness;
 
     private Integer height; // in cm
     private BodyType bodyType;
@@ -73,6 +71,7 @@ public class ProfileRequest {
     private String culturalValues;
     private String familyInvolvement;
     private String weddingPreferences;
+    private FamilyType familyType;
 
     private String about;
     private List<String> interests;

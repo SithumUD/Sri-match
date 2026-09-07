@@ -81,7 +81,7 @@ public class ConnectionService {
                         .profileImageUrl(otherProfile != null ? otherProfile.getPrimaryImageUrl() : null)
                         .age(otherProfile != null ? otherProfile.getAge() : null)
                         .profession(otherProfile != null ? otherProfile.getProfession() : null)
-                        .district(otherProfile != null ? otherProfile.getDistrict() : null)
+                        .city(otherProfile != null ? otherProfile.getCity() : null)
                         .build())
                 .build();
     }

@@ -64,7 +64,7 @@ public class MatchController {
                         .profileImageUrl(otherUser.getProfile() != null ? otherUser.getProfile().getPrimaryImageUrl() : null)
                         .age(otherUser.getProfile() != null ? otherUser.getProfile().getAge() : null)
                         .profession(otherUser.getProfile() != null ? otherUser.getProfile().getProfession() : null)
-                        .district(otherUser.getProfile() != null ? otherUser.getProfile().getDistrict() : null)
+                        .city(otherUser.getProfile() != null ? otherUser.getProfile().getCity() : null)
                         .build())
                 .build();
     }

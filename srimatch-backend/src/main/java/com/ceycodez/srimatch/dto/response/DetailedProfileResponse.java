@@ -22,9 +22,7 @@ public class DetailedProfileResponse {
     private String lastName;
     private Integer age;
     private String city;
-    private String district;
     private LocalDate dateOfBirth;
-    private LocalTime timeOfBirth;
     private Double latitude;
     private Double longitude;
     private String profession;
