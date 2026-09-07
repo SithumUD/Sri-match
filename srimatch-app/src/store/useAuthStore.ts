@@ -121,9 +121,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       return { success: false, message: res?.message || 'Login failed' };
     } catch (error: any) {
+      console.warn('Login execution error:', error);
+      const serverMsg =
+        error?.message ||
+        error?.response?.data?.message ||
+        (typeof error === 'string' ? error : null) ||
+        'Unable to connect to server. Please check your credentials or network.';
       return {
         success: false,
-        message: error?.message || error?.response?.data?.message || 'Invalid email or password',
+        message: serverMsg,
       };
     } finally {
       set({ isAuthLoading: false });
@@ -136,9 +142,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const res: any = await AuthService.register(userData);
       return res;
     } catch (error: any) {
+      console.warn('Registration execution error:', error);
+      const serverMsg =
+        error?.message ||
+        error?.response?.data?.message ||
+        (typeof error === 'string' ? error : null) ||
+        'Registration failed. Please try again.';
       return {
         success: false,
-        message: error?.message || error?.response?.data?.message || 'Registration failed',
+        message: serverMsg,
       };
     } finally {
       set({ isAuthLoading: false });

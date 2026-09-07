@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Audio } from 'expo-av';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { Play, Pause, Volume2 } from 'lucide-react-native';
 import { Colors } from '../../constants/theme';
 
@@ -10,102 +10,35 @@ interface VoicePlayerProps {
 }
 
 export const VoicePlayer: React.FC<VoicePlayerProps> = ({ audioUrl, isMine }) => {
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [positionMillis, setPositionMillis] = useState(0);
-  const [durationMillis, setDurationMillis] = useState(0);
+  const player = useAudioPlayer(audioUrl);
+  const status = useAudioPlayerStatus(player);
 
-  const soundRef = useRef<Audio.Sound | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync().catch(() => {});
-      }
-    };
-  }, []);
-
-  const loadSound = async (): Promise<Audio.Sound | null> => {
+  const togglePlay = () => {
     try {
-      setIsLoading(true);
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-      });
-
-      const { sound: newSound, status } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
-        { shouldPlay: false },
-        onPlaybackStatusUpdate
-      );
-
-      soundRef.current = newSound;
-      setSound(newSound);
-
-      if (status.isLoaded && status.durationMillis) {
-        setDurationMillis(status.durationMillis);
-      }
-      setIsLoading(false);
-      return newSound;
-    } catch (e) {
-      console.warn('Failed to load audio:', e);
-      setIsLoading(false);
-      return null;
-    }
-  };
-
-  const onPlaybackStatusUpdate = (status: any) => {
-    if (!status.isLoaded) {
-      if (status.error) {
-        console.warn(`Audio playback error: ${status.error}`);
-      }
-      return;
-    }
-
-    setPositionMillis(status.positionMillis || 0);
-    if (status.durationMillis) {
-      setDurationMillis(status.durationMillis);
-    }
-    setIsPlaying(status.isPlaying || false);
-
-    if (status.didJustFinish) {
-      setIsPlaying(false);
-      setPositionMillis(0);
-    }
-  };
-
-  const togglePlay = async () => {
-    try {
-      let currentSound = sound;
-      if (!currentSound) {
-        currentSound = await loadSound();
-        if (!currentSound) return;
-      }
-
-      if (isPlaying) {
-        await currentSound.pauseAsync();
+      if (status.playing) {
+        player.pause();
       } else {
-        if (positionMillis >= durationMillis && durationMillis > 0) {
-          await currentSound.setPositionAsync(0);
+        if (status.didJustFinish || (status.currentTime >= status.duration && status.duration > 0)) {
+          player.seekTo(0);
         }
-        await currentSound.playAsync();
+        player.play();
       }
     } catch (e) {
-      console.warn('Error toggling audio play:', e);
+      console.warn('Voice playback toggle notice:', e);
     }
   };
 
-  const formatTime = (millis: number) => {
-    if (!millis || isNaN(millis)) return '0:00';
-    const totalSeconds = Math.floor(millis / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  const formatTime = (seconds: number) => {
+    if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const progressPercent = durationMillis > 0 ? (positionMillis / durationMillis) * 100 : 0;
-  const remainingMillis = Math.max(0, durationMillis - positionMillis);
+  const durationSec = status.duration || 0;
+  const currentSec = status.currentTime || 0;
+  const progressPercent = durationSec > 0 ? (currentSec / durationSec) * 100 : 0;
+  const remainingSec = Math.max(0, durationSec - currentSec);
 
   // 18 decorative audio waveform bars
   const barHeights = [
@@ -121,9 +54,9 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({ audioUrl, isMine }) =>
         onPress={togglePlay}
         activeOpacity={0.8}
       >
-        {isLoading ? (
+        {status.isBuffering ? (
           <ActivityIndicator size="small" color={isMine ? Colors.primaryDark : '#ffffff'} />
-        ) : isPlaying ? (
+        ) : status.playing ? (
           <Pause size={15} color={isMine ? Colors.primaryDark : '#ffffff'} fill={isMine ? Colors.primaryDark : '#ffffff'} />
         ) : (
           <Play size={15} color={isMine ? Colors.primaryDark : '#ffffff'} fill={isMine ? Colors.primaryDark : '#ffffff'} />
@@ -158,12 +91,12 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({ audioUrl, isMine }) =>
 
         <View style={styles.timeRow}>
           <Text style={[styles.timeText, isMine ? styles.mineTimeText : styles.otherTimeText]}>
-            {isPlaying ? `-${formatTime(remainingMillis)}` : formatTime(durationMillis || 0)}
+            {status.playing ? `-${formatTime(remainingSec)}` : formatTime(durationSec)}
           </Text>
           <View style={styles.volumeWrap}>
             <Volume2 size={11} color={isMine ? 'rgba(255,255,255,0.7)' : Colors.textMuted} />
             <Text style={[styles.timeText, isMine ? styles.mineTimeText : styles.otherTimeText]}>
-              {formatTime(durationMillis || 0)}
+              {formatTime(durationSec)}
             </Text>
           </View>
         </View>

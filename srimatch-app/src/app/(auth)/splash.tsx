@@ -16,48 +16,45 @@ export default function SplashScreen() {
   const { loadStoredSession } = useAuthStore();
 
   useEffect(() => {
+    let isMounted = true;
+
     const init = async () => {
-      // Step 1: Health & Connectivity check
-      const netStatus = await checkNetworkAndServerStatus(API_BASE_URL);
+      try {
+        // Restore stored session
+        await loadStoredSession().catch((e) => console.warn('Session load notice:', e));
+        if (!isMounted) return;
 
-      if (netStatus === 'NO_INTERNET') {
+        const hasOnboarded = await AsyncStorage.getItem('srimatch_has_onboarded').catch(() => null);
+        const state = useAuthStore.getState();
+
         setTimeout(() => {
-          router.replace({ pathname: '/network-error', params: { type: 'NO_INTERNET' } });
-        }, 1000);
-        return;
-      }
-
-      if (netStatus === 'SERVER_DOWN') {
-        setTimeout(() => {
-          router.replace({ pathname: '/network-error', params: { type: 'SERVER_DOWN' } });
-        }, 1000);
-        return;
-      }
-
-      // Step 2: Restore stored session if online & healthy
-      await loadStoredSession();
-      const hasOnboarded = await AsyncStorage.getItem('srimatch_has_onboarded');
-      const state = useAuthStore.getState();
-
-      setTimeout(() => {
-        if (state.isAuthenticated && state.accessToken) {
-          const u = state.user;
-          if (u && (u.hasProfile === false || u.profileCompleted === false)) {
-            router.replace('/(auth)/profile-creation');
+          if (!isMounted) return;
+          if (state.isAuthenticated && state.accessToken) {
+            const u = state.user;
+            if (u && (u.hasProfile === false || u.profileCompleted === false)) {
+              router.replace('/(auth)/profile-creation');
+            } else {
+              router.replace('/(tabs)');
+            }
+          } else if (hasOnboarded === 'true') {
+            // Already onboarded user goes straight to Login
+            router.replace('/(auth)/login');
           } else {
-            router.replace('/(tabs)');
+            // First-time user sees Onboarding
+            router.replace('/(auth)/onboarding');
           }
-        } else if (hasOnboarded === 'true') {
-          // Already onboarded user goes straight to Login (never shows onboarding again)
-          router.replace('/(auth)/login');
-        } else {
-          // First-time user sees Onboarding
-          router.replace('/(auth)/onboarding');
-        }
-      }, 1200);
+        }, 800);
+      } catch (err) {
+        console.warn('Splash initialization fallback:', err);
+        if (isMounted) router.replace('/(auth)/onboarding');
+      }
     };
 
     init();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (

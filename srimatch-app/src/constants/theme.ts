@@ -54,26 +54,12 @@ export const Colors = {
   },
 } as const;
 
-export const Fonts = Platform.select({
-  ios: {
-    regular: 'System',
-    medium: 'System',
-    bold: 'System',
-    serif: 'Georgia',
-  },
-  android: {
-    regular: 'sans-serif',
-    medium: 'sans-serif-medium',
-    bold: 'sans-serif',
-    serif: 'serif',
-  },
-  default: {
-    regular: 'System',
-    medium: 'System',
-    bold: 'System',
-    serif: 'serif',
-  },
-});
+export const Fonts = {
+  regular: Platform.select({ ios: 'System', android: 'sans-serif', default: 'System' }) || 'System',
+  medium: Platform.select({ ios: 'System', android: 'sans-serif-medium', default: 'System' }) || 'sans-serif-medium',
+  bold: Platform.select({ ios: 'System', android: 'sans-serif', default: 'System' }) || 'sans-serif',
+  serif: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }) || 'serif',
+};
 
 export const Spacing = {
   xs: 4,

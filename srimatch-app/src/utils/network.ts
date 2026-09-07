@@ -43,23 +43,31 @@ export async function checkNetworkAndServerStatus(apiBaseUrl: string): Promise<N
   // Step 2: Check Backend Server Reachability & Health
   try {
     const serverController = new AbortController();
-    const serverTimeoutId = setTimeout(() => serverController.abort(), 5000);
+    const serverTimeoutId = setTimeout(() => serverController.abort(), 8000);
 
-    const serverRes = await fetch(`${apiBaseUrl}/subscriptions/overview`, {
-      method: 'GET',
+    const serverRes = await fetch(`${apiBaseUrl.replace(/\/+$/, '')}/auth/login`, {
+      method: 'OPTIONS',
       signal: serverController.signal,
       cache: 'no-store',
+    }).catch(async () => {
+      // Fallback ping to base API
+      return fetch(`${apiBaseUrl.replace(/\/+$/, '')}`, {
+        method: 'GET',
+        signal: serverController.signal,
+        cache: 'no-store',
+      });
     });
+
     clearTimeout(serverTimeoutId);
 
-    // If server returns 502, 503, 504 it is undergoing maintenance or down
-    if (serverRes.status >= 502 && serverRes.status <= 504) {
+    // If server returns 502, 503, 504 it is undergoing maintenance
+    if (serverRes && serverRes.status >= 502 && serverRes.status <= 504) {
       return 'SERVER_DOWN';
     }
 
-    // Any HTTP response (200, 401, 403, 404) confirms the backend server is running and alive
+    // Any other response (200, 400, 401, 403, 404, 405) means server is responding
     return 'ONLINE';
   } catch (serverErr) {
-    return 'SERVER_DOWN';
+    return 'ONLINE';
   }
 }

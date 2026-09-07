@@ -19,8 +19,10 @@ export const API = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
   },
-  timeout: 20000,
+  timeout: 25000,
 });
 
 const AUTH_BYPASS_URLS = [
@@ -36,10 +38,13 @@ const AUTH_BYPASS_URLS = [
 API.interceptors.request.use(
   async (config) => {
     try {
+      config.headers = config.headers || {};
+      config.headers['X-Requested-With'] = 'XMLHttpRequest';
+
       const isAuthBypass = AUTH_BYPASS_URLS.some((url) => config.url?.includes(url));
       if (!isAuthBypass) {
         const token = await AsyncStorage.getItem('srimatch_token');
-        if (token && config.headers) {
+        if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
       }
@@ -56,12 +61,18 @@ API.interceptors.response.use(
   (response) => response.data,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isAuthBypass = AUTH_BYPASS_URLS.some((url) => originalRequest?.url?.includes(url));
+
+    if (error.response?.status === 401 && !originalRequest?._retry && !isAuthBypass) {
       originalRequest._retry = true;
       try {
         const refreshToken = await AsyncStorage.getItem('srimatch_refresh_token');
         if (refreshToken) {
-          const res = await axios.post(`${API_BASE_URL}/auth/refresh-token`, { refreshToken });
+          const res = await axios.post(
+            `${API_BASE_URL}/auth/refresh-token`,
+            { refreshToken },
+            { headers: { 'X-Requested-With': 'XMLHttpRequest' } }
+          );
           const newAccessToken = res.data?.data?.accessToken || res.data?.data?.token;
           const newRefreshToken = res.data?.data?.refreshToken;
 
@@ -83,7 +94,12 @@ API.interceptors.response.use(
         ]);
       }
     }
-    return Promise.reject(error.response?.data || error);
+
+    // Return the detailed error payload from server
+    if (error.response?.data) {
+      return Promise.reject(error.response.data);
+    }
+    return Promise.reject(error);
   }
 );
 

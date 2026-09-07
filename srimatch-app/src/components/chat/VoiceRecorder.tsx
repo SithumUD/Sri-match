@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
-import { Audio } from 'expo-av';
-import { X, Send, Mic } from 'lucide-react-native';
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+} from 'expo-audio';
+import { X, Send } from 'lucide-react-native';
 import { Colors, Spacing, Radius } from '../../constants/theme';
 
 interface VoiceRecorderProps {
@@ -10,13 +15,12 @@ interface VoiceRecorderProps {
 }
 
 export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCancel }) => {
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [durationSecs, setDurationSecs] = useState(0);
   const [isPreparing, setIsPreparing] = useState(true);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const timerRef = useRef<any>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
 
   useEffect(() => {
     // Pulse animation for recording indicator
@@ -39,33 +43,30 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(() => {});
-      }
+      try {
+        recorder.stop().catch(() => {});
+        setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      } catch (e) {}
     };
   }, []);
 
   const startRecording = async () => {
     try {
       setIsPreparing(true);
-      const permission = await Audio.requestPermissionsAsync();
+      const permission = await requestRecordingPermissionsAsync();
       if (!permission.granted) {
         Alert.alert('Permission required', 'Please allow microphone access to record voice messages.');
         onCancel();
         return;
       }
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
-      const newRecording = new Audio.Recording();
-      await newRecording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await newRecording.startAsync();
-
-      recordingRef.current = newRecording;
-      setRecording(newRecording);
+      await recorder.prepareToRecordAsync();
+      recorder.record();
       setIsPreparing(false);
 
       // Start elapsed timer
@@ -80,13 +81,12 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
   };
 
   const handleStopAndSend = async () => {
-    if (!recordingRef.current) return;
     if (timerRef.current) clearInterval(timerRef.current);
 
     try {
-      await recordingRef.current.stopAndUnloadAsync();
-      const uri = recordingRef.current.getURI();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      await recorder.stop();
+      const uri = recorder.uri;
+      await setAudioModeAsync({ allowsRecording: false });
 
       if (uri) {
         const finalDuration = Math.max(1, durationSecs);
@@ -103,10 +103,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
   const handleCancel = async () => {
     if (timerRef.current) clearInterval(timerRef.current);
     try {
-      if (recordingRef.current) {
-        await recordingRef.current.stopAndUnloadAsync();
-      }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      await recorder.stop();
+      await setAudioModeAsync({ allowsRecording: false });
     } catch (e) {}
     onCancel();
   };
@@ -120,7 +118,11 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
   return (
     <View style={styles.container}>
       {/* Cancel button */}
-      <TouchableOpacity onPress={handleCancel} style={styles.cancelBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+      <TouchableOpacity
+        onPress={handleCancel}
+        style={styles.cancelBtn}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
         <X size={20} color={Colors.textMuted} />
       </TouchableOpacity>
 
