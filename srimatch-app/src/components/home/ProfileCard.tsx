@@ -122,7 +122,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
           <View style={styles.metaRow}>
             <MapPin size={12} color={Colors.textMuted} />
             <Text style={styles.metaText} numberOfLines={1}>
-              {profile.city || profile.district || 'Colombo'}, Sri Lanka
+              {profile.city || 'Colombo'}, Sri Lanka
             </Text>
           </View>
 

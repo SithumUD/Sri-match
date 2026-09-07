@@ -58,7 +58,7 @@ function extractProfileData(
       other.name ||
       (other.firstName ? `${other.firstName} ${other.lastName || ''}`.trim() : 'Matched Member');
     const imageUri = other.profileImageUrl || other.profileImage || other.primaryImageUrl || fallbackImg;
-    const location = other.city || other.district || 'Sri Lanka';
+    const location = other.city || 'Sri Lanka';
     const profession = other.profession || 'Professional';
     const age = other.age;
     const id = other.id || item.id;
@@ -84,7 +84,7 @@ function extractProfileData(
           ? `${sender.firstName}${sender.lastName ? ' ' + sender.lastName : ''}`.trim()
           : sender.name || 'Member');
     const imageUri = sender.profileImage || sender.profileImageUrl || sender.primaryImageUrl || fallbackImg;
-    const location = isBlurred ? 'Location hidden' : (sender.city || sender.district || 'Sri Lanka');
+    const location = isBlurred ? 'Location hidden' : (sender.city || 'Sri Lanka');
     const profession = isBlurred ? 'Unlock to view details' : (sender.profession || 'Professional');
     const age = isBlurred ? undefined : sender.age;
     const id = sender.id || item?.likeId || item?.id;
@@ -115,7 +115,7 @@ function extractProfileData(
     receiver.profileImageUrl ||
     profile.profileImages?.[0] ||
     fallbackImg;
-  const location = profile.city || profile.district || receiver.city || receiver.district || 'Sri Lanka';
+  const location = profile.city || receiver.city || 'Sri Lanka';
   const profession = profile.profession || receiver.profession || 'Professional';
   const age = profile.age || receiver.age;
   const id = profile.id || receiver.id || item?.profileId || item?.userId || item?.id;

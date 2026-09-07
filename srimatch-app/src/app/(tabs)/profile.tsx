@@ -96,7 +96,7 @@ export default function ProfileScreen() {
                 {user?.profession || 'Professional'}
               </Text>
               <Text style={styles.userLocation}>
-                {user?.district || user?.city || 'Colombo'}, Sri Lanka
+                {user?.city || 'Colombo'}, Sri Lanka
               </Text>
 
               <View style={styles.badgeRow}>

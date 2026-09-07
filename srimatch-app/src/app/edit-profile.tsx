@@ -29,18 +29,12 @@ import {
   Target,
   Check,
   Star,
+  Zap,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import useAuthStore from '../store/useAuthStore';
 import { useRouter } from 'expo-router';
-
-const DISTRICTS = [
-  'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
-  'Galle', 'Matara', 'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar',
-  'Vavuniya', 'Mullaitivu', 'Batticaloa', 'Ampara', 'Trincomalee',
-  'Kurunegala', 'Puttalam', 'Anuradhapura', 'Polonnaruwa', 'Badulla',
-  'Moneragala', 'Ratnapura', 'Kegalle',
-];
+import { COMPATIBILITY_CATEGORIES } from '../constants/compatibility';
 
 const RELIGIONS = ['Buddhist', 'Hindu', 'Muslim', 'Christian', 'Catholic', 'No Religion', 'Other'];
 const ETHNICITIES = ['Sinhalese', 'Tamil', 'Moor', 'Burgher', 'Malay', 'Other'];
@@ -51,11 +45,25 @@ const COMPLEXIONS = ['Fair', 'Wheatish', 'Medium', 'Dusky', 'Dark'];
 const SMOKING_HABITS = ['Never', 'Occasionally', 'Regularly', 'Trying to Quit'];
 const DRINKING_HABITS = ['Never', 'Socially', 'Occasionally', 'Regularly'];
 const DIETARY_PREFS = ['Vegetarian', 'Vegan', 'Non Vegetarian', 'Pescatarian', 'No Preference'];
+const FAMILY_TYPES = ['Nuclear', 'Extended'];
+const RELOCATION_OPTIONS = ['Within current area', 'Within Sri Lanka', 'Anywhere (including abroad)'];
 const INDUSTRIES = ['Technology', 'Healthcare', 'Finance', 'Education', 'Engineering', 'Arts', 'Government', 'Other'];
 const INCOME_RANGES = ['Less than 50k', '50k - 100k', '100k - 200k', '200k - 500k', 'Above 500k'];
 const INTEREST_OPTIONS = ['Music', 'Travel', 'Photography', 'Reading', 'Movies', 'Gaming', 'Cooking', 'Sports', 'Yoga', 'Dancing'];
 
-type EditTab = 'basic' | 'location' | 'religion' | 'career' | 'lifestyle' | 'interests' | 'preferences';
+type EditTab = 'basic' | 'location' | 'religion' | 'career' | 'lifestyle' | 'interests' | 'preferences' | 'quiz';
+
+const matchOption = (options: string[], val: string | undefined | null) => {
+  if (!val) return options[0];
+  const normalized = val.toUpperCase().replace(/[_\s-]/g, '');
+  const found = options.find((o) => o.toUpperCase().replace(/[_\s-]/g, '') === normalized);
+  return found || val;
+};
+
+const toUpperEnum = (val: string | undefined | null) => {
+  if (!val) return undefined;
+  return val.trim().toUpperCase().replace(/[\s-]/g, '_');
+};
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -72,18 +80,20 @@ export default function EditProfileScreen() {
     dateOfBirth: '',
     maritalStatus: 'Never Married',
     hasChildren: false,
+    numberOfChildren: 0,
     height: 165,
     bodyType: 'Average',
     complexion: 'Fair',
     ethnicity: 'Sinhalese',
     city: '',
-    district: 'Colombo',
     placeOfBirth: '',
     religion: 'Buddhist',
     religiousPractices: '',
+    culturalValues: '',
     languages: ['Sinhala', 'English'],
     familyBackground: '',
     familyType: 'Nuclear',
+    familyInvolvement: '',
     weddingPreferences: '',
     education: "Bachelor's Degree",
     educationLevel: 'Bachelors',
@@ -101,6 +111,8 @@ export default function EditProfileScreen() {
     lifestyle: '',
     about: '',
     interests: ['Music', 'Travel'],
+    personalityTraits: '',
+    travelPreferences: '',
     dealbreakers: '',
     favoriteThings: {
       food: '',
@@ -116,6 +128,7 @@ export default function EditProfileScreen() {
       religion: 'Any',
       educationLevel: 'Bachelors',
     },
+    quizAnswers: {},
   });
 
   const [images, setImages] = useState<any[]>([]);
@@ -130,46 +143,60 @@ export default function EditProfileScreen() {
       const res: any = await ProfileService.getMyProfile();
       const p = res?.data || res || {};
 
+      let relocation = 'Within Sri Lanka';
+      if (p.relocationWillingness === 'ANYWHERE_INCLUDING_ABROAD' || String(p.relocationWillingness || '').includes('abroad')) {
+        relocation = 'Anywhere (including abroad)';
+      } else if (p.relocationWillingness === 'WITHIN_CURRENT_AREA' || String(p.relocationWillingness || '').includes('current')) {
+        relocation = 'Within current area';
+      } else if (p.relocationWillingness) {
+        relocation = 'Within Sri Lanka';
+      }
+
       setFormData((prev: any) => ({
         ...prev,
         firstName: p.firstName || user?.firstName || '',
         lastName: p.lastName || user?.lastName || '',
-        gender: p.gender || 'female',
+        gender: (p.gender || 'female').toLowerCase(),
         dateOfBirth: p.dateOfBirth ? String(p.dateOfBirth).split('T')[0] : '',
-        maritalStatus: p.maritalStatus || 'Never Married',
+        maritalStatus: matchOption(MARITAL_STATUSES, p.maritalStatus),
         hasChildren: Boolean(p.hasChildren),
+        numberOfChildren: p.numberOfChildren || 0,
         height: p.height || 165,
-        bodyType: p.bodyType || 'Average',
-        complexion: p.complexion || 'Fair',
-        ethnicity: p.ethnicity || 'Sinhalese',
+        bodyType: matchOption(BODY_TYPES, p.bodyType),
+        complexion: matchOption(COMPLEXIONS, p.complexion),
+        ethnicity: matchOption(ETHNICITIES, p.ethnicity),
         city: p.city || '',
-        district: p.district || 'Colombo',
         placeOfBirth: p.placeOfBirth || '',
-        religion: p.religion || 'Buddhist',
+        religion: matchOption(RELIGIONS, p.religion),
         religiousPractices: p.religiousPractices || '',
+        culturalValues: p.culturalValues || '',
         languages: Array.isArray(p.languages) ? p.languages : ['Sinhala', 'English'],
         familyBackground: p.familyBackground || '',
-        familyType: p.familyType || 'Nuclear',
+        familyType: matchOption(FAMILY_TYPES, p.familyType),
+        familyInvolvement: p.familyInvolvement || '',
         weddingPreferences: p.weddingPreferences || '',
         education: p.education || p.educationLevel || "Bachelor's Degree",
-        educationLevel: p.educationLevel || p.education || 'Bachelors',
+        educationLevel: matchOption(EDUCATION_LEVELS, p.educationLevel || p.education),
         fieldOfStudy: p.fieldOfStudy || '',
         profession: p.profession || '',
         industry: p.industry || 'Technology',
         employer: p.employer || '',
         workLocation: p.workLocation || '',
         income: p.income || '100k - 200k',
-        relocationWillingness: p.relocationWillingness || 'Within Sri Lanka',
-        dietaryPreferences: p.dietaryPreferences || 'Non Vegetarian',
-        smoking: p.smoking || 'Never',
-        drinking: p.drinking || 'Never',
+        relocationWillingness: relocation,
+        dietaryPreferences: matchOption(DIETARY_PREFS, p.dietaryPreferences),
+        smoking: matchOption(SMOKING_HABITS, p.smoking),
+        drinking: matchOption(DRINKING_HABITS, p.drinking),
         healthHabits: p.healthHabits || '',
         lifestyle: p.lifestyle || '',
         about: p.about || '',
         interests: Array.isArray(p.interests) ? p.interests : ['Music', 'Travel'],
+        personalityTraits: p.personalityTraits || '',
+        travelPreferences: p.travelPreferences || '',
         dealbreakers: p.dealbreakers || '',
         favoriteThings: p.favoriteThings || { food: '', movies: '', books: '', places: '' },
         partnerPreferences: p.partnerPreferences || { minAge: 24, maxAge: 32, minHeight: 155, maxHeight: 185 },
+        quizAnswers: p.quizAnswers || {},
       }));
 
       const profileImages =
@@ -200,6 +227,16 @@ export default function EditProfileScreen() {
     setFormData((p: any) => ({
       ...p,
       partnerPreferences: { ...(p.partnerPreferences || {}), [key]: val },
+    }));
+  };
+
+  const handleQuizAnswerChange = (questionId: string, option: string) => {
+    setFormData((p: any) => ({
+      ...p,
+      quizAnswers: {
+        ...(p.quizAnswers || {}),
+        [questionId]: option,
+      },
     }));
   };
 
@@ -274,7 +311,48 @@ export default function EditProfileScreen() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      await ProfileService.updateProfile(formData);
+      const relocationMapping: Record<string, string> = {
+        'Anywhere (including abroad)': 'ANYWHERE_INCLUDING_ABROAD',
+        'Within current area': 'WITHIN_CURRENT_AREA',
+        'Within Sri Lanka': 'WITHIN_SRI_LANKA',
+      };
+
+      const payload = {
+        ...formData,
+        gender: toUpperEnum(formData.gender),
+        maritalStatus: toUpperEnum(formData.maritalStatus),
+        religion: toUpperEnum(formData.religion),
+        ethnicity: toUpperEnum(formData.ethnicity),
+        education: toUpperEnum(formData.educationLevel || formData.education),
+        bodyType: toUpperEnum(formData.bodyType),
+        complexion: toUpperEnum(formData.complexion),
+        smoking: toUpperEnum(formData.smoking),
+        drinking: toUpperEnum(formData.drinking),
+        dietaryPreferences: toUpperEnum(formData.dietaryPreferences),
+        familyType: toUpperEnum(formData.familyType),
+        relocationWillingness: relocationMapping[formData.relocationWillingness] || 'WITHIN_SRI_LANKA',
+        height: Number(formData.height) || 165,
+        hasChildren: Boolean(formData.hasChildren),
+        numberOfChildren: formData.hasChildren ? Number(formData.numberOfChildren) || 0 : 0,
+        partnerPreferences: {
+          ...formData.partnerPreferences,
+          minAge: Array.isArray(formData.partnerPreferences?.ageRange)
+            ? formData.partnerPreferences.ageRange[0]
+            : formData.partnerPreferences?.minAge || 24,
+          maxAge: Array.isArray(formData.partnerPreferences?.ageRange)
+            ? formData.partnerPreferences.ageRange[1]
+            : formData.partnerPreferences?.maxAge || 32,
+          minHeight: Array.isArray(formData.partnerPreferences?.heightPreference)
+            ? formData.partnerPreferences.heightPreference[0]
+            : formData.partnerPreferences?.minHeight || 150,
+          maxHeight: Array.isArray(formData.partnerPreferences?.heightPreference)
+            ? formData.partnerPreferences.heightPreference[1]
+            : formData.partnerPreferences?.maxHeight || 185,
+        },
+        quizAnswers: formData.quizAnswers || {},
+      };
+
+      await ProfileService.updateProfile(payload);
       await refreshProfile();
       Alert.alert('Profile Updated! ✦', 'Your changes have been saved successfully.', [
         { text: 'OK', onPress: () => router.back() },
@@ -310,6 +388,7 @@ export default function EditProfileScreen() {
             { key: 'lifestyle', label: 'Lifestyle', icon: Activity },
             { key: 'interests', label: 'Interests', icon: Sparkles },
             { key: 'preferences', label: 'Preferences', icon: Target },
+            { key: 'quiz', label: 'Compatibility Quiz', icon: Zap },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -426,6 +505,36 @@ export default function EditProfileScreen() {
               onChangeText={(v) => handleChange('height', Number(v))}
             />
 
+            <Text style={styles.inputLabel}>Children</Text>
+            <View style={styles.chipRow}>
+              {[
+                { label: 'No Children', value: false },
+                { label: 'Has Children', value: true },
+              ].map((opt) => (
+                <TouchableOpacity
+                  key={opt.label}
+                  style={[styles.chip, formData.hasChildren === opt.value && styles.selectedChip]}
+                  onPress={() => {
+                    handleChange('hasChildren', opt.value);
+                    if (!opt.value) handleChange('numberOfChildren', 0);
+                  }}
+                >
+                  <Text style={[styles.chipText, formData.hasChildren === opt.value && styles.selectedChipText]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {formData.hasChildren && (
+              <CustomInput
+                label="Number of Children"
+                value={String(formData.numberOfChildren || 0)}
+                keyboardType="numeric"
+                onChangeText={(v) => handleChange('numberOfChildren', parseInt(v) || 0)}
+              />
+            )}
+
             <Text style={styles.inputLabel}>Body Type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollChips}>
               {BODY_TYPES.map((bt) => (
@@ -469,21 +578,6 @@ export default function EditProfileScreen() {
               placeholder="e.g. Colombo, Kandy, Nugegoda"
               onChangeText={(v) => handleChange('city', v)}
             />
-
-            <Text style={styles.inputLabel}>District</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollChips}>
-              {DISTRICTS.map((d) => (
-                <TouchableOpacity
-                  key={d}
-                  style={[styles.chip, formData.district === d && styles.selectedChip]}
-                  onPress={() => handleChange('district', d)}
-                >
-                  <Text style={[styles.chipText, formData.district === d && styles.selectedChipText]}>
-                    {d}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
 
             <CustomInput
               label="Place of Birth"
@@ -536,6 +630,21 @@ export default function EditProfileScreen() {
               ))}
             </ScrollView>
 
+            <Text style={styles.inputLabel}>Family Type</Text>
+            <View style={styles.chipRow}>
+              {FAMILY_TYPES.map((ft) => (
+                <TouchableOpacity
+                  key={ft}
+                  style={[styles.chip, formData.familyType === ft && styles.selectedChip]}
+                  onPress={() => handleChange('familyType', ft)}
+                >
+                  <Text style={[styles.chipText, formData.familyType === ft && styles.selectedChipText]}>
+                    {ft}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <CustomInput
               label="Family Background & Siblings"
               value={formData.familyBackground}
@@ -543,6 +652,20 @@ export default function EditProfileScreen() {
               multiline
               numberOfLines={3}
               onChangeText={(v) => handleChange('familyBackground', v)}
+            />
+
+            <CustomInput
+              label="Cultural Values & Traditions"
+              value={formData.culturalValues}
+              placeholder="e.g. Respect for elders, traditional Sri Lankan customs"
+              onChangeText={(v) => handleChange('culturalValues', v)}
+            />
+
+            <CustomInput
+              label="Family Involvement in Decisions"
+              value={formData.familyInvolvement}
+              placeholder="e.g. Values family guidance, balanced approach"
+              onChangeText={(v) => handleChange('familyInvolvement', v)}
             />
 
             <CustomInput
@@ -630,6 +753,21 @@ export default function EditProfileScreen() {
                 >
                   <Text style={[styles.chipText, formData.income === inc && styles.selectedChipText]}>
                     {inc}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={styles.inputLabel}>Relocation Willingness</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollChips}>
+              {RELOCATION_OPTIONS.map((ro) => (
+                <TouchableOpacity
+                  key={ro}
+                  style={[styles.chip, formData.relocationWillingness === ro && styles.selectedChip]}
+                  onPress={() => handleChange('relocationWillingness', ro)}
+                >
+                  <Text style={[styles.chipText, formData.relocationWillingness === ro && styles.selectedChipText]}>
+                    {ro}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -736,6 +874,24 @@ export default function EditProfileScreen() {
                 );
               })}
             </View>
+
+            <Text style={[styles.inputLabel, { marginTop: Spacing.md }]}>Personality Traits</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g. Introvert, creative, thoughtful, empathetic"
+              placeholderTextColor={Colors.textLight}
+              value={formData.personalityTraits || ''}
+              onChangeText={(v) => handleChange('personalityTraits', v)}
+            />
+
+            <Text style={styles.inputLabel}>Travel & Vacation Preferences</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g. Nature retreats, beach getaways, road trips"
+              placeholderTextColor={Colors.textLight}
+              value={formData.travelPreferences || ''}
+              onChangeText={(v) => handleChange('travelPreferences', v)}
+            />
 
             <Text style={[styles.inputLabel, { marginTop: Spacing.md }]}>Favourite Cuisine / Food</Text>
             <TextInput
@@ -914,6 +1070,62 @@ export default function EditProfileScreen() {
               value={formData.dealbreakers}
               onChangeText={v => handleChange('dealbreakers', v)}
             />
+          </View>
+        )}
+
+        {/* SECTION 8: COMPATIBILITY QUIZ */}
+        {activeTab === 'quiz' && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Compatibility Quiz</Text>
+            <Text style={styles.cardSub}>
+              Answer questions on values, family life, and lifestyle to help find deeply compatible matches.
+            </Text>
+
+            {COMPATIBILITY_CATEGORIES.map((category) => (
+              <View key={category.category} style={styles.quizCategoryBox}>
+                <Text style={styles.quizCategoryTitle}>
+                  {category.icon} {category.category}
+                </Text>
+                {category.questions.map((q, idx) => {
+                  const selected = formData.quizAnswers?.[q.id];
+                  return (
+                    <View key={q.id} style={styles.quizQuestionItem}>
+                      <Text style={styles.quizQuestionText}>
+                        {idx + 1}. {q.question}
+                      </Text>
+                      <View style={styles.quizOptionsWrap}>
+                        {q.options.map((opt) => {
+                          const isOptSelected = selected === opt;
+                          return (
+                            <TouchableOpacity
+                              key={opt}
+                              style={[
+                                styles.quizOptionChip,
+                                isOptSelected && styles.quizOptionChipSelected,
+                              ]}
+                              onPress={() => handleQuizAnswerChange(q.id, opt)}
+                              activeOpacity={0.7}
+                            >
+                              {isOptSelected && (
+                                <Check size={12} color="#ffffff" style={{ marginRight: 4 }} />
+                              )}
+                              <Text
+                                style={[
+                                  styles.quizOptionText,
+                                  isOptSelected && styles.quizOptionTextSelected,
+                                ]}
+                              >
+                                {opt}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            ))}
           </View>
         )}
 
@@ -1139,4 +1351,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     marginTop: Spacing.sm,
   },
+  quizCategoryBox: {
+    marginBottom: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0ddd5',
+  },
+  quizCategoryTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.primaryDark,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  quizQuestionItem: {
+    marginBottom: Spacing.md,
+    backgroundColor: '#fdf8f4',
+    padding: Spacing.sm,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: '#f0e6e0',
+  },
+  quizQuestionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2d1810',
+    marginBottom: 8,
+  },
+  quizOptionsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  quizOptionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#e8ddd8',
+  },
+  quizOptionChipSelected: {
+    backgroundColor: Colors.primaryDark,
+    borderColor: Colors.primaryDark,
+  },
+  quizOptionText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6b4a3a',
+  },
+  quizOptionTextSelected: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
 });
+

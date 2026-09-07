@@ -8,7 +8,7 @@ import {
   User, MapPin, GraduationCap, Briefcase, Heart, Settings, Edit3, Save, X,
   Camera, FileText, BookOpen, Languages, Users, Star, Coffee, Activity,
   ChevronDown, ChevronUp, Check, Image as ImageIcon, Plus, ArrowLeft,
-  Shield, Eye, EyeOff, Lock, Sparkles, Crown, Target, Home,
+  Shield, Eye, EyeOff, Lock, Sparkles, Crown, Target, Home, Zap,
 } from "lucide-react";
 
 /* ─── Enum Helpers & Options ────────────────────────────────────────────── */
@@ -110,6 +110,98 @@ const PROFILE_OPTIONS = {
   industries: ["Technology", "Healthcare", "Finance", "Education", "Engineering", "Arts", "Government", "Other"],
   incomeRanges: ["Less than 50k", "50k - 100k", "100k - 200k", "200k - 500k", "Above 500k"]
 };
+
+const COMPATIBILITY_CATEGORIES = [
+  {
+    category: "Values & Beliefs",
+    icon: "🌍",
+    questions: [
+      { id: "religion_importance", question: "How important is religion in your life?", options: ["Very Important", "Somewhat Important", "Not Important"] },
+      { id: "religion_partner", question: "Should your partner follow your religion?", options: ["Must", "Preferred", "Not necessary"] },
+      { id: "cultural_values", question: "How important are cultural traditions?", options: ["Very Important", "Moderate", "Not Important"] },
+      { id: "political_views", question: "Do political views matter in a relationship?", options: ["Very Important", "Somewhat", "Not Important"] },
+    ]
+  },
+  {
+    category: "Relationship Goals",
+    icon: "💍",
+    questions: [
+      { id: "relationship_goal", question: "What are you looking for?", options: ["Marriage", "Serious relationship", "Friendship first", "Not sure"] },
+      { id: "marriage_timeline", question: "When do you plan to get married?", options: ["Soon", "1-2 years", "3+ years", "Not sure"] },
+      { id: "long_distance", question: "Are you open to long-distance relationships?", options: ["Yes", "Maybe", "No"] },
+    ]
+  },
+  {
+    category: "Family & Lifestyle",
+    icon: "🏡",
+    questions: [
+      { id: "family_size", question: "What's your ideal family size?", options: ["1–2 children", "3+ children", "No children", "Open"] },
+      { id: "living_arrangement", question: "Preferred living arrangement after marriage?", options: ["With family", "Nuclear", "Close to parents", "Open"] },
+      { id: "family_involvement", question: "How involved should families be in your relationship?", options: ["Very involved", "Moderate", "Minimal"] },
+    ]
+  },
+  {
+    category: "Career & Money",
+    icon: "💼",
+    questions: [
+      { id: "career_priority", question: "How important is career in your life?", options: ["Very Important", "Balanced", "Less Important"] },
+      { id: "partner_work", question: "Should both partners work?", options: ["Yes", "Optional", "Prefer one works"] },
+      { id: "financial_management", question: "How should finances be handled?", options: ["Shared", "Separate", "Mixed"] },
+    ]
+  },
+  {
+    category: "Location & Future",
+    icon: "📍",
+    questions: [
+      { id: "relocation", question: "Would you consider relocating?", options: ["Anywhere", "Sri Lanka only", "Maybe", "No"] },
+      { id: "abroad_plans", question: "Do you plan to migrate abroad?", options: ["Yes", "Maybe", "No"] },
+    ]
+  },
+  {
+    category: "Personality & Lifestyle",
+    icon: "❤️",
+    questions: [
+      { id: "social_type", question: "Are you more introverted or extroverted?", options: ["Introvert", "Extrovert", "Ambivert"] },
+      { id: "free_time", question: "How do you prefer to spend free time?", options: ["At home", "Outdoor", "Social events", "Mixed"] },
+      { id: "travel_interest", question: "How important is travel to you?", options: ["Very Important", "Sometimes", "Not Important"] },
+    ]
+  },
+  {
+    category: "Habits",
+    icon: "🚬",
+    questions: [
+      { id: "smoking", question: "Do you smoke?", options: ["Yes", "Occasionally", "No"] },
+      { id: "partner_smoking", question: "Are you okay with a partner who smokes?", options: ["Yes", "No", "Depends"] },
+      { id: "drinking", question: "Do you drink alcohol?", options: ["Yes", "Occasionally", "No"] },
+      { id: "partner_drinking", question: "Are you okay with a partner who drinks?", options: ["Yes", "No", "Depends"] },
+    ]
+  },
+  {
+    category: "Relationship Style",
+    icon: "💞",
+    questions: [
+      { id: "love_language", question: "What is your love language?", options: ["Words", "Actions", "Gifts", "Time", "Touch"] },
+      { id: "conflict_resolution", question: "How do you handle conflicts?", options: ["Talk immediately", "Take time then talk", "Avoid conflict"] },
+      { id: "jealousy", question: "How do you feel about jealousy in a relationship?", options: ["Normal", "Sometimes", "Not acceptable"] },
+    ]
+  },
+  {
+    category: "Children & Responsibility",
+    icon: "🧒",
+    questions: [
+      { id: "children_importance", question: "How important is having children?", options: ["Very Important", "Optional", "Not Important"] },
+      { id: "parenting_style", question: "Preferred parenting style?", options: ["Strict", "Balanced", "Relaxed"] },
+    ]
+  },
+  {
+    category: "Modern Factors",
+    icon: "📱",
+    questions: [
+      { id: "social_media", question: "How active are you on social media?", options: ["Very active", "Moderate", "Not active"] },
+      { id: "privacy_level", question: "How private are you?", options: ["Very private", "Moderate", "Open"] },
+    ]
+  }
+];
 
 import ProfileService from "../services/profile.service";
 import { getProfileImage, compressImage } from "../utils/image.utils";
@@ -555,6 +647,107 @@ const styles = `
   .mp-photos-empty p { font-size: 0.8rem; color: #9a7060; margin-bottom: 1rem; }
   .mp-photos-note { font-size: 0.73rem; color: #b09080; line-height: 1.6; padding: 0 2rem 1.5rem; }
 
+  /* ── Quiz tab ── */
+  .mp-quiz-summary-card {
+    background: linear-gradient(135deg, #fdf5ee, #faf0f8);
+    border: 1px solid #f0ddd5;
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .mp-quiz-summary-left h4 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2d1810;
+    margin-bottom: 0.25rem;
+  }
+  .mp-quiz-summary-left p {
+    font-size: 0.8rem;
+    color: #9a7060;
+  }
+  .mp-quiz-category-card {
+    background: #fff;
+    border: 1px solid #f5ede8;
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(120,60,30,0.03);
+  }
+  .mp-quiz-category-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #8b4e2e;
+    margin-bottom: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #faf3ef;
+  }
+  .mp-quiz-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #faf3ef;
+  }
+  .mp-quiz-item:last-child {
+    border-bottom: none;
+  }
+  .mp-quiz-question {
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: #2d1810;
+    margin-bottom: 0.45rem;
+  }
+  .mp-quiz-badge {
+    display: inline-flex;
+    align-items: center;
+    background: #fdf5ee;
+    color: #8b4e2e;
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px;
+    border: 1px solid #f0ddd5;
+  }
+  .mp-quiz-badge.empty {
+    background: #fafafa;
+    color: #b09080;
+    border-color: #eee;
+    font-weight: 400;
+  }
+  .mp-quiz-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .mp-quiz-opt-btn {
+    padding: 0.35rem 0.8rem;
+    border-radius: 99px;
+    font-size: 0.76rem;
+    border: 1.5px solid #e8ddd8;
+    color: #6b4a3a;
+    background: #fdf8f5;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .mp-quiz-opt-btn:hover {
+    border-color: #c9856a;
+    color: #3d1f12;
+  }
+  .mp-quiz-opt-btn.selected {
+    background: linear-gradient(135deg, #3d1f12, #8b4e2e);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 2px 6px rgba(139,78,46,0.25);
+  }
+
   /* ── Privacy tab ── */
   .mp-privacy-section {
     background: linear-gradient(135deg, #fdf5ee, #fdf8f4);
@@ -741,6 +934,16 @@ const MyProfilePage = () => {
     }));
   };
 
+  const handleQuizAnswerChange = (questionId, option) => {
+    setFormData(prev => ({
+      ...prev,
+      quizAnswers: {
+        ...(prev.quizAnswers || {}),
+        [questionId]: option,
+      },
+    }));
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -904,6 +1107,7 @@ const MyProfilePage = () => {
     { key: "about", label: "About", icon: User },
     { key: "photos", label: "Photos", icon: ImageIcon },
     { key: "preferences", label: "Preferences", icon: Target },
+    { key: "quiz", label: "Compatibility Quiz", icon: Zap },
     { key: "privacy", label: "Privacy", icon: Shield },
   ];
 
@@ -1632,6 +1836,66 @@ const MyProfilePage = () => {
                     )}
                   </>
                 )}
+                <div className="mp-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
+              </div>
+            )}
+
+            {/* ── QUIZ TAB ── */}
+            {activeTab === "quiz" && (
+              <div style={{ padding: "1.75rem 2rem" }}>
+                <div className="mp-quiz-summary-card">
+                  <div className="mp-quiz-summary-left">
+                    <h4>Compatibility Matching Quiz</h4>
+                    <p>
+                      Your answers are used by our matchmaking algorithm to compute accurate compatibility scores.
+                    </p>
+                  </div>
+                  <div className="mp-section-head-row" style={{ margin: 0 }}>
+                    <EditButtons section="quiz" />
+                  </div>
+                </div>
+
+                {COMPATIBILITY_CATEGORIES.map((cat, catIdx) => (
+                  <div key={catIdx} className="mp-quiz-category-card">
+                    <div className="mp-quiz-category-title">
+                      <span>{cat.icon}</span> {cat.category}
+                    </div>
+
+                    {cat.questions.map((q) => {
+                      const selectedVal = (editMode === "quiz" ? (formData.quizAnswers || {}) : (user.quizAnswers || {}))[q.id];
+                      return (
+                        <div key={q.id} className="mp-quiz-item">
+                          <div className="mp-quiz-question">{q.question}</div>
+                          {editMode === "quiz" ? (
+                            <div className="mp-quiz-options">
+                              {q.options.map((opt) => {
+                                const isSelected = (formData.quizAnswers || {})[q.id] === opt;
+                                return (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    className={`mp-quiz-opt-btn${isSelected ? " selected" : ""}`}
+                                    onClick={() => handleQuizAnswerChange(q.id, opt)}
+                                  >
+                                    {opt}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div>
+                              {selectedVal ? (
+                                <span className="mp-quiz-badge">{selectedVal}</span>
+                              ) : (
+                                <span className="mp-quiz-badge empty">Not answered</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
                 <div className="mp-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
               </div>
             )}

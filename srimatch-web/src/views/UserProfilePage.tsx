@@ -278,6 +278,31 @@ const styles = `
   .up-pref-label { color: #9a7060; }
   .up-pref-value { color: #2d1810; font-weight: 500; text-align: right; max-width: 55%; }
 
+  .up-quiz-category-card {
+    background: #fff; border: 1px solid #f5ede8; border-radius: 14px;
+    padding: 1.25rem; margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(120,60,30,0.03);
+  }
+  .up-quiz-category-title {
+    font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-weight: 600;
+    color: #8b4e2e; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
+    padding-bottom: 0.5rem; border-bottom: 1px solid #faf3ef;
+  }
+  .up-quiz-item {
+    padding: 0.7rem 0; border-bottom: 1px solid #faf3ef;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+  .up-quiz-item:last-child { border-bottom: none; }
+  .up-quiz-question { font-size: 0.83rem; font-weight: 500; color: #2d1810; flex: 1; min-width: 200px; }
+  .up-quiz-badge {
+    display: inline-flex; align-items: center; background: #fdf5ee; color: #8b4e2e;
+    font-size: 0.76rem; font-weight: 600; padding: 0.25rem 0.75rem; border-radius: 99px;
+    border: 1px solid #f0ddd5;
+  }
+  .up-quiz-badge.match {
+    background: #f0fdf4; color: #15803d; border-color: #bbf7d0;
+  }
+
   .up-modal-overlay {
     position: fixed; inset: 0; background: rgba(10,3,1,0.88);
     z-index: 50; display: flex; align-items: center; justify-content: center;
@@ -335,6 +360,98 @@ const INTEREST_ICONS = {
   Movies: Film, Gaming: Gamepad, Cooking: Coffee, Sports: Dumbbell,
   Yoga: Activity, Dancing: Smile,
 };
+
+const COMPATIBILITY_CATEGORIES = [
+  {
+    category: "Values & Beliefs",
+    icon: "🌍",
+    questions: [
+      { id: "religion_importance", question: "How important is religion in your life?", options: ["Very Important", "Somewhat Important", "Not Important"] },
+      { id: "religion_partner", question: "Should your partner follow your religion?", options: ["Must", "Preferred", "Not necessary"] },
+      { id: "cultural_values", question: "How important are cultural traditions?", options: ["Very Important", "Moderate", "Not Important"] },
+      { id: "political_views", question: "Do political views matter in a relationship?", options: ["Very Important", "Somewhat", "Not Important"] },
+    ]
+  },
+  {
+    category: "Relationship Goals",
+    icon: "💍",
+    questions: [
+      { id: "relationship_goal", question: "What are you looking for?", options: ["Marriage", "Serious relationship", "Friendship first", "Not sure"] },
+      { id: "marriage_timeline", question: "When do you plan to get married?", options: ["Soon", "1-2 years", "3+ years", "Not sure"] },
+      { id: "long_distance", question: "Are you open to long-distance relationships?", options: ["Yes", "Maybe", "No"] },
+    ]
+  },
+  {
+    category: "Family & Lifestyle",
+    icon: "🏡",
+    questions: [
+      { id: "family_size", question: "What's your ideal family size?", options: ["1–2 children", "3+ children", "No children", "Open"] },
+      { id: "living_arrangement", question: "Preferred living arrangement after marriage?", options: ["With family", "Nuclear", "Close to parents", "Open"] },
+      { id: "family_involvement", question: "How involved should families be in your relationship?", options: ["Very involved", "Moderate", "Minimal"] },
+    ]
+  },
+  {
+    category: "Career & Money",
+    icon: "💼",
+    questions: [
+      { id: "career_priority", question: "How important is career in your life?", options: ["Very Important", "Balanced", "Less Important"] },
+      { id: "partner_work", question: "Should both partners work?", options: ["Yes", "Optional", "Prefer one works"] },
+      { id: "financial_management", question: "How should finances be handled?", options: ["Shared", "Separate", "Mixed"] },
+    ]
+  },
+  {
+    category: "Location & Future",
+    icon: "📍",
+    questions: [
+      { id: "relocation", question: "Would you consider relocating?", options: ["Anywhere", "Sri Lanka only", "Maybe", "No"] },
+      { id: "abroad_plans", question: "Do you plan to migrate abroad?", options: ["Yes", "Maybe", "No"] },
+    ]
+  },
+  {
+    category: "Personality & Lifestyle",
+    icon: "❤️",
+    questions: [
+      { id: "social_type", question: "Are you more introverted or extroverted?", options: ["Introvert", "Extrovert", "Ambivert"] },
+      { id: "free_time", question: "How do you prefer to spend free time?", options: ["At home", "Outdoor", "Social events", "Mixed"] },
+      { id: "travel_interest", question: "How important is travel to you?", options: ["Very Important", "Sometimes", "Not Important"] },
+    ]
+  },
+  {
+    category: "Habits",
+    icon: "🚬",
+    questions: [
+      { id: "smoking", question: "Do you smoke?", options: ["Yes", "Occasionally", "No"] },
+      { id: "partner_smoking", question: "Are you okay with a partner who smokes?", options: ["Yes", "No", "Depends"] },
+      { id: "drinking", question: "Do you drink alcohol?", options: ["Yes", "Occasionally", "No"] },
+      { id: "partner_drinking", question: "Are you okay with a partner who drinks?", options: ["Yes", "No", "Depends"] },
+    ]
+  },
+  {
+    category: "Relationship Style",
+    icon: "💞",
+    questions: [
+      { id: "love_language", question: "What is your love language?", options: ["Words", "Actions", "Gifts", "Time", "Touch"] },
+      { id: "conflict_resolution", question: "How do you handle conflicts?", options: ["Talk immediately", "Take time then talk", "Avoid conflict"] },
+      { id: "jealousy", question: "How do you feel about jealousy in a relationship?", options: ["Normal", "Sometimes", "Not acceptable"] },
+    ]
+  },
+  {
+    category: "Children & Responsibility",
+    icon: "🧒",
+    questions: [
+      { id: "children_importance", question: "How important is having children?", options: ["Very Important", "Optional", "Not Important"] },
+      { id: "parenting_style", question: "Preferred parenting style?", options: ["Strict", "Balanced", "Relaxed"] },
+    ]
+  },
+  {
+    category: "Modern Factors",
+    icon: "📱",
+    questions: [
+      { id: "social_media", question: "How active are you on social media?", options: ["Very active", "Moderate", "Not active"] },
+      { id: "privacy_level", question: "How private are you?", options: ["Very private", "Moderate", "Open"] },
+    ]
+  }
+];
 
 const UserProfilePage = () => {
   const { id } = useParams();
@@ -646,30 +763,71 @@ const UserProfilePage = () => {
     </>
   );
 
-  const CompatibilityTab = () => (
-    <>
-      <div className="up-match-hero">
-        <div className="up-match-circle-wrap">
-          <svg width="80" height="80" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="32" stroke="#f0ddd5" strokeWidth="5" fill="none" />
-            <circle cx="40" cy="40" r="32" stroke="url(#matchGrad)" strokeWidth="5" fill="none"
-              strokeDasharray={2 * Math.PI * 32} strokeDashoffset={2 * Math.PI * 32 * (1 - matchPct / 100)}
-              strokeLinecap="round" style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }} />
-            <defs>
-              <linearGradient id="matchGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#3d1f12" /><stop offset="100%" stopColor="#c9856a" />
-              </linearGradient>
-            </defs>
-            <text x="40" y="44" textAnchor="middle" fontSize="16" fontWeight="700" fill="#8b4e2e">{matchPct}%</text>
-          </svg>
+  const CompatibilityTab = () => {
+    const quizAnswers = profile.quizAnswers || {};
+    const authQuizAnswers = (authUser?.quizAnswers) || {};
+    const totalAnswered = Object.keys(quizAnswers).length;
+
+    return (
+      <>
+        <div className="up-match-hero">
+          <div className="up-match-circle-wrap">
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="32" stroke="#f0ddd5" strokeWidth="5" fill="none" />
+              <circle cx="40" cy="40" r="32" stroke="url(#matchGrad)" strokeWidth="5" fill="none"
+                strokeDasharray={2 * Math.PI * 32} strokeDashoffset={2 * Math.PI * 32 * (1 - matchPct / 100)}
+                strokeLinecap="round" style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }} />
+              <defs>
+                <linearGradient id="matchGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#3d1f12" /><stop offset="100%" stopColor="#c9856a" />
+                </linearGradient>
+              </defs>
+              <text x="40" y="44" textAnchor="middle" fontSize="16" fontWeight="700" fill="#8b4e2e">{matchPct}%</text>
+            </svg>
+          </div>
+          <div className="up-match-hero-text">
+            <h4>Compatibility Score</h4>
+            <p>Based on shared interests, lifestyle habits, and quiz answers between you and {profile.firstName}.</p>
+          </div>
         </div>
-        <div className="up-match-hero-text">
-          <h4>Compatibility Score</h4>
-          <p>Based on shared interests and preferences between you and {profile.firstName}.</p>
-        </div>
-      </div>
-    </>
-  );
+
+        <div className="up-subsection-title"><Zap size={11} />Compatibility Quiz Answers</div>
+
+        {totalAnswered > 0 ? (
+          COMPATIBILITY_CATEGORIES.map((cat, catIdx) => {
+            const answeredInCat = cat.questions.filter(q => Boolean(quizAnswers[q.id]));
+            if (answeredInCat.length === 0) return null;
+
+            return (
+              <div key={catIdx} className="up-quiz-category-card">
+                <div className="up-quiz-category-title">
+                  <span>{cat.icon}</span> {cat.category}
+                </div>
+                {answeredInCat.map(q => {
+                  const theirAns = quizAnswers[q.id];
+                  const myAns = authQuizAnswers[q.id];
+                  const isMatch = Boolean(myAns && theirAns && myAns.toLowerCase() === theirAns.toLowerCase());
+
+                  return (
+                    <div key={q.id} className="up-quiz-item">
+                      <div className="up-quiz-question">{q.question}</div>
+                      <span className={`up-quiz-badge${isMatch ? " match" : ""}`}>
+                        {theirAns} {isMatch && " ✓ Mutual"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })
+        ) : (
+          <p style={{ fontSize: "0.84rem", color: "#9a7060", fontStyle: "italic", margin: "0.25rem 0" }}>
+            {profile.firstName} hasn't answered the compatibility quiz yet.
+          </p>
+        )}
+      </>
+    );
+  };
 
   const PreferencesTab = () => {
     const preferencesEntries = Object.entries(profile.partnerPreferences || {}).filter(([_, val]) => val !== null && val !== undefined && val !== "");

@@ -46,18 +46,22 @@ import {
   ChevronRight,
   Maximize2,
   X,
+  Zap,
 } from 'lucide-react-native';
 import { Badge } from '../../components/ui/Badge';
 import { CustomButton } from '../../components/ui/CustomButton';
+import { COMPATIBILITY_CATEGORIES } from '../../constants/compatibility';
+import useAuthStore from '../../store/useAuthStore';
 
 const { width, height } = Dimensions.get('window');
 
-type ProfileTab = 'about' | 'details' | 'lifestyle' | 'interests' | 'preferences';
+type ProfileTab = 'about' | 'details' | 'lifestyle' | 'interests' | 'preferences' | 'quiz';
 
 export default function UserProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams();
+  const { user: currentUser } = useAuthStore();
   const { data: profile, isLoading } = usePublicProfile(id as string);
   const { data: sentLikes = [] } = useSentLikes();
   const { data: connectionsOverview } = useConnections();
@@ -369,6 +373,14 @@ export default function UserProfileScreen() {
               <Target size={14} color={activeTab === 'preferences' ? Colors.primaryDark : Colors.textMuted} />
               <Text style={[styles.tabBtnText, activeTab === 'preferences' && styles.activeTabBtnText]}>Partner Preferences</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabBtn, activeTab === 'quiz' && styles.activeTabBtn]}
+              onPress={() => setActiveTab('quiz')}
+            >
+              <Zap size={14} color={activeTab === 'quiz' ? Colors.primaryDark : Colors.textMuted} />
+              <Text style={[styles.tabBtnText, activeTab === 'quiz' && styles.activeTabBtnText]}>Compatibility Quiz</Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
 
@@ -414,6 +426,7 @@ export default function UserProfileScreen() {
               </View>
               <View style={styles.infoTable}>
                 <InfoRow label="Current City" value={profile.city} />
+                <InfoRow label="Place of Birth" value={profile.placeOfBirth} />
               </View>
             </View>
           )}
@@ -428,7 +441,6 @@ export default function UserProfileScreen() {
                 <InfoRow label="Religion" value={profile.religion} />
                 <InfoRow label="Religious Practices" value={profile.religiousPractices} />
                 <InfoRow label="Cultural Values" value={profile.culturalValues} />
-                <InfoRow label="Horoscope Sign" value={profile.horoscopeSign} />
                 <InfoRow label="Family Background" value={profile.familyBackground} />
                 <InfoRow label="Family Type" value={profile.familyType} />
                 <InfoRow label="Family Involvement" value={profile.familyInvolvement} />
@@ -588,6 +600,68 @@ export default function UserProfileScreen() {
                   </View>
                 </>
               ) : null}
+            </View>
+          )}
+
+          {/* TAB 6: COMPATIBILITY QUIZ */}
+          {activeTab === 'quiz' && (
+            <View>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Compatibility Quiz Answers</Text>
+              </View>
+              <Text style={styles.quizTabSubtitle}>
+                See {profile.firstName}'s answers to compatibility questions on values, family life, and lifestyle.
+              </Text>
+
+              {COMPATIBILITY_CATEGORIES.map((category) => {
+                const answeredQuestions = category.questions.filter(
+                  (q) => profile.quizAnswers && profile.quizAnswers[q.id]
+                );
+
+                if (answeredQuestions.length === 0) return null;
+
+                return (
+                  <View key={category.category} style={styles.profileQuizCategory}>
+                    <Text style={styles.profileQuizCategoryTitle}>
+                      {category.icon} {category.category}
+                    </Text>
+                    {answeredQuestions.map((q, idx) => {
+                      const answer = profile.quizAnswers[q.id];
+                      const myAnswer = currentUser?.quizAnswers?.[q.id];
+                      const isMutual = Boolean(myAnswer && myAnswer === answer);
+
+                      return (
+                        <View key={q.id} style={styles.profileQuizCard}>
+                          <Text style={styles.profileQuizQuestion}>
+                            {idx + 1}. {q.question}
+                          </Text>
+                          <View style={styles.profileQuizAnswerRow}>
+                            <View style={styles.profileQuizAnswerBadge}>
+                              <Text style={styles.profileQuizAnswerText}>{answer}</Text>
+                            </View>
+                            {isMutual && (
+                              <View style={styles.profileMutualBadge}>
+                                <CheckCircle2 size={12} color="#16a34a" />
+                                <Text style={styles.profileMutualText}>Mutual Match</Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              })}
+
+              {(!profile.quizAnswers || Object.keys(profile.quizAnswers).length === 0) && (
+                <View style={styles.emptyQuizBox}>
+                  <Zap size={32} color={Colors.primaryMedium} />
+                  <Text style={styles.emptyQuizTitle}>No Quiz Answers Yet</Text>
+                  <Text style={styles.emptyQuizDesc}>
+                    {profile.firstName} hasn't completed any compatibility quiz questions yet.
+                  </Text>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -1245,4 +1319,92 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  quizTabSubtitle: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    marginBottom: Spacing.md,
+    lineHeight: 18,
+  },
+  profileQuizCategory: {
+    marginBottom: Spacing.lg,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0ddd5',
+  },
+  profileQuizCategoryTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.primaryDark,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  profileQuizCard: {
+    marginBottom: Spacing.sm,
+    backgroundColor: '#fdf8f4',
+    padding: Spacing.sm,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: '#f0e6e0',
+  },
+  profileQuizQuestion: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2d1810',
+    marginBottom: 6,
+  },
+  profileQuizAnswerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  profileQuizAnswerBadge: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e8ddd8',
+  },
+  profileQuizAnswerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.primaryDark,
+  },
+  profileMutualBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#f0fdf4',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  profileMutualText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#16a34a',
+  },
+  emptyQuizBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  emptyQuizTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2d1810',
+    marginTop: Spacing.sm,
+    marginBottom: 4,
+  },
+  emptyQuizDesc: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    maxWidth: 260,
+  },
 });
+
