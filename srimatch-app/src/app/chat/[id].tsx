@@ -60,18 +60,27 @@ export default function ChatScreen() {
     (recipientImage as string) ||
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
 
+  const currentUserId = user?.id ?? user?.userId;
+
   // Resolve other participant user id
   const targetReceiverId =
     recipientId ||
-    messages.find((m: any) => m.senderId && m.senderId !== user?.id)?.senderId ||
-    messages.find((m: any) => m.receiverId && m.receiverId !== user?.id)?.receiverId;
+    messages.find((m: any) => {
+      const sId = m.senderId ?? m.sender?.id ?? m.sender_id;
+      return sId != null && currentUserId != null && String(sId) !== String(currentUserId);
+    })?.senderId ||
+    messages.find((m: any) => {
+      const rId = m.receiverId ?? m.receiver?.id ?? m.receiver_id;
+      return rId != null && currentUserId != null && String(rId) !== String(currentUserId);
+    })?.receiverId;
 
   // Auto-scroll on new message
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
+      return () => clearTimeout(timer);
     }
   }, [messages.length]);
 
@@ -281,8 +290,27 @@ export default function ChatScreen() {
           keyExtractor={(item, index) => `${item.id || index}`}
           contentContainerStyle={styles.messageList}
           showsVerticalScrollIndicator={false}
+          onContentSizeChange={() => {
+            if (messages.length > 0) {
+              flatListRef.current?.scrollToEnd({ animated: false });
+            }
+          }}
+          onLayout={() => {
+            if (messages.length > 0) {
+              flatListRef.current?.scrollToEnd({ animated: false });
+            }
+          }}
           renderItem={({ item }) => {
-            const isMine = item.senderId === user?.id || item.isMine;
+            const msgSenderId = item.senderId ?? item.sender?.id ?? item.sender_id;
+            let isMine = false;
+            if (item.isMine !== undefined) {
+              isMine = Boolean(item.isMine);
+            } else if (targetReceiverId != null && msgSenderId != null) {
+              isMine = String(msgSenderId) !== String(targetReceiverId);
+            } else if (currentUserId != null && msgSenderId != null) {
+              isMine = String(msgSenderId) === String(currentUserId);
+            }
+
             return (
               <ChatBubble
                 message={item}

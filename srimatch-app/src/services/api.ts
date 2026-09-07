@@ -2,15 +2,17 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// In development, Android emulator uses 10.0.2.2, iOS simulator uses localhost
+import Constants from 'expo-constants';
+
 const getBaseUrl = () => {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
   }
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:8080/api/v1';
+  const extraUrl = Constants.expoConfig?.extra?.apiUrl;
+  if (extraUrl) {
+    return extraUrl.replace(/\/+$/, '');
   }
-  return 'http://localhost:8080/api/v1';
+  return 'https://api.sithum-dev.online/api/v1';
 };
 
 export const API_BASE_URL = getBaseUrl();

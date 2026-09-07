@@ -57,6 +57,8 @@
       "typedRoutes": true
     },
     "extra": {
+      "apiUrl": "https://api.sithum-dev.online/api/v1",
+      "wsUrl": "wss://api.sithum-dev.online/api/ws-chat",
       "router": {},
       "eas": {
         "projectId": "ea5b8014-73c6-4700-ad99-26b71ba7d641"

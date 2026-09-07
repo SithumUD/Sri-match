@@ -12,7 +12,9 @@ import {
   FlatList,
   Modal,
   StatusBar,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Fonts, Spacing, Radius, Shadows } from '../../constants/theme';
@@ -54,6 +56,7 @@ type ProfileTab = 'about' | 'details' | 'lifestyle' | 'interests' | 'preferences
 
 export default function UserProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams();
   const { data: profile, isLoading } = usePublicProfile(id as string);
   const { data: sentLikes = [] } = useSentLikes();
@@ -137,9 +140,15 @@ export default function UserProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 100 + Math.max(insets.bottom, 20) },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Gallery Hero */}
-        <View style={styles.galleryWrapper}>
+        <View style={[styles.galleryWrapper, { height: 430 + Math.max(0, insets.top - 20) * 0.4 }]}>
           <FlatList
             ref={flatListRef}
             data={images}
@@ -151,7 +160,7 @@ export default function UserProfileScreen() {
               <TouchableOpacity
                 activeOpacity={0.96}
                 onPress={() => setFullScreenVisible(true)}
-                style={{ width: width, height: 430 }}
+                style={{ width: width, height: 430 + Math.max(0, insets.top - 20) * 0.4 }}
               >
                 <Image
                   source={{ uri: item }}
@@ -177,7 +186,7 @@ export default function UserProfileScreen() {
 
           {/* Story-style Top Segment Bars */}
           {images.length > 1 && (
-            <View style={styles.storySegmentsContainer}>
+            <View style={[styles.storySegmentsContainer, { top: Math.max(insets.top + 8, 18) }]}>
               {images.map((_, i) => (
                 <View
                   key={i}
@@ -198,11 +207,14 @@ export default function UserProfileScreen() {
           )}
 
           {/* Floating Action Buttons on Hero */}
-          <TouchableOpacity style={styles.backFloatingBtn} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={[styles.backFloatingBtn, { top: Math.max(insets.top + 16, 44) }]}
+            onPress={() => router.back()}
+          >
             <ArrowLeft size={20} color="#fff" />
           </TouchableOpacity>
 
-          <View style={styles.topRightActions}>
+          <View style={[styles.topRightActions, { top: Math.max(insets.top + 16, 44) }]}>
             <TouchableOpacity
               style={styles.floatingActionIconBtn}
               onPress={() => setFullScreenVisible(true)}
@@ -222,7 +234,7 @@ export default function UserProfileScreen() {
 
           {/* Photo Counter */}
           {images.length > 1 && (
-            <View style={styles.counterBadge}>
+            <View style={[styles.counterBadge, { top: Math.max(insets.top + 20, 50) }]}>
               <Text style={styles.counterText}>
                 {activeImageIdx + 1} / {images.length}
               </Text>
@@ -581,8 +593,15 @@ export default function UserProfileScreen() {
         </View>
       </ScrollView>
 
-      {/* Sticky Bottom Bar */}
-      <View style={styles.bottomBar}>
+      {/* Sticky Bottom Bar with dynamic safe area avoidance */}
+      <View
+        style={[
+          styles.bottomBar,
+          {
+            paddingBottom: Math.max(insets.bottom + 8, Platform.OS === 'ios' ? 24 : 14),
+          },
+        ]}
+      >
         {isMatched ? (
           <TouchableOpacity
             style={styles.messageBtn}
@@ -634,7 +653,7 @@ export default function UserProfileScreen() {
         <StatusBar barStyle="light-content" backgroundColor="#000000" />
         <View style={styles.fullScreenModal}>
           {/* Top Bar */}
-          <View style={styles.fullScreenHeader}>
+          <View style={[styles.fullScreenHeader, { paddingTop: Math.max(insets.top + 8, 20) }]}>
             <TouchableOpacity
               style={styles.fullScreenCloseBtn}
               onPress={() => setFullScreenVisible(false)}
@@ -681,7 +700,7 @@ export default function UserProfileScreen() {
 
           {/* Bottom Thumbnails */}
           {images.length > 1 && (
-            <View style={styles.thumbnailStrip}>
+            <View style={[styles.thumbnailStrip, { paddingBottom: Math.max(insets.bottom + 8, 16) }]}>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}

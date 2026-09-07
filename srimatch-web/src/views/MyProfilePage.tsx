@@ -1542,6 +1542,15 @@ const MyProfilePage = () => {
                         <label className="mp-form-label">Marital Status Preference</label>
                         <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).maritalStatusPreference || (formData.partnerPreferences || {}).maritalStatus || ""} onChange={e => handleNestedChange("partnerPreferences", "maritalStatusPreference", e.target.value)} placeholder="e.g. Never married" />
                       </div>
+                      <div className="mp-form-group">
+                        <label className="mp-form-label">Preferred Gender</label>
+                        <select className="mp-select" value={(formData.partnerPreferences || {}).preferredGender || ""} onChange={e => handleNestedChange("partnerPreferences", "preferredGender", e.target.value)}>
+                          <option value="">No preference</option>
+                          {PROFILE_OPTIONS.gender.map(g => (
+                            <option key={g.value} value={g.value}>{g.label}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                     <div className="mp-form-group">
                       <label className="mp-form-label">Lifestyle Compatibility</label>

@@ -65,7 +65,7 @@ const HomePage = () => {
     isFetchingNextPage,
     status,
     isLoading
-  } = useProfiles(filters, sortOrder);
+  } = useProfiles(filters, sortOrder, currentUser?.partnerPreferences);
 
   // Cursor response uses `items` instead of `content`
   const profiles = useMemo(() => {

@@ -1367,6 +1367,17 @@ const ProfileCreationPage = () => {
               </div>
             </div>
 
+            <div className="pc-grid-2">
+              <div className="pc-field">
+                <label className="pc-label">Preferred Gender</label>
+                <select value={(profileCreationData.partnerPreferences || {}).preferredGender || ""}
+                  onChange={e => updateProfileCreationData({ partnerPreferences: { ...(profileCreationData.partnerPreferences || {}), preferredGender: e.target.value } })} className="pc-select">
+                  <option value="">No preference</option>
+                  {(PROFILE_OPTIONS.gender || []).map(g => <option key={typeof g === 'object' ? g.value : g} value={typeof g === 'object' ? g.value : g}>{typeof g === 'object' ? g.label : g}</option>)}
+                </select>
+              </div>
+            </div>
+
             <div className="pc-field">
               <label className="pc-label">Marital Status Preference</label>
               <select value={(profileCreationData.partnerPreferences || {}).maritalStatusPreference || ""}

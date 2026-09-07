@@ -28,29 +28,45 @@ import ProfileService from '../services/profile.service';
  *   verified             → verifiedOnly
  *   sortOrder (empty)    → null (triggers dynamic discovery mode)
  */
-export const useProfiles = (filters, sortOrder) => {
+export const useProfiles = (filters, sortOrder, partnerPreferences = {}) => {
   return useInfiniteQuery({
-    queryKey: ['profiles', filters, sortOrder],
+    queryKey: ['profiles', filters, sortOrder, partnerPreferences],
     queryFn: async ({ pageParam = null }) => {
-      // Map enum values to UPPER_SNAKE_CASE as expected by backend
+      const pref = partnerPreferences || {};
       const mapEnum = (val) => (val && val !== '' ? val.toUpperCase().replace(/\s+/g, '_') : null);
+
+      // Explicit filter wins over preference; fall back only when filter is absent/default.
+      // Each pairing handles the key-name mismatch between the filter state and JSONB keys.
+      const resolve = (filterVal, prefVal) =>
+        (filterVal !== undefined && filterVal !== null && filterVal !== '') ? filterVal : prefVal;
+
+      // Age range: preferences use ageRange array OR minAge/maxAge scalars
+      const prefAgeRange  = Array.isArray(pref.ageRange) ? pref.ageRange : [];
+      const prefMinAge    = prefAgeRange[0] != null ? Number(prefAgeRange[0]) : (pref.minAge    != null ? Number(pref.minAge)    : null);
+      const prefMaxAge    = prefAgeRange[1] != null ? Number(prefAgeRange[1]) : (pref.maxAge    != null ? Number(pref.maxAge)    : null);
+
+      // Height range: preferences use heightPreference array OR minHeight/maxHeight scalars
+      const prefHeightRange = Array.isArray(pref.heightPreference) ? pref.heightPreference : [];
+      const prefMinHeight   = prefHeightRange[0] != null ? Number(prefHeightRange[0]) : (pref.minHeight != null ? Number(pref.minHeight) : null);
+      const prefMaxHeight   = prefHeightRange[1] != null ? Number(prefHeightRange[1]) : (pref.maxHeight != null ? Number(pref.maxHeight) : null);
 
       const params = {
         // ── Filter keys mapped to backend DTO names ──────────────────────────
-        gender:             mapEnum(filters.gender),
-        maritalStatus:      mapEnum(filters.maritalStatus),
+        // For each field: explicit filter wins; preference value is fallback.
+        gender:             mapEnum(resolve(filters.gender,            pref.preferredGender || pref.gender)),
+        maritalStatus:      mapEnum(resolve(filters.maritalStatus,     pref.maritalStatusPreference || pref.maritalStatus)),
         hasChildren:        filters.hasChildren === '' ? null : filters.hasChildren === 'true',
-        city:               filters.city || null,
-        religion:           mapEnum(filters.religion),
+        city:               resolve(filters.city, pref.locationPreference || pref.location) || null,
+        religion:           mapEnum(resolve(filters.religion,          pref.religionPreference || pref.religion)),
         ethnicity:          mapEnum(filters.ethnicity),
         verifiedOnly:       filters.verified === true ? true : null,
 
-        // Age range
-        minAge:             filters.ageFrom !== 18 ? filters.ageFrom : null,
-        maxAge:             filters.ageTo !== 60   ? filters.ageTo   : null,
+        // Age range: filter slider at default = no explicit filter, fall back to preference
+        minAge:             filters.ageFrom !== 18 ? filters.ageFrom : prefMinAge,
+        maxAge:             filters.ageTo   !== 60 ? filters.ageTo   : prefMaxAge,
 
         // Premium filters (backend checks isPremium server-side)
-        educationLevel:     mapEnum(filters.education),
+        educationLevel:     mapEnum(resolve(filters.education,         pref.educationLevel || pref.education)),
         smokingHabits:      mapEnum(filters.smoking),
         drinkingHabits:     mapEnum(filters.drinking),
         dietaryPreference:  mapEnum(filters.dietaryPreferences),
@@ -58,9 +74,9 @@ export const useProfiles = (filters, sortOrder) => {
         bodyType:           mapEnum(filters.bodyType),
         horoscopeSign:      mapEnum(filters.horoscopeSign),
 
-        // Height range
-        minHeight:          filters.heightFrom !== 140 ? filters.heightFrom : null,
-        maxHeight:          filters.heightTo   !== 220 ? filters.heightTo   : null,
+        // Height range: filter slider at default = no explicit filter, fall back to preference
+        minHeight:          filters.heightFrom !== 140 ? filters.heightFrom : prefMinHeight,
+        maxHeight:          filters.heightTo   !== 220 ? filters.heightTo   : prefMaxHeight,
 
         // ── Sort (null = dynamic discovery mode) ─────────────────────────────
         sortBy:             sortOrder || null,

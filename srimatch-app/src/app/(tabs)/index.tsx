@@ -42,7 +42,7 @@ export default function DiscoverScreen() {
     isLoading,
     refetch,
     isRefetching,
-  } = useProfiles(filters, sortOrder);
+  } = useProfiles(filters, sortOrder, user?.partnerPreferences);
 
   const { data: sentLikes = [] } = useSentLikes();
   const { data: quota } = useLikeQuota();

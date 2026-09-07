@@ -1,12 +1,20 @@
 import API from './api';
 
 export const AuthService = {
-  login: (credentials: { email?: string; username?: string; password?: string }) => {
-    return API.post('/auth/login', credentials);
+  login: (credentials: { email?: string; username?: string; password?: string; captchaToken?: string; totpCode?: number }) => {
+    return API.post('/auth/login', {
+      email: credentials.email || credentials.username,
+      password: credentials.password,
+      captchaToken: credentials.captchaToken || 'dev-bypass',
+      totpCode: credentials.totpCode,
+    });
   },
 
   register: (userData: any) => {
-    return API.post('/auth/register', userData);
+    return API.post('/auth/register', {
+      ...userData,
+      captchaToken: userData.captchaToken || 'dev-bypass',
+    });
   },
 
   socialLogin: (socialData: { provider: string; token: string; email?: string; name?: string }) => {

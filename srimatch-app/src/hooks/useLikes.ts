@@ -175,7 +175,8 @@ export const useChatMessages = (conversationId: string | number) => {
     queryFn: async () => {
       if (!conversationId) return [];
       const res: any = await ChatService.getMessages(conversationId);
-      return res?.data?.content || res?.data || [];
+      const content = res?.data?.content || res?.data || [];
+      return Array.isArray(content) ? [...content].reverse() : [];
     },
     enabled: !!conversationId,
     refetchInterval: 4000,

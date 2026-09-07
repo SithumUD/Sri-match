@@ -10,8 +10,7 @@ import com.ceycodez.srimatch.model.Profile;
 import com.ceycodez.srimatch.model.ProfileView;
 import com.ceycodez.srimatch.model.User;
 import com.ceycodez.srimatch.model.Like;
-import com.ceycodez.srimatch.model.enums.LikeStatus;
-import com.ceycodez.srimatch.model.enums.LikeType;
+import com.ceycodez.srimatch.model.enums.*;
 import com.ceycodez.srimatch.repository.LikeRepository;
 import com.ceycodez.srimatch.repository.ProfileRepository;
 import com.ceycodez.srimatch.repository.ProfileViewRepository;
@@ -189,6 +188,9 @@ public class ProfileService {
         }
         final Profile finalSearcher = searcher;
 
+        // Apply stored partner preferences as fallback filters (explicit request values take priority)
+        applyPreferencesIfMissing(request, searcher);
+
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), Sort.unsorted());
         Specification<Profile> spec = ProfileSpecification.buildSpecification(request, finalSearcher, isPremium);
         Page<Profile> profiles = profileRepository.findAll(spec, pageable);
@@ -243,6 +245,9 @@ public class ProfileService {
             }
         }
         final Profile finalSearcher = searcher;
+
+        // Apply stored partner preferences as fallback filters (explicit request values take priority)
+        applyPreferencesIfMissing(request, searcher);
 
         String sortBy = (request.getSortBy() != null && !request.getSortBy().isBlank())
                 ? request.getSortBy().toLowerCase().trim()
@@ -736,5 +741,132 @@ public class ProfileService {
         if (profile.getPartnerPreferences() != null && !profile.getPartnerPreferences().isEmpty()) score += 20;
         
         return Math.min(score, 100);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Partner Preferences fallback injection
+    // Rule: explicit filter on request wins; preference is used only if the
+    //       corresponding request field is null / blank / default.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Reads the searcher's stored partnerPreferences JSONB map and silently
+     * injects each preference as a filter on the request ONLY when the request
+     * does not already carry an explicit value for that field.
+     */
+    private void applyPreferencesIfMissing(ProfileSearchRequest request, Profile searcher) {
+        if (searcher == null) return;
+        Map<String, Object> prefs = searcher.getPartnerPreferences();
+        if (prefs == null || prefs.isEmpty()) return;
+
+        // ── Age range ──────────────────────────────────────────────────────────
+        if (request.getMinAge() == null) {
+            Integer minAge = extractInt(prefs, "minAge");
+            if (minAge == null) {
+                List<?> range = extractList(prefs, "ageRange");
+                if (range != null && !range.isEmpty())
+                    minAge = ((Number) range.get(0)).intValue();
+            }
+            request.setMinAge(minAge);
+        }
+        if (request.getMaxAge() == null) {
+            Integer maxAge = extractInt(prefs, "maxAge");
+            if (maxAge == null) {
+                List<?> range = extractList(prefs, "ageRange");
+                if (range != null && range.size() >= 2)
+                    maxAge = ((Number) range.get(1)).intValue();
+            }
+            request.setMaxAge(maxAge);
+        }
+
+        // ── Height range ───────────────────────────────────────────────────────
+        if (request.getMinHeight() == null) {
+            Integer minH = extractInt(prefs, "minHeight");
+            if (minH == null) {
+                List<?> range = extractList(prefs, "heightPreference");
+                if (range != null && !range.isEmpty())
+                    minH = ((Number) range.get(0)).intValue();
+            }
+            request.setMinHeight(minH);
+        }
+        if (request.getMaxHeight() == null) {
+            Integer maxH = extractInt(prefs, "maxHeight");
+            if (maxH == null) {
+                List<?> range = extractList(prefs, "heightPreference");
+                if (range != null && range.size() >= 2)
+                    maxH = ((Number) range.get(1)).intValue();
+            }
+            request.setMaxHeight(maxH);
+        }
+
+        // ── Gender preference ──────────────────────────────────────────────────
+        if (request.getGender() == null) {
+            String gStr = extractString(prefs, "preferredGender");
+            if (gStr == null) gStr = extractString(prefs, "gender");
+            if (gStr != null && !gStr.isBlank()) {
+                try { request.setGender(Gender.valueOf(gStr.toUpperCase().replace(" ", "_"))); }
+                catch (IllegalArgumentException ignored) {}
+            }
+        }
+
+        // ── Religion ──────────────────────────────────────────────────────────
+        if (request.getReligion() == null) {
+            String rel = extractString(prefs, "religionPreference");
+            if (rel == null) rel = extractString(prefs, "religion");
+            if (rel != null && !rel.isBlank()) {
+                try { request.setReligion(Religion.valueOf(rel.toUpperCase().replace(" ", "_"))); }
+                catch (IllegalArgumentException ignored) {}
+            }
+        }
+
+        // ── Marital Status ────────────────────────────────────────────────────
+        if (request.getMaritalStatus() == null) {
+            String ms = extractString(prefs, "maritalStatusPreference");
+            if (ms == null) ms = extractString(prefs, "maritalStatus");
+            if (ms != null && !ms.isBlank()) {
+                try { request.setMaritalStatus(MaritalStatus.valueOf(ms.toUpperCase().replace(" ", "_"))); }
+                catch (IllegalArgumentException ignored) {}
+            }
+        }
+
+        // ── City / Location ───────────────────────────────────────────────────
+        if (request.getCity() == null || request.getCity().isBlank()) {
+            String loc = extractString(prefs, "locationPreference");
+            if (loc == null) loc = extractString(prefs, "location");
+            if (loc != null && !loc.isBlank()) request.setCity(loc);
+        }
+
+        // ── Education Level ───────────────────────────────────────────────────
+        if (request.getEducationLevel() == null) {
+            String edu = extractString(prefs, "educationLevel");
+            if (edu == null) edu = extractString(prefs, "education");
+            if (edu != null && !edu.isBlank()) {
+                try { request.setEducationLevel(EducationLevel.valueOf(edu.toUpperCase().replace(" ", "_").replace("'", ""))); }
+                catch (IllegalArgumentException ignored) {}
+            }
+        }
+    }
+
+    /** Safely extract a String value from the JSONB prefs map. */
+    private String extractString(Map<String, Object> prefs, String key) {
+        Object v = prefs.get(key);
+        return (v instanceof String) ? (String) v : null;
+    }
+
+    /** Safely extract an Integer value from the JSONB prefs map. */
+    private Integer extractInt(Map<String, Object> prefs, String key) {
+        Object v = prefs.get(key);
+        if (v instanceof Number) return ((Number) v).intValue();
+        if (v instanceof String) {
+            try { return Integer.parseInt((String) v); } catch (NumberFormatException ignored) {}
+        }
+        return null;
+    }
+
+    /** Safely extract a List value from the JSONB prefs map. */
+    @SuppressWarnings("unchecked")
+    private List<?> extractList(Map<String, Object> prefs, String key) {
+        Object v = prefs.get(key);
+        return (v instanceof List) ? (List<?>) v : null;
     }
 }
