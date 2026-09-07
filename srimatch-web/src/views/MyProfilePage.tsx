@@ -1531,16 +1531,31 @@ const MyProfilePage = () => {
                         <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).locationPreference || (formData.partnerPreferences || {}).location || ""} onChange={e => handleNestedChange("partnerPreferences", "locationPreference", e.target.value)} placeholder="e.g. Colombo or willing to relocate" />
                       </div>
                       <div className="mp-form-group">
-                        <label className="mp-form-label">Education Preference</label>
-                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).educationLevel || (formData.partnerPreferences || {}).education || ""} onChange={e => handleNestedChange("partnerPreferences", "educationLevel", e.target.value)} placeholder="e.g. Bachelor's or higher" />
+                        <label className="mp-form-label">Min. Education Preference</label>
+                        <select className="mp-select" value={(formData.partnerPreferences || {}).educationLevel || (formData.partnerPreferences || {}).education || ""} onChange={e => handleNestedChange("partnerPreferences", "educationLevel", e.target.value)}>
+                          <option value="">No preference</option>
+                          {PROFILE_OPTIONS.education.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
                       </div>
                       <div className="mp-form-group">
                         <label className="mp-form-label">Religion Preference</label>
-                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).religionPreference || (formData.partnerPreferences || {}).religion || ""} onChange={e => handleNestedChange("partnerPreferences", "religionPreference", e.target.value)} placeholder="e.g. Buddhist, Open to all" />
+                        <select className="mp-select" value={(formData.partnerPreferences || {}).religionPreference || (formData.partnerPreferences || {}).religion || ""} onChange={e => handleNestedChange("partnerPreferences", "religionPreference", e.target.value)}>
+                          <option value="">No preference</option>
+                          {PROFILE_OPTIONS.religion.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
                       </div>
                       <div className="mp-form-group">
                         <label className="mp-form-label">Marital Status Preference</label>
-                        <input className="mp-input" type="text" value={(formData.partnerPreferences || {}).maritalStatusPreference || (formData.partnerPreferences || {}).maritalStatus || ""} onChange={e => handleNestedChange("partnerPreferences", "maritalStatusPreference", e.target.value)} placeholder="e.g. Never married" />
+                        <select className="mp-select" value={(formData.partnerPreferences || {}).maritalStatusPreference || (formData.partnerPreferences || {}).maritalStatus || ""} onChange={e => handleNestedChange("partnerPreferences", "maritalStatusPreference", e.target.value)}>
+                          <option value="">No preference</option>
+                          {PROFILE_OPTIONS.maritalStatus.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
                       </div>
                       <div className="mp-form-group">
                         <label className="mp-form-label">Preferred Gender</label>
@@ -1582,9 +1597,10 @@ const MyProfilePage = () => {
                           return null;
                         })()],
                         ["Location", user.partnerPreferences?.locationPreference || user.partnerPreferences?.location],
-                        ["Education", user.partnerPreferences?.educationLevel || user.partnerPreferences?.education],
+                        ["Education", formatEnum(user.partnerPreferences?.educationLevel || user.partnerPreferences?.education)],
                         ["Religion", formatEnum(user.partnerPreferences?.religionPreference || user.partnerPreferences?.religion)],
                         ["Marital Status", formatEnum(user.partnerPreferences?.maritalStatusPreference || user.partnerPreferences?.maritalStatus)],
+                        ["Preferred Gender", formatEnum(user.partnerPreferences?.preferredGender || user.partnerPreferences?.gender)],
                         ["Lifestyle Compatibility", user.partnerPreferences?.lifestyleCompatibility || user.partnerPreferences?.lifestyle],
                         ["Dealbreakers", user.dealbreakers],
                       ].map(([label, value]) => (

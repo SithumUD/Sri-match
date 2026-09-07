@@ -771,34 +771,148 @@ export default function EditProfileScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>What You Are Looking For</Text>
 
-            <CustomInput
-              label="Preferred Age Range"
-              value={`${formData.partnerPreferences?.minAge || 24} – ${formData.partnerPreferences?.maxAge || 32} years`}
-              placeholder="e.g. 24 - 32"
-              onChangeText={(v) => handlePartnerPrefChange('ageRange', v)}
+            {/* Age Range */}
+            <Text style={styles.inputLabel}>Partner Age Range</Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: Spacing.md }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.inputLabel, { fontSize: 11, marginBottom: 4 }]}>Min Age</Text>
+                <TextInput
+                  style={styles.textInput}
+                  keyboardType="numeric"
+                  value={String(formData.partnerPreferences?.ageRange?.[0] ?? formData.partnerPreferences?.minAge ?? 24)}
+                  onChangeText={v => {
+                    const val = parseInt(v) || 18;
+                    const cur = Array.isArray(formData.partnerPreferences?.ageRange) ? formData.partnerPreferences.ageRange : [formData.partnerPreferences?.minAge || 24, formData.partnerPreferences?.maxAge || 32];
+                    handlePartnerPrefChange('ageRange', [val, Math.max(val, cur[1])]);
+                  }}
+                  placeholderTextColor={Colors.textLight}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.inputLabel, { fontSize: 11, marginBottom: 4 }]}>Max Age</Text>
+                <TextInput
+                  style={styles.textInput}
+                  keyboardType="numeric"
+                  value={String(formData.partnerPreferences?.ageRange?.[1] ?? formData.partnerPreferences?.maxAge ?? 32)}
+                  onChangeText={v => {
+                    const val = parseInt(v) || 60;
+                    const cur = Array.isArray(formData.partnerPreferences?.ageRange) ? formData.partnerPreferences.ageRange : [formData.partnerPreferences?.minAge || 24, formData.partnerPreferences?.maxAge || 32];
+                    handlePartnerPrefChange('ageRange', [Math.min(val, cur[0]), val]);
+                  }}
+                  placeholderTextColor={Colors.textLight}
+                />
+              </View>
+            </View>
+
+            {/* Height Range */}
+            <Text style={styles.inputLabel}>Partner Height Range (cm)</Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: Spacing.md }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.inputLabel, { fontSize: 11, marginBottom: 4 }]}>Min Height</Text>
+                <TextInput
+                  style={styles.textInput}
+                  keyboardType="numeric"
+                  value={String(formData.partnerPreferences?.heightPreference?.[0] ?? formData.partnerPreferences?.minHeight ?? 150)}
+                  onChangeText={v => {
+                    const val = parseInt(v) || 140;
+                    const cur = Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 185];
+                    handlePartnerPrefChange('heightPreference', [val, Math.max(val, cur[1])]);
+                  }}
+                  placeholderTextColor={Colors.textLight}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.inputLabel, { fontSize: 11, marginBottom: 4 }]}>Max Height</Text>
+                <TextInput
+                  style={styles.textInput}
+                  keyboardType="numeric"
+                  value={String(formData.partnerPreferences?.heightPreference?.[1] ?? formData.partnerPreferences?.maxHeight ?? 185)}
+                  onChangeText={v => {
+                    const val = parseInt(v) || 200;
+                    const cur = Array.isArray(formData.partnerPreferences?.heightPreference) ? formData.partnerPreferences.heightPreference : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 185];
+                    handlePartnerPrefChange('heightPreference', [Math.min(val, cur[0]), val]);
+                  }}
+                  placeholderTextColor={Colors.textLight}
+                />
+              </View>
+            </View>
+
+            {/* Preferred Gender */}
+            <Text style={styles.inputLabel}>Preferred Gender</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollChips}>
+              {[{ value: '', label: 'No Preference' }, { value: 'MALE', label: 'Male' }, { value: 'FEMALE', label: 'Female' }, { value: 'OTHER', label: 'Other' }].map(item => (
+                <TouchableOpacity
+                  key={item.value}
+                  style={[styles.chip, (formData.partnerPreferences?.preferredGender ?? '') === item.value && styles.selectedChip]}
+                  onPress={() => handlePartnerPrefChange('preferredGender', item.value)}
+                >
+                  <Text style={[styles.chipText, (formData.partnerPreferences?.preferredGender ?? '') === item.value && styles.selectedChipText]}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Religion Preference */}
+            <Text style={styles.inputLabel}>Religion Preference</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollChips}>
+              {[{ value: '', label: 'No Preference' }, { value: 'BUDDHIST', label: 'Buddhist' }, { value: 'HINDU', label: 'Hindu' }, { value: 'MUSLIM', label: 'Muslim' }, { value: 'CHRISTIAN', label: 'Christian' }, { value: 'CATHOLIC', label: 'Catholic' }, { value: 'NO_RELIGION', label: 'No Religion' }, { value: 'OTHER', label: 'Other' }].map(item => (
+                <TouchableOpacity
+                  key={item.value}
+                  style={[styles.chip, (formData.partnerPreferences?.religionPreference ?? formData.partnerPreferences?.religion ?? '') === item.value && styles.selectedChip]}
+                  onPress={() => handlePartnerPrefChange('religionPreference', item.value)}
+                >
+                  <Text style={[styles.chipText, (formData.partnerPreferences?.religionPreference ?? formData.partnerPreferences?.religion ?? '') === item.value && styles.selectedChipText]}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Marital Status Preference */}
+            <Text style={styles.inputLabel}>Marital Status Preference</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollChips}>
+              {[{ value: '', label: 'No Preference' }, { value: 'NEVER_MARRIED', label: 'Never Married' }, { value: 'DIVORCED', label: 'Divorced' }, { value: 'WIDOWED', label: 'Widowed' }, { value: 'SEPARATED', label: 'Separated' }, { value: 'ANNULLED', label: 'Annulled' }].map(item => (
+                <TouchableOpacity
+                  key={item.value}
+                  style={[styles.chip, (formData.partnerPreferences?.maritalStatusPreference ?? formData.partnerPreferences?.maritalStatus ?? '') === item.value && styles.selectedChip]}
+                  onPress={() => handlePartnerPrefChange('maritalStatusPreference', item.value)}
+                >
+                  <Text style={[styles.chipText, (formData.partnerPreferences?.maritalStatusPreference ?? formData.partnerPreferences?.maritalStatus ?? '') === item.value && styles.selectedChipText]}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Education Level Preference */}
+            <Text style={styles.inputLabel}>Min. Education Preference</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollChips}>
+              {[{ value: '', label: 'No Preference' }, { value: 'HIGH_SCHOOL', label: 'High School' }, { value: 'DIPLOMA', label: 'Diploma' }, { value: 'BACHELORS', label: 'Bachelors' }, { value: 'MASTERS', label: 'Masters' }, { value: 'DOCTORATE', label: 'Doctorate' }, { value: 'PROFESSIONAL_CERTIFICATION', label: 'Prof. Cert.' }].map(item => (
+                <TouchableOpacity
+                  key={item.value}
+                  style={[styles.chip, (formData.partnerPreferences?.educationLevel ?? formData.partnerPreferences?.education ?? '') === item.value && styles.selectedChip]}
+                  onPress={() => handlePartnerPrefChange('educationLevel', item.value)}
+                >
+                  <Text style={[styles.chipText, (formData.partnerPreferences?.educationLevel ?? formData.partnerPreferences?.education ?? '') === item.value && styles.selectedChipText]}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Location Preference */}
+            <Text style={[styles.inputLabel, { marginTop: Spacing.md }]}>Location Preference</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g. Colombo, Western Province, or open"
+              placeholderTextColor={Colors.textLight}
+              value={formData.partnerPreferences?.locationPreference || formData.partnerPreferences?.location || ''}
+              onChangeText={v => handlePartnerPrefChange('locationPreference', v)}
             />
 
-            <CustomInput
-              label="Location Preference"
-              value={formData.partnerPreferences?.location || ''}
-              placeholder="e.g. Colombo, Western Province, or Abroad"
-              onChangeText={(v) => handlePartnerPrefChange('location', v)}
-            />
-
-            <CustomInput
-              label="Religion Preference"
-              value={formData.partnerPreferences?.religion || 'Open to all'}
-              placeholder="e.g. Buddhist, open to all"
-              onChangeText={(v) => handlePartnerPrefChange('religion', v)}
-            />
-
-            <CustomInput
-              label="Dealbreakers"
-              value={formData.dealbreakers}
+            {/* Dealbreakers */}
+            <Text style={[styles.inputLabel, { marginTop: Spacing.md }]}>Dealbreakers</Text>
+            <TextInput
+              style={[styles.textInput, { minHeight: 70, textAlignVertical: 'top' }]}
               placeholder="e.g. Smoking, dishonesty, unsupportive of career"
+              placeholderTextColor={Colors.textLight}
               multiline
               numberOfLines={3}
-              onChangeText={(v) => handleChange('dealbreakers', v)}
+              value={formData.dealbreakers}
+              onChangeText={v => handleChange('dealbreakers', v)}
             />
           </View>
         )}

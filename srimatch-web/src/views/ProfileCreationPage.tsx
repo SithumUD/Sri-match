@@ -34,6 +34,40 @@ const PROFILE_OPTIONS = {
   interests: ["Music", "Travel", "Photography", "Reading", "Movies", "Gaming", "Cooking", "Sports", "Yoga", "Dancing"]
 };
 
+// Preference options with backend enum values (used for Step 7 partner preferences)
+const PREF_OPTIONS = {
+  gender: [
+    { value: "MALE", label: "Male" },
+    { value: "FEMALE", label: "Female" },
+    { value: "OTHER", label: "Other" },
+  ],
+  religion: [
+    { value: "BUDDHIST", label: "Buddhist" },
+    { value: "HINDU", label: "Hindu" },
+    { value: "MUSLIM", label: "Muslim" },
+    { value: "CHRISTIAN", label: "Christian" },
+    { value: "CATHOLIC", label: "Catholic" },
+    { value: "NO_RELIGION", label: "No Religion" },
+    { value: "OTHER", label: "Other" },
+  ],
+  maritalStatus: [
+    { value: "NEVER_MARRIED", label: "Never Married" },
+    { value: "DIVORCED", label: "Divorced" },
+    { value: "WIDOWED", label: "Widowed" },
+    { value: "SEPARATED", label: "Separated" },
+    { value: "ANNULLED", label: "Annulled" },
+  ],
+  education: [
+    { value: "HIGH_SCHOOL", label: "High School" },
+    { value: "DIPLOMA", label: "Diploma" },
+    { value: "BACHELORS", label: "Bachelors" },
+    { value: "MASTERS", label: "Masters" },
+    { value: "DOCTORATE", label: "Doctorate" },
+    { value: "PROFESSIONAL_CERTIFICATION", label: "Professional Certification" },
+    { value: "OTHER", label: "Other" },
+  ],
+};
+
 import ProfileService from "../services/profile.service";
 import CitySearchDropdown from "../components/common/CitySearchDropdown";
 
@@ -1353,7 +1387,7 @@ const ProfileCreationPage = () => {
                 <select value={(profileCreationData.partnerPreferences || {}).educationLevel || ""}
                   onChange={e => updateProfileCreationData({ partnerPreferences: { ...(profileCreationData.partnerPreferences || {}), educationLevel: e.target.value } })} className="pc-select">
                   <option value="">No preference</option>
-                  {(PROFILE_OPTIONS.education || []).map(l => <option key={l} value={l}>{l}</option>)}
+                  {PREF_OPTIONS.education.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
               </div>
               <div className="pc-field">
@@ -1361,8 +1395,7 @@ const ProfileCreationPage = () => {
                 <select value={(profileCreationData.partnerPreferences || {}).religionPreference || ""}
                   onChange={e => updateProfileCreationData({ partnerPreferences: { ...(profileCreationData.partnerPreferences || {}), religionPreference: e.target.value } })} className="pc-select">
                   <option value="">No preference</option>
-                  {(PROFILE_OPTIONS.religion || []).map(r => <option key={r} value={r}>{r}</option>)}
-                  <option value="Open to all">Open to all religions</option>
+                  {PREF_OPTIONS.religion.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
               </div>
             </div>
@@ -1373,18 +1406,17 @@ const ProfileCreationPage = () => {
                 <select value={(profileCreationData.partnerPreferences || {}).preferredGender || ""}
                   onChange={e => updateProfileCreationData({ partnerPreferences: { ...(profileCreationData.partnerPreferences || {}), preferredGender: e.target.value } })} className="pc-select">
                   <option value="">No preference</option>
-                  {(PROFILE_OPTIONS.gender || []).map(g => <option key={typeof g === 'object' ? g.value : g} value={typeof g === 'object' ? g.value : g}>{typeof g === 'object' ? g.label : g}</option>)}
+                  {PREF_OPTIONS.gender.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
               </div>
-            </div>
-
-            <div className="pc-field">
-              <label className="pc-label">Marital Status Preference</label>
-              <select value={(profileCreationData.partnerPreferences || {}).maritalStatusPreference || ""}
-                onChange={e => updateProfileCreationData({ partnerPreferences: { ...(profileCreationData.partnerPreferences || {}), maritalStatusPreference: e.target.value } })} className="pc-select">
-                <option value="">No preference</option>
-                {(PROFILE_OPTIONS.maritalStatus || []).map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+              <div className="pc-field">
+                <label className="pc-label">Marital Status Preference</label>
+                <select value={(profileCreationData.partnerPreferences || {}).maritalStatusPreference || ""}
+                  onChange={e => updateProfileCreationData({ partnerPreferences: { ...(profileCreationData.partnerPreferences || {}), maritalStatusPreference: e.target.value } })} className="pc-select">
+                  <option value="">No preference</option>
+                  {PREF_OPTIONS.maritalStatus.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+              </div>
             </div>
 
             <div className="pc-field">
