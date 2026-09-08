@@ -16,8 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Colors, Fonts, Spacing, Radius, Shadows } from '../../constants/theme';
-import { useChatMessages } from '../../hooks/useLikes';
+import { useChatMessages, useConversations } from '../../hooks/useLikes';
 import { ChatService } from '../../services';
 import { ChatBubble } from '../../components/chat/ChatBubble';
 import { VoiceRecorder } from '../../components/chat/VoiceRecorder';
@@ -31,6 +30,8 @@ import {
   Mic,
   X,
   Maximize2,
+  Heart,
+  Sparkles,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import useAuthStore from '../../store/useAuthStore';
@@ -52,19 +53,40 @@ export default function ChatScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
 
-  const flatListRef = useRef<FlatList>(null);
-  const { data: messages = [], isLoading } = useChatMessages(id as string);
+  const { data: conversations = [] } = useConversations();
 
-  const name = (recipientName as string) || 'Match';
+  // Find conversation if id passed is a user or profile ID instead of matchId
+  const matchedConv = conversations.find(
+    (c: any) =>
+      String(c.id) === String(id) ||
+      String(c.otherUser?.id) === String(id) ||
+      String(c.otherUser?.id) === String(recipientId) ||
+      String(c.otherUser?.userId) === String(id) ||
+      String(c.otherUser?.userId) === String(recipientId)
+  );
+
+  const activeMatchId = matchedConv?.id ? String(matchedConv.id) : (id as string);
+  const name =
+    (recipientName as string) ||
+    matchedConv?.otherUser?.name ||
+    matchedConv?.otherUser?.firstName ||
+    'Match';
   const avatarUri =
     (recipientImage as string) ||
+    matchedConv?.otherUser?.profileImageUrl ||
+    matchedConv?.otherUser?.profileImage ||
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
+
+  const flatListRef = useRef<FlatList>(null);
+  const { data: messages = [], isLoading } = useChatMessages(activeMatchId);
 
   const currentUserId = user?.id ?? user?.userId;
 
   // Resolve other participant user id
   const targetReceiverId =
     recipientId ||
+    matchedConv?.otherUser?.id ||
+    matchedConv?.otherUser?.userId ||
     messages.find((m: any) => {
       const sId = m.senderId ?? m.sender?.id ?? m.sender_id;
       return sId != null && currentUserId != null && String(sId) !== String(currentUserId);
@@ -93,15 +115,15 @@ export default function ChatScreen() {
     try {
       if (targetReceiverId) {
         await ChatService.sendMessage({
-          matchId: Number(id),
+          matchId: Number(activeMatchId),
           receiverId: Number(targetReceiverId),
           content: text,
           type: 'TEXT',
         });
       } else {
-        await ChatService.sendMessage(id as string, text);
+        await ChatService.sendMessage(activeMatchId, text);
       }
-      queryClient.invalidateQueries({ queryKey: ['chat', 'messages', id] });
+      queryClient.invalidateQueries({ queryKey: ['chat', 'messages', activeMatchId] });
       queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] });
     } catch (e: any) {
       console.warn('Failed to send message:', e);
@@ -158,7 +180,7 @@ export default function ChatScreen() {
       }
 
       const payload = {
-        matchId: Number(id),
+        matchId: Number(activeMatchId),
         receiverId: targetReceiverId ? Number(targetReceiverId) : undefined,
         content: imageCaption.trim() || 'Image',
         type: 'IMAGE',
@@ -170,7 +192,7 @@ export default function ChatScreen() {
       await ChatService.sendMessage(payload);
       setSelectedImageUri(null);
       setImageCaption('');
-      queryClient.invalidateQueries({ queryKey: ['chat', 'messages', id] });
+      queryClient.invalidateQueries({ queryKey: ['chat', 'messages', activeMatchId] });
       queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] });
     } catch (err: any) {
       console.warn('Failed to upload/send image:', err);
@@ -202,7 +224,7 @@ export default function ChatScreen() {
       }
 
       const payload = {
-        matchId: Number(id),
+        matchId: Number(activeMatchId),
         receiverId: targetReceiverId ? Number(targetReceiverId) : undefined,
         content: 'Voice Message',
         type: 'AUDIO',
@@ -212,7 +234,7 @@ export default function ChatScreen() {
       };
 
       await ChatService.sendMessage(payload);
-      queryClient.invalidateQueries({ queryKey: ['chat', 'messages', id] });
+      queryClient.invalidateQueries({ queryKey: ['chat', 'messages', activeMatchId] });
       queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] });
     } catch (err: any) {
       console.warn('Voice message delivery error:', err);
@@ -300,6 +322,40 @@ export default function ChatScreen() {
               flatListRef.current?.scrollToEnd({ animated: false });
             }
           }}
+          ListEmptyComponent={
+            !isLoading ? (
+              <View style={styles.emptyChatContainer}>
+                <View style={styles.emptyChatAvatarWrap}>
+                  <Image source={{ uri: avatarUri }} style={styles.emptyChatAvatar} />
+                  <View style={styles.emptyChatHeartBadge}>
+                    <Heart size={14} color="#fff" fill="#fff" />
+                  </View>
+                </View>
+                <Text style={styles.emptyChatTitle}>You matched with {name}! 💖</Text>
+                <Text style={styles.emptyChatSubtitle}>
+                  Say hello and break the ice to start getting to know each other.
+                </Text>
+
+                <View style={styles.icebreakersRow}>
+                  {['👋 Hi there!', '✨ How is your day going?', '🌸 Nice to connect with you!'].map((starter, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      style={styles.icebreakerChip}
+                      onPress={() => setInputText(starter)}
+                    >
+                      <Sparkles size={12} color={Colors.primaryDark} />
+                      <Text style={styles.icebreakerText}>{starter}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              <View style={styles.loadingChatContainer}>
+                <ActivityIndicator size="small" color={Colors.primaryMedium} />
+                <Text style={styles.loadingChatText}>Loading conversation...</Text>
+              </View>
+            )
+          }
           renderItem={({ item }) => {
             const msgSenderId = item.senderId ?? item.sender?.id ?? item.sender_id;
             let isMine = false;
@@ -639,5 +695,84 @@ const styles = StyleSheet.create({
   lightboxImage: {
     width: '100%',
     height: '85%',
+  },
+  emptyChatContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl * 1.5,
+    paddingHorizontal: Spacing.lg,
+  },
+  emptyChatAvatarWrap: {
+    position: 'relative',
+    marginBottom: Spacing.md,
+  },
+  emptyChatAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: Colors.primaryLight,
+  },
+  emptyChatHeartBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: Colors.likePink,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  emptyChatTitle: {
+    fontFamily: Fonts.headingBold,
+    fontSize: 18,
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  emptyChatSubtitle: {
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: Spacing.lg,
+    maxWidth: 280,
+  },
+  icebreakersRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  icebreakerChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primaryUltraLight,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: Radius.full,
+  },
+  icebreakerText: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 12,
+    color: Colors.primaryDark,
+  },
+  loadingChatContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl * 2,
+    gap: 8,
+  },
+  loadingChatText: {
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    color: Colors.textMuted,
   },
 });

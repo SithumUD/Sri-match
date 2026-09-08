@@ -189,7 +189,6 @@ export default function ProfileCreationScreen() {
 
         district: data.district || 'Colombo',
         city: data.city || 'Colombo',
-        placeOfBirth: data.placeOfBirth || '',
 
         religion: mapEnum(data.religion) || 'BUDDHIST',
         ethnicity: mapEnum(data.ethnicity) || 'SINHALESE',
@@ -504,13 +503,6 @@ export default function ProfileCreationScreen() {
                   placeholder="e.g. Colombo 03, Dehiwala, Kandy"
                   value={data.city}
                   onChangeText={(v) => updateData({ city: v })}
-                />
-
-                <CustomInput
-                  label="Place of Birth"
-                  placeholder="e.g. Matara, Kandy"
-                  value={data.placeOfBirth}
-                  onChangeText={(v) => updateData({ placeOfBirth: v })}
                 />
 
                 <Text style={styles.fieldLabel}>Religion *</Text>

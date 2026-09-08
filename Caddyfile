@@ -3,7 +3,7 @@
     admin off
 }
 
-# Production Backend API & WebSocket Reverse Proxy
+# Production Backend API, WebSocket & Database Management UI
 {$DOMAIN_NAME:api.srimatch.lk} {
     encode gzip zstd
 
@@ -11,9 +11,15 @@
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
-        X-Frame-Options "DENY"
+        X-Frame-Options "SAMEORIGIN"
         Referrer-Policy "strict-origin-when-cross-origin"
         -Server
+    }
+
+    # Database Web Management UI (Adminer)
+    redir /db-admin /db-admin/ 308
+    handle_path /db-admin/* {
+        reverse_proxy adminer:8080
     }
 
     # Handle WebSockets (/ws-chat & /api/ws-chat)

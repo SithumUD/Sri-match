@@ -86,7 +86,6 @@ export default function EditProfileScreen() {
     complexion: 'Fair',
     ethnicity: 'Sinhalese',
     city: '',
-    placeOfBirth: '',
     religion: 'Buddhist',
     religiousPractices: '',
     culturalValues: '',
@@ -166,7 +165,6 @@ export default function EditProfileScreen() {
         complexion: matchOption(COMPLEXIONS, p.complexion),
         ethnicity: matchOption(ETHNICITIES, p.ethnicity),
         city: p.city || '',
-        placeOfBirth: p.placeOfBirth || '',
         religion: matchOption(RELIGIONS, p.religion),
         religiousPractices: p.religiousPractices || '',
         culturalValues: p.culturalValues || '',
@@ -577,13 +575,6 @@ export default function EditProfileScreen() {
               value={formData.city}
               placeholder="e.g. Colombo, Kandy, Nugegoda"
               onChangeText={(v) => handleChange('city', v)}
-            />
-
-            <CustomInput
-              label="Place of Birth"
-              value={formData.placeOfBirth}
-              placeholder="e.g. Kurunegala, Jaffna, Galle"
-              onChangeText={(v) => handleChange('placeOfBirth', v)}
             />
           </View>
         )}

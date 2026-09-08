@@ -80,13 +80,24 @@ export default function UserProfileScreen() {
   const isStarred = (profile?.interactionType === 'STAR') || (interaction?.type === 'STAR');
 
   const matches = connectionsOverview?.matches || [];
-  const isMatched = matches.some(
+  const foundMatch = matches.find(
     (m: any) =>
       Number(m.user1?.id) === Number(id) ||
       Number(m.user2?.id) === Number(id) ||
       Number(m.matchedUser?.id) === Number(id) ||
-      profile?.interactionStatus === 'ACCEPTED'
+      Number(m.otherUser?.id) === Number(id) ||
+      Number(m.otherUser?.userId) === Number(id) ||
+      Number(m.userId) === Number(id) ||
+      Number(m.profileId) === Number(id) ||
+      Number(m.id) === Number(id) ||
+      (profile?.userId && (
+        Number(m.user1?.id) === Number(profile.userId) ||
+        Number(m.user2?.id) === Number(profile.userId) ||
+        Number(m.otherUser?.id) === Number(profile.userId)
+      ))
   );
+  const isMatched = Boolean(foundMatch) || profile?.interactionStatus === 'ACCEPTED';
+  const resolvedMatchId = foundMatch?.id || foundMatch?.matchId || profile?.matchId || id;
 
   // Parse photos safely from profileImages array, primaryImageUrl, or fallback
   const images: string[] =
@@ -426,7 +437,6 @@ export default function UserProfileScreen() {
               </View>
               <View style={styles.infoTable}>
                 <InfoRow label="Current City" value={profile.city} />
-                <InfoRow label="Place of Birth" value={profile.placeOfBirth} />
               </View>
             </View>
           )}
@@ -679,7 +689,19 @@ export default function UserProfileScreen() {
         {isMatched ? (
           <TouchableOpacity
             style={styles.messageBtn}
-            onPress={() => router.push(`/chat/${profile.id}` as any)}
+            onPress={() =>
+              router.push({
+                pathname: '/chat/[id]',
+                params: {
+                  id: String(resolvedMatchId),
+                  recipientName: profile.firstName
+                    ? `${profile.firstName} ${profile.lastName || ''}`.trim()
+                    : (profile.name || 'Match'),
+                  recipientImage: images[0] || profile.primaryImageUrl || profile.profileImageUrl || '',
+                  recipientId: String(profile.userId || profile.id || id),
+                },
+              })
+            }
           >
             <MessageCircle size={18} color="#fff" />
             <Text style={styles.messageBtnText}>Send Message (Matched! 💖)</Text>
