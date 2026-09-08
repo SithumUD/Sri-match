@@ -155,8 +155,10 @@ public class MatchingService {
 
     private double calculateLocationScore(Profile s, Profile t) {
         if (s.getCity() != null && t.getCity() != null && s.getCity().equalsIgnoreCase(t.getCity())) return 100;
-        if (s.getRelocationWillingness() == RelocationWillingness.ANYWHERE || 
-            t.getRelocationWillingness() == RelocationWillingness.ANYWHERE) return 70;
+        if (s.getRelocationWillingness() == RelocationWillingness.ANYWHERE_INCLUDING_ABROAD || 
+            t.getRelocationWillingness() == RelocationWillingness.ANYWHERE_INCLUDING_ABROAD ||
+            s.getRelocationWillingness() == RelocationWillingness.WITHIN_SRI_LANKA ||
+            t.getRelocationWillingness() == RelocationWillingness.WITHIN_SRI_LANKA) return 70;
         return 30;
     }
 
