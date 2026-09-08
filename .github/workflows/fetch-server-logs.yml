@@ -1,0 +1,44 @@
+name: View Server Logs
+
+on:
+  workflow_dispatch:
+    inputs:
+      lines:
+        description: 'Number of log lines to fetch'
+        required: false
+        default: '200'
+
+jobs:
+  get-logs:
+    name: Fetch Backend & Caddy Logs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Logs via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST_IP }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          script: |
+            echo "=========================================="
+            echo "📦 RUNNING CONTAINERS & STATUS"
+            echo "=========================================="
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            
+            echo ""
+            echo "=========================================="
+            echo "📋 CORS CONFIGURATION IN RUNNING BACKEND"
+            echo "=========================================="
+            docker exec srimatch-backend env | grep -E "CORS|SPRING_PROFILES" || true
+            
+            echo ""
+            echo "=========================================="
+            echo "📋 SPRING BOOT BACKEND LOGS (Last ${{ inputs.lines || 200 }} lines)"
+            echo "=========================================="
+            docker logs --tail ${{ inputs.lines || 200 }} srimatch-backend
+            
+            echo ""
+            echo "=========================================="
+            echo "📋 CADDY REVERSE PROXY LOGS (Last 50 lines)"
+            echo "=========================================="
+            docker logs --tail 50 srimatch-caddy || true
