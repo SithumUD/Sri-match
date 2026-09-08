@@ -107,7 +107,7 @@ public class Profile {
     @Enumerated(EnumType.STRING)
     @Column(name = "relocation_willingness")
     @Builder.Default
-    private RelocationWillingness relocationWillingness = RelocationWillingness.NOT_WILLING;
+    private RelocationWillingness relocationWillingness = RelocationWillingness.WITHIN_SRI_LANKA;
 
     // Physical Attributes
     private Integer height;
@@ -182,6 +182,21 @@ public class Profile {
 
     @Column(columnDefinition = "TEXT")
     private String dealbreakers;
+
+    // Future Goals & Aspirations
+    @Column(name = "future_aspirations", columnDefinition = "TEXT")
+    private String futureAspirations;
+
+    // Privacy & Visibility Settings
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "privacy_settings", columnDefinition = "jsonb")
+    @Builder.Default
+    private Map<String, Object> privacySettings = new HashMap<>();
+
+    // Quiz Completion Tracking (not part of completionScore)
+    @Column(name = "quiz_completion_percent")
+    @Builder.Default
+    private Integer quizCompletionPercent = 0;
 
     // Photos
     @Convert(converter = JsonListConverter.class)

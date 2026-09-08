@@ -38,7 +38,7 @@ const PROFILE_OPTIONS = {
   religion: [
     { value: "BUDDHIST", label: "Buddhist" },
     { value: "HINDU", label: "Hindu" },
-    { value: "MUSLIM", label: "Muslim" },
+    { value: "ISLAM", label: "Islam" },
     { value: "CHRISTIAN", label: "Christian" },
     { value: "CATHOLIC", label: "Catholic" },
     { value: "NO_RELIGION", label: "No Religion" },
@@ -65,9 +65,8 @@ const PROFILE_OPTIONS = {
     { value: "SLIM", label: "Slim" },
     { value: "ATHLETIC", label: "Athletic" },
     { value: "AVERAGE", label: "Average" },
-    { value: "OVERWEIGHT", label: "Overweight" },
-    { value: "PLUS_SIZE", label: "Plus Size" },
-    { value: "MUSCULAR", label: "Muscular" }
+    { value: "MUSCULAR", label: "Muscular" },
+    { value: "HEAVY", label: "Heavy" }
   ],
   complexion: [
     { value: "FAIR", label: "Fair" },
@@ -92,20 +91,22 @@ const PROFILE_OPTIONS = {
     { value: "VEGETARIAN", label: "Vegetarian" },
     { value: "VEGAN", label: "Vegan" },
     { value: "NON_VEGETARIAN", label: "Non Vegetarian" },
+    { value: "EGGETARIAN", label: "Eggetarian" },
+    { value: "HALAL", label: "Halal" },
     { value: "PESCATARIAN", label: "Pescatarian" },
     { value: "NO_PREFERENCE", label: "No Preference" }
   ],
   relocationWillingness: [
     { value: "NOT_WILLING", label: "Not willing to relocate" },
-    { value: "WITHIN_DISTRICT", label: "Within current area" },
+    { value: "WITHIN_CURRENT_AREA", label: "Within current area" },
     { value: "WITHIN_SRI_LANKA", label: "Within Sri Lanka" },
-    { value: "ANYWHERE", label: "Anywhere (including abroad)" }
+    { value: "ANYWHERE_INCLUDING_ABROAD", label: "Anywhere (including abroad)" }
   ],
   familyType: [
     { value: "NUCLEAR", label: "Nuclear Family" },
     { value: "EXTENDED", label: "Extended Family" }
   ],
-  languages: ["Sinhala", "Tamil", "English"],
+  languages: ["Sinhala", "Tamil", "English", "French", "German", "Japanese", "Arabic"],
   interests: ["Music", "Travel", "Photography", "Reading", "Movies", "Gaming", "Cooking", "Sports", "Yoga", "Dancing"],
   industries: ["Technology", "Healthcare", "Finance", "Education", "Engineering", "Arts", "Government", "Other"],
   incomeRanges: ["Less than 50k", "50k - 100k", "100k - 200k", "200k - 500k", "Above 500k"]
@@ -206,6 +207,7 @@ const COMPATIBILITY_CATEGORIES = [
 import ProfileService from "../services/profile.service";
 import { getProfileImage, compressImage } from "../utils/image.utils";
 import CitySearchDropdown from "../components/common/CitySearchDropdown";
+import { DEFAULT_PRIVACY_SETTINGS } from "../constants/profileEnums";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
 const styles = `
@@ -975,6 +977,23 @@ const MyProfilePage = () => {
       console.error("Failed to update profile:", err);
       const errMsg = err.response?.data?.message || err.message || "Failed to save changes. Please try again.";
       alert(errMsg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSavePrivacy = async () => {
+    setIsSaving(true);
+    try {
+      const currentPrivacy = formData.privacySettings || user.privacySettings || DEFAULT_PRIVACY_SETTINGS;
+      const res = await ProfileService.updateProfile({ privacySettings: currentPrivacy });
+      if (res.success || res.data) {
+        setUser(res.data || res);
+        alert("Privacy settings updated successfully!");
+      }
+    } catch (err) {
+      console.error("Failed to update privacy settings:", err);
+      alert("Failed to save privacy settings. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -1901,85 +1920,248 @@ const MyProfilePage = () => {
             )}
 
             {/* ── PRIVACY TAB ── */}
-            {activeTab === "privacy" && (
-              <div style={{ padding: "1.75rem 2rem" }}>
-                <div className="mp-privacy-section">
-                  <div className="mp-privacy-title"><Eye size={16} style={{ color: "#8b4e2e" }} />Profile Visibility</div>
-                  {[
-                    { label: "Who can see my profile", sub: "Control who can view your full profile details", type: "select" },
-                    { label: "Show my online status", sub: "Let others know when you're active", type: "toggle", defaultChecked: true },
-                    { label: "Show my location", sub: "Display your city to other users", type: "toggle", defaultChecked: true },
-                  ].map((item, i) => (
-                    <div key={i} className="mp-privacy-row">
-                      <div>
-                        <div className="mp-privacy-row-label">{item.label}</div>
-                        <div className="mp-privacy-row-sub">{item.sub}</div>
-                      </div>
-                      {item.type === "select" ? (
-                        <select className="mp-privacy-select">
-                          <option>Everyone</option>
-                          <option>Only members I like</option>
-                          <option>Only matched members</option>
-                        </select>
-                      ) : (
-                        <label className="mp-toggle">
-                          <input type="checkbox" defaultChecked={item.defaultChecked} />
-                          <span className="mp-toggle-slider" />
-                        </label>
-                      )}
-                    </div>
-                  ))}
-                </div>
+            {activeTab === "privacy" && (() => {
+              const privacy = { ...DEFAULT_PRIVACY_SETTINGS, ...(formData.privacySettings || user.privacySettings || {}) };
+              const setPrivacyKey = (k, v) => handleNestedChange("privacySettings", k, v);
 
-                <div className="mp-privacy-section">
-                  <div className="mp-privacy-title"><MessageCircleIcon size={16} style={{ color: "#8b4e2e" }} />Communication Privacy</div>
-                  {[
-                    { label: "Who can message me", sub: "Control who can send you direct messages", type: "select" },
-                    { label: "Read receipts", sub: "Let others know when you've read their messages", type: "toggle", defaultChecked: true },
-                    { label: "Show when I'm typing", sub: "Display typing indicator in chat", type: "toggle", defaultChecked: true },
-                  ].map((item, i) => (
-                    <div key={i} className="mp-privacy-row">
+              return (
+                <div style={{ padding: "1.75rem 2rem" }}>
+                  {/* Group 1: Profile Visibility */}
+                  <div className="mp-privacy-section">
+                    <div className="mp-privacy-title"><Eye size={16} style={{ color: "#8b4e2e" }} />Profile Visibility</div>
+                    <div className="mp-privacy-row">
                       <div>
-                        <div className="mp-privacy-row-label">{item.label}</div>
-                        <div className="mp-privacy-row-sub">{item.sub}</div>
+                        <div className="mp-privacy-row-label">Who can see my profile</div>
+                        <div className="mp-privacy-row-sub">Control who can view your full profile details</div>
                       </div>
-                      {item.type === "select" ? (
-                        <select className="mp-privacy-select">
-                          <option>Everyone</option>
-                          <option>Only members I like</option>
-                          <option>Only matched members</option>
-                        </select>
-                      ) : (
-                        <label className="mp-toggle">
-                          <input type="checkbox" defaultChecked={item.defaultChecked} />
-                          <span className="mp-toggle-slider" />
-                        </label>
-                      )}
+                      <select className="mp-privacy-select" value={privacy.profileVisibility || "EVERYONE"} onChange={e => setPrivacyKey("profileVisibility", e.target.value)}>
+                        <option value="EVERYONE">Everyone</option>
+                        <option value="MEMBERS_ONLY">Registered members only</option>
+                        <option value="MATCHED_MEMBERS_ONLY">Only matched members</option>
+                      </select>
                     </div>
-                  ))}
-                </div>
-
-                <div className="mp-privacy-section">
-                  <div className="mp-privacy-title"><Lock size={16} style={{ color: "#8b4e2e" }} />Information Privacy</div>
-                  {[
-                    { label: "Show my income range", sub: "Display income information to others", type: "toggle", defaultChecked: false },
-                    { label: "Show family details", sub: "Display family background information", type: "toggle", defaultChecked: true },
-                  ].map((item, i) => (
-                    <div key={i} className="mp-privacy-row">
+                    <div className="mp-privacy-row">
                       <div>
-                        <div className="mp-privacy-row-label">{item.label}</div>
-                        <div className="mp-privacy-row-sub">{item.sub}</div>
+                        <div className="mp-privacy-row-label">Show in search results</div>
+                        <div className="mp-privacy-row-sub">Allow other members to find you in search & discover</div>
                       </div>
                       <label className="mp-toggle">
-                        <input type="checkbox" defaultChecked={item.defaultChecked} />
+                        <input type="checkbox" checked={privacy.showInSearchResults !== false} onChange={e => setPrivacyKey("showInSearchResults", e.target.checked)} />
                         <span className="mp-toggle-slider" />
                       </label>
                     </div>
-                  ))}
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Visible to verified only</div>
+                        <div className="mp-privacy-row-sub">Only verified members can see your profile</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={Boolean(privacy.visibleToVerifiedOnly)} onChange={e => setPrivacyKey("visibleToVerifiedOnly", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Incognito mode</div>
+                        <div className="mp-privacy-row-sub">Browse profiles without leaving a view history trace</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={Boolean(privacy.incognitoMode)} onChange={e => setPrivacyKey("incognitoMode", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Group 2: Photo Privacy */}
+                  <div className="mp-privacy-section">
+                    <div className="mp-privacy-title"><ImageIcon size={16} style={{ color: "#8b4e2e" }} />Photo Privacy</div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Photo Visibility</div>
+                        <div className="mp-privacy-row-sub">Choose who can view your uploaded photos</div>
+                      </div>
+                      <select className="mp-privacy-select" value={privacy.photoVisibility || "PUBLIC"} onChange={e => setPrivacyKey("photoVisibility", e.target.value)}>
+                        <option value="PUBLIC">Visible to everyone</option>
+                        <option value="CONNECTIONS_ONLY">Visible to connections only</option>
+                        <option value="ON_REQUEST_ONLY">Visible on request only</option>
+                      </select>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Watermark photos</div>
+                        <div className="mp-privacy-row-sub">Apply protection watermark on profile photos</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={Boolean(privacy.watermarkPhotos)} onChange={e => setPrivacyKey("watermarkPhotos", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Group 3: Location Privacy */}
+                  <div className="mp-privacy-section">
+                    <div className="mp-privacy-title"><MapPin size={16} style={{ color: "#8b4e2e" }} />Location Privacy</div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Show exact location / city</div>
+                        <div className="mp-privacy-row-sub">Display your city name to other users</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={privacy.showExactLocation !== false} onChange={e => setPrivacyKey("showExactLocation", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Show distance</div>
+                        <div className="mp-privacy-row-sub">Display approximate distance in kilometers</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={privacy.showDistance !== false} onChange={e => setPrivacyKey("showDistance", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Group 4: Communication Privacy */}
+                  <div className="mp-privacy-section">
+                    <div className="mp-privacy-title"><MessageCircleIcon size={16} style={{ color: "#8b4e2e" }} />Communication Privacy</div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Who can message me</div>
+                        <div className="mp-privacy-row-sub">Control who can send direct chat messages</div>
+                      </div>
+                      <select className="mp-privacy-select" value={privacy.whoCanMessage || "MATCHED_MEMBERS_ONLY"} onChange={e => setPrivacyKey("whoCanMessage", e.target.value)}>
+                        <option value="EVERYONE">Everyone</option>
+                        <option value="PREMIUM_ONLY">Premium members only</option>
+                        <option value="MATCHED_MEMBERS_ONLY">Only matched members</option>
+                      </select>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Who can connect with me</div>
+                        <div className="mp-privacy-row-sub">Who can send connection requests</div>
+                      </div>
+                      <select className="mp-privacy-select" value={privacy.whoCanConnect || "EVERYONE"} onChange={e => setPrivacyKey("whoCanConnect", e.target.value)}>
+                        <option value="EVERYONE">Everyone</option>
+                        <option value="VERIFIED_ONLY">Verified members only</option>
+                      </select>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Read receipts</div>
+                        <div className="mp-privacy-row-sub">Let others know when you've read their messages</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={privacy.readReceipts !== false} onChange={e => setPrivacyKey("readReceipts", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Typing indicator</div>
+                        <div className="mp-privacy-row-sub">Display typing indicator when composing messages</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={privacy.showTypingIndicator !== false} onChange={e => setPrivacyKey("showTypingIndicator", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Online status</div>
+                        <div className="mp-privacy-row-sub">Show green active dot when you are online</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={privacy.showOnlineStatus !== false} onChange={e => setPrivacyKey("showOnlineStatus", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Show last active</div>
+                        <div className="mp-privacy-row-sub">Display when you were last seen on SriMatch</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={Boolean(privacy.showLastActive)} onChange={e => setPrivacyKey("showLastActive", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Group 5: Information Privacy */}
+                  <div className="mp-privacy-section">
+                    <div className="mp-privacy-title"><Lock size={16} style={{ color: "#8b4e2e" }} />Information Privacy</div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Show income range</div>
+                        <div className="mp-privacy-row-sub">Display your monthly income range on your public profile</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={Boolean(privacy.showIncomeRange)} onChange={e => setPrivacyKey("showIncomeRange", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Show family details</div>
+                        <div className="mp-privacy-row-sub">Display family background and values</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={privacy.showFamilyDetails !== false} onChange={e => setPrivacyKey("showFamilyDetails", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Show partner preferences</div>
+                        <div className="mp-privacy-row-sub">Allow others to see what you are looking for in a partner</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={privacy.showPartnerPreferences !== false} onChange={e => setPrivacyKey("showPartnerPreferences", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Show compatibility quiz answers</div>
+                        <div className="mp-privacy-row-sub">Allow prospective matches to view your quiz response breakdown</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={privacy.showQuizAnswers !== false} onChange={e => setPrivacyKey("showQuizAnswers", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                    <div className="mp-privacy-row">
+                      <div>
+                        <div className="mp-privacy-row-label">Require match for contact info</div>
+                        <div className="mp-privacy-row-sub">Only mutual matches can see your contact information</div>
+                      </div>
+                      <label className="mp-toggle">
+                        <input type="checkbox" checked={privacy.requireMatchForContactInfo !== false} onChange={e => setPrivacyKey("requireMatchForContactInfo", e.target.checked)} />
+                        <span className="mp-toggle-slider" />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Save Privacy Button */}
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
+                    <button
+                      type="button"
+                      className="mp-btn-edit-profile"
+                      onClick={handleSavePrivacy}
+                      disabled={isSaving}
+                      style={{ padding: "0.65rem 2rem", fontSize: "0.9rem" }}
+                    >
+                      <Save size={14} style={{ marginRight: 6 }} />
+                      {isSaving ? "Saving..." : "Save Privacy Settings"}
+                    </button>
+                  </div>
+
+                  <div className="mp-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
                 </div>
-                <div className="mp-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
-              </div>
-            )}
+              );
+            })()}
 
           </div>
         </div>

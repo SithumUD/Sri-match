@@ -25,6 +25,7 @@ import {
   Heart,
   Eye,
   CheckCircle2,
+  Lock,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import useAuthStore from '../../store/useAuthStore';
@@ -162,6 +163,21 @@ export default function ProfileScreen() {
             <View style={styles.menuTextWrap}>
               <Text style={styles.menuItemTitle}>Edit Profile Details</Text>
               <Text style={styles.menuItemSub}>Photos, bio, lifestyle & partner preferences</Text>
+            </View>
+            <ChevronRight size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/privacy-settings' as any)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.menuIconWrap, { backgroundColor: '#fef3f2' }]}>
+              <Lock size={18} color={Colors.primaryMedium} />
+            </View>
+            <View style={styles.menuTextWrap}>
+              <Text style={styles.menuItemTitle}>Privacy & Visibility</Text>
+              <Text style={styles.menuItemSub}>Photo blur, search visibility & sensitive data controls</Text>
             </View>
             <ChevronRight size={18} color={Colors.textLight} />
           </TouchableOpacity>

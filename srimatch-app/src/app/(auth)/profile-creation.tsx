@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
+  Zap,
   Calendar as CalendarIcon,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -41,28 +42,25 @@ import useAuthStore from '../../store/useAuthStore';
 import ProfileService from '../../services/profile.service';
 import * as ImagePicker from 'expo-image-picker';
 import { DatePickerModal } from '../../components/ui/DatePickerModal';
-
-const PROFILE_OPTIONS = {
-  maritalStatus: ['Never Married', 'Divorced', 'Widowed', 'Separated', 'Annulled'],
-  religion: ['Buddhist', 'Hindu', 'Muslim', 'Christian', 'Catholic', 'No Religion', 'Other'],
-  ethnicity: ['Sinhalese', 'Tamil', 'Moor', 'Burgher', 'Malay', 'Other'],
-  education: ['High School', 'Diploma', 'Bachelors', 'Masters', 'Doctorate', 'Professional Certification', 'Other'],
-  bodyType: ['Slim', 'Athletic', 'Average', 'Overweight', 'Plus Size', 'Muscular'],
-  complexion: ['Fair', 'Wheatish', 'Medium', 'Dusky', 'Dark'],
-  smoking: ['Never', 'Occasionally', 'Regularly', 'Trying to Quit'],
-  drinking: ['Never', 'Socially', 'Occasionally', 'Regularly'],
-  dietary: ['Vegetarian', 'Vegan', 'Non Vegetarian', 'Pescatarian', 'No Preference'],
-  districts: [
-    'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle', 'Gampaha',
-    'Hambantota', 'Jaffna', 'Kalutara', 'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala',
-    'Mannar', 'Matale', 'Matara', 'Moneragala', 'Mullaitivu', 'Nuwara Eliya',
-    'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya',
-  ],
-  languages: ['Sinhala', 'Tamil', 'English', 'French', 'German', 'Japanese', 'Arabic'],
-  industries: ['Technology', 'Healthcare', 'Finance', 'Education', 'Engineering', 'Arts', 'Government', 'Other'],
-  incomeRanges: ['Less than 50k', '50k - 100k', '100k - 200k', '200k - 500k', 'Above 500k'],
-  interests: ['Music', 'Travel', 'Photography', 'Reading', 'Movies', 'Gaming', 'Cooking', 'Sports', 'Yoga', 'Dancing'],
-};
+import { COMPATIBILITY_CATEGORIES } from '../../constants/compatibility';
+import {
+  RELIGION_OPTIONS,
+  ETHNICITY_OPTIONS,
+  EDUCATION_OPTIONS,
+  BODY_TYPE_OPTIONS,
+  COMPLEXION_OPTIONS,
+  SMOKING_OPTIONS,
+  DRINKING_OPTIONS,
+  DIETARY_OPTIONS,
+  FAMILY_TYPE_OPTIONS,
+  RELOCATION_OPTIONS,
+  INCOME_OPTIONS,
+  LANGUAGE_OPTIONS,
+  INDUSTRY_OPTIONS,
+  INTEREST_OPTIONS,
+  MARITAL_STATUS_OPTIONS,
+  GENDER_OPTIONS,
+} from '../../constants/profileEnums';
 
 const STEPS = [
   { id: 1, label: 'Basic Info', icon: User },
@@ -72,7 +70,8 @@ const STEPS = [
   { id: 5, label: 'Cultural', icon: Users },
   { id: 6, label: 'About You', icon: Heart },
   { id: 7, label: 'Preferences', icon: Star },
-  { id: 8, label: 'Review', icon: CheckCircle },
+  { id: 8, label: 'Quiz', icon: Zap },
+  { id: 9, label: 'Review', icon: CheckCircle },
 ];
 
 export default function ProfileCreationScreen() {
@@ -164,6 +163,35 @@ export default function ProfileCreationScreen() {
     }
   };
 
+  const handleQuizAnswer = (qId: string, answer: string) => {
+    const currentAnswers = data.quizAnswers || {};
+    updateData({
+      quizAnswers: { ...currentAnswers, [qId]: answer },
+    });
+  };
+
+  // 100-point Completion Score calculation
+  const completionScore = useMemo(() => {
+    let score = 0;
+    const hasPhoto = (data.profileImages || []).length > 0 || pendingImages.length > 0;
+    if (hasPhoto) score += 10;
+    if (data.about && data.about.trim().length > 50) score += 10;
+    if ((data.interests || []).length >= 3) score += 10;
+    if (data.city && data.city.trim()) score += 10;
+    if (data.partnerPreferences && Object.keys(data.partnerPreferences).length > 0) score += 10;
+    if (data.education) score += 8;
+    if (data.profession) score += 8;
+    if (data.religion) score += 8;
+    if (data.maritalStatus) score += 6;
+    if (data.futureAspirations && data.futureAspirations.trim()) score += 5;
+    if (data.firstName || user?.firstName) score += 5;
+    if (data.gender) score += 5;
+    if (data.dateOfBirth) score += 5;
+    return Math.min(100, score);
+  }, [data, pendingImages, user]);
+
+  const totalQuizAnswered = Object.keys(data.quizAnswers || {}).length;
+
   // Submission handler mapping fields and Enums
   const handleSubmit = async () => {
     if (!data.about || data.about.trim().length < 20) {
@@ -187,7 +215,6 @@ export default function ProfileCreationScreen() {
         hasChildren: Boolean(data.hasChildren),
         numberOfChildren: Number(data.numberOfChildren) || 0,
 
-        district: data.district || 'Colombo',
         city: data.city || 'Colombo',
 
         religion: mapEnum(data.religion) || 'BUDDHIST',
@@ -202,6 +229,7 @@ export default function ProfileCreationScreen() {
         employer: data.employer || '',
         workLocation: data.workLocation || '',
         income: data.income || '100k - 200k',
+        relocationWillingness: data.relocationWillingness || 'NOT_WILLING',
 
         height: parseInt(String(data.height)) || 165,
         bodyType: mapEnum(data.bodyType) || 'AVERAGE',
@@ -214,6 +242,7 @@ export default function ProfileCreationScreen() {
         lifestyle: data.lifestyle || '',
 
         familyBackground: data.familyBackground || '',
+        familyType: mapEnum(data.familyType) || 'NUCLEAR',
         culturalValues: data.culturalValues || '',
         familyInvolvement: data.familyInvolvement || '',
         weddingPreferences: data.weddingPreferences || '',
@@ -224,17 +253,22 @@ export default function ProfileCreationScreen() {
         travelPreferences: data.travelPreferences || '',
         personalityTraits: data.personalityTraits || '',
 
-        partnerPreferences: data.partnerPreferences || {
-          ageRange: [22, 32],
-          locationPreference: 'Colombo',
-          educationLevel: 'Bachelors',
-          religionPreference: 'Buddhist',
-          maritalStatusPreference: 'Never Married',
+        partnerPreferences: {
+          ageRange: data.partnerPreferences?.ageRange || [22, 32],
+          heightPreference: data.partnerPreferences?.heightPreference || [150, 185],
+          locationPreference: data.partnerPreferences?.locationPreference || 'Colombo',
+          educationLevel: mapEnum(data.partnerPreferences?.educationLevel) || 'BACHELORS',
+          religionPreference: mapEnum(data.partnerPreferences?.religionPreference) || 'BUDDHIST',
+          maritalStatusPreference: mapEnum(data.partnerPreferences?.maritalStatusPreference) || 'NEVER_MARRIED',
+          preferredGender: mapEnum(data.partnerPreferences?.preferredGender),
+          lifestyleCompatibility: data.partnerPreferences?.lifestyleCompatibility || '',
         },
+        futureAspirations: data.futureAspirations || '',
         dealbreakers: data.dealbreakers || '',
+        quizAnswers: data.quizAnswers || {},
       };
 
-      const res: any = await ProfileService.createProfile(payload);
+      await ProfileService.createProfile(payload);
 
       // Upload pending photos
       if (pendingImages.length > 0) {
@@ -278,18 +312,18 @@ export default function ProfileCreationScreen() {
         <View style={styles.headerLeft}>
           <Text style={styles.headerBrand}>SriMatch</Text>
           <Text style={styles.headerSub}>
-            Step {step} of 8 · <Text style={styles.headerStepName}>{STEPS[step - 1].label}</Text>
+            Step {step} of 9 · <Text style={styles.headerStepName}>{STEPS[step - 1].label}</Text>
           </Text>
         </View>
         <View style={styles.scorePill}>
           <Sparkles size={13} color={Colors.primaryMedium} />
-          <Text style={styles.scoreText}>8 Steps</Text>
+          <Text style={styles.scoreText}>{completionScore}% Complete</Text>
         </View>
       </View>
 
       {/* Sleek Progress Track */}
       <View style={styles.progressBarTrack}>
-        <View style={[styles.progressBarFill, { width: `${(step / 8) * 100}%` }]} />
+        <View style={[styles.progressBarFill, { width: `${(step / 9) * 100}%` }]} />
       </View>
 
       {/* Step Tabs Indicator */}
@@ -300,32 +334,31 @@ export default function ProfileCreationScreen() {
           contentContainerStyle={styles.stepTabsScroll}
         >
           {STEPS.map((s) => {
-            const isActive = step === s.id;
+            const Icon = s.icon;
+            const isCurrent = step === s.id;
             const isDone = step > s.id;
-            const IconComp = s.icon;
             return (
               <TouchableOpacity
                 key={s.id}
-                activeOpacity={0.7}
                 style={[
                   styles.stepTab,
-                  isActive && styles.activeStepTab,
+                  isCurrent && styles.activeStepTab,
                   isDone && styles.doneStepTab,
                 ]}
                 onPress={() => setStep(s.id)}
               >
-                <IconComp
+                <Icon
                   size={12}
-                  color={isActive ? '#ffffff' : isDone ? '#16a34a' : '#8b4e2e'}
+                  color={isCurrent ? '#ffffff' : isDone ? '#16a34a' : '#6b4a3a'}
                 />
                 <Text
                   style={[
                     styles.stepTabText,
-                    isActive && styles.activeStepTabText,
+                    isCurrent && styles.activeStepTabText,
                     isDone && styles.doneStepTabText,
                   ]}
                 >
-                  {s.label}
+                  {s.id}. {s.label}
                 </Text>
               </TouchableOpacity>
             );
@@ -333,21 +366,25 @@ export default function ProfileCreationScreen() {
         </ScrollView>
       </View>
 
-      {/* Main Form Body */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.card}>
             {/* ── STEP 1: Basic Info ── */}
             {step === 1 && (
               <View style={styles.stepBlock}>
-                <Text style={styles.stepHeading}>Profile Photos</Text>
-                <Text style={styles.stepSubHeading}>Profiles with photos receive 5× more engagement</Text>
+                <Text style={styles.stepHeading}>Basic Information</Text>
+                <Text style={styles.stepSubHeading}>Let's start with your photos and essential details</Text>
 
+                {/* Photos */}
+                <Text style={styles.fieldLabel}>Profile Photos (Max 6)</Text>
                 <View style={styles.photoGrid}>
-                  {/* Remote Photos */}
                   {(data.profileImages || []).map((uri, idx) => (
                     <View key={`remote-${idx}`} style={styles.photoBox}>
                       <Image source={{ uri }} style={styles.photoImg} />
@@ -365,7 +402,6 @@ export default function ProfileCreationScreen() {
                     </View>
                   ))}
 
-                  {/* Pending Local Photos */}
                   {pendingImages.map((uri, idx) => (
                     <View key={`pending-${idx}`} style={styles.photoBox}>
                       <Image source={{ uri }} style={styles.photoImg} />
@@ -378,7 +414,6 @@ export default function ProfileCreationScreen() {
                     </View>
                   ))}
 
-                  {/* Add Slot */}
                   {(data.profileImages || []).length + pendingImages.length < 6 && (
                     <TouchableOpacity style={styles.addPhotoSlot} onPress={handlePickPhoto}>
                       <Camera size={22} color={Colors.primaryMedium} />
@@ -408,16 +443,16 @@ export default function ProfileCreationScreen() {
                 {/* Gender */}
                 <Text style={styles.fieldLabel}>Gender *</Text>
                 <View style={styles.genderRow}>
-                  {['Male', 'Female', 'Other'].map((g) => {
-                    const isSel = (data.gender || 'female').toLowerCase() === g.toLowerCase();
+                  {GENDER_OPTIONS.map((g) => {
+                    const isSel = (data.gender || 'female').toLowerCase() === g.label.toLowerCase();
                     return (
                       <TouchableOpacity
-                        key={g}
+                        key={g.value}
                         style={[styles.genderBtn, isSel && styles.selectedGenderBtn]}
-                        onPress={() => updateData({ gender: g.toLowerCase() })}
+                        onPress={() => updateData({ gender: g.label.toLowerCase() })}
                       >
                         <Text style={[styles.genderBtnText, isSel && styles.selectedGenderBtnText]}>
-                          {g}
+                          {g.label}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -458,15 +493,15 @@ export default function ProfileCreationScreen() {
 
                 <Text style={styles.fieldLabel}>Marital Status *</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.maritalStatus.map((m) => {
-                    const isSel = data.maritalStatus === m;
+                  {MARITAL_STATUS_OPTIONS.map((m) => {
+                    const isSel = data.maritalStatus === m.label;
                     return (
                       <TouchableOpacity
-                        key={m}
+                        key={m.value}
                         style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
-                        onPress={() => updateData({ maritalStatus: m })}
+                        onPress={() => updateData({ maritalStatus: m.label })}
                       >
-                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{m}</Text>
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{m.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -478,60 +513,49 @@ export default function ProfileCreationScreen() {
             {step === 2 && (
               <View style={styles.stepBlock}>
                 <Text style={styles.stepHeading}>Location & Heritage</Text>
-                <Text style={styles.stepSubHeading}>Where you are based and your background</Text>
-
-                <Text style={styles.fieldLabel}>District *</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    {PROFILE_OPTIONS.districts.map((d) => {
-                      const isSel = data.district === d;
-                      return (
-                        <TouchableOpacity
-                          key={d}
-                          style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
-                          onPress={() => updateData({ district: d })}
-                        >
-                          <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{d}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </ScrollView>
+                <Text style={styles.stepSubHeading}>Where you are based and your cultural background</Text>
 
                 <CustomInput
                   label="City / Town *"
-                  placeholder="e.g. Colombo 03, Dehiwala, Kandy"
+                  placeholder="e.g. Colombo, Dehiwala, Kandy, Galle"
                   value={data.city}
                   onChangeText={(v) => updateData({ city: v })}
                 />
 
                 <Text style={styles.fieldLabel}>Religion *</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.religion.map((r) => {
-                    const isSel = data.religion === r;
+                  {RELIGION_OPTIONS.map((r) => {
+                    const isSel = data.religion === r.label;
                     return (
                       <TouchableOpacity
-                        key={r}
+                        key={r.value}
                         style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
-                        onPress={() => updateData({ religion: r })}
+                        onPress={() => updateData({ religion: r.label })}
                       >
-                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{r}</Text>
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{r.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
 
+                <CustomInput
+                  label="Religious Practices (Optional)"
+                  placeholder="e.g. Daily meditation, regular temple/church visits"
+                  value={data.religiousPractices}
+                  onChangeText={(v) => updateData({ religiousPractices: v })}
+                />
+
                 <Text style={styles.fieldLabel}>Ethnicity</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.ethnicity.map((e) => {
-                    const isSel = data.ethnicity === e;
+                  {ETHNICITY_OPTIONS.map((e) => {
+                    const isSel = data.ethnicity === e.label;
                     return (
                       <TouchableOpacity
-                        key={e}
+                        key={e.value}
                         style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
-                        onPress={() => updateData({ ethnicity: e })}
+                        onPress={() => updateData({ ethnicity: e.label })}
                       >
-                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{e}</Text>
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{e.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -539,7 +563,7 @@ export default function ProfileCreationScreen() {
 
                 <Text style={styles.fieldLabel}>Languages Spoken</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.languages.map((l) => {
+                  {LANGUAGE_OPTIONS.map((l) => {
                     const isSel = (data.languages || []).includes(l);
                     return (
                       <TouchableOpacity
@@ -563,15 +587,15 @@ export default function ProfileCreationScreen() {
 
                 <Text style={styles.fieldLabel}>Education Level *</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.education.map((ed) => {
-                    const isSel = data.education === ed;
+                  {EDUCATION_OPTIONS.map((ed) => {
+                    const isSel = data.education === ed.label;
                     return (
                       <TouchableOpacity
-                        key={ed}
+                        key={ed.value}
                         style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
-                        onPress={() => updateData({ education: ed })}
+                        onPress={() => updateData({ education: ed.label })}
                       >
-                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{ed}</Text>
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{ed.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -579,7 +603,7 @@ export default function ProfileCreationScreen() {
 
                 <CustomInput
                   label="Field of Study"
-                  placeholder="e.g. Computer Science, Medicine, Law"
+                  placeholder="e.g. Computer Science, Medicine, Law, Management"
                   value={data.fieldOfStudy}
                   onChangeText={(v) => updateData({ fieldOfStudy: v })}
                 />
@@ -593,7 +617,7 @@ export default function ProfileCreationScreen() {
 
                 <Text style={styles.fieldLabel}>Industry</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.industries.map((ind) => {
+                  {INDUSTRY_OPTIONS.map((ind) => {
                     const isSel = data.industry === ind;
                     return (
                       <TouchableOpacity
@@ -609,14 +633,14 @@ export default function ProfileCreationScreen() {
 
                 <CustomInput
                   label="Employer / Company"
-                  placeholder="e.g. WSO2, Commercial Bank"
+                  placeholder="Company name or self-employed"
                   value={data.employer}
                   onChangeText={(v) => updateData({ employer: v })}
                 />
 
                 <Text style={styles.fieldLabel}>Monthly Income Range (LKR)</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.incomeRanges.map((inc) => {
+                  {INCOME_OPTIONS.map((inc) => {
                     const isSel = data.income === inc;
                     return (
                       <TouchableOpacity
@@ -625,6 +649,22 @@ export default function ProfileCreationScreen() {
                         onPress={() => updateData({ income: inc })}
                       >
                         <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{inc}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <Text style={styles.fieldLabel}>Relocation Willingness</Text>
+                <View style={styles.chipsRow}>
+                  {RELOCATION_OPTIONS.map((rel) => {
+                    const isSel = data.relocationWillingness === rel.value;
+                    return (
+                      <TouchableOpacity
+                        key={rel.value}
+                        style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
+                        onPress={() => updateData({ relocationWillingness: rel.value })}
+                      >
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{rel.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -648,15 +688,15 @@ export default function ProfileCreationScreen() {
 
                 <Text style={styles.fieldLabel}>Body Type</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.bodyType.map((bt) => {
-                    const isSel = data.bodyType === bt;
+                  {BODY_TYPE_OPTIONS.map((bt) => {
+                    const isSel = data.bodyType === bt.label;
                     return (
                       <TouchableOpacity
-                        key={bt}
+                        key={bt.value}
                         style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
-                        onPress={() => updateData({ bodyType: bt })}
+                        onPress={() => updateData({ bodyType: bt.label })}
                       >
-                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{bt}</Text>
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{bt.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -664,15 +704,15 @@ export default function ProfileCreationScreen() {
 
                 <Text style={styles.fieldLabel}>Complexion</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.complexion.map((c) => {
-                    const isSel = data.complexion === c;
+                  {COMPLEXION_OPTIONS.map((c) => {
+                    const isSel = data.complexion === c.label;
                     return (
                       <TouchableOpacity
-                        key={c}
+                        key={c.value}
                         style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
-                        onPress={() => updateData({ complexion: c })}
+                        onPress={() => updateData({ complexion: c.label })}
                       >
-                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{c}</Text>
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{c.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -680,15 +720,15 @@ export default function ProfileCreationScreen() {
 
                 <Text style={styles.fieldLabel}>Dietary Preference</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.dietary.map((d) => {
-                    const isSel = data.dietaryPreferences === d;
+                  {DIETARY_OPTIONS.map((d) => {
+                    const isSel = data.dietaryPreferences === d.label;
                     return (
                       <TouchableOpacity
-                        key={d}
+                        key={d.value}
                         style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
-                        onPress={() => updateData({ dietaryPreferences: d })}
+                        onPress={() => updateData({ dietaryPreferences: d.label })}
                       >
-                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{d}</Text>
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{d.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -696,15 +736,15 @@ export default function ProfileCreationScreen() {
 
                 <Text style={styles.fieldLabel}>Smoking Habits</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.smoking.map((s) => {
-                    const isSel = data.smoking === s;
+                  {SMOKING_OPTIONS.map((s) => {
+                    const isSel = data.smoking === s.label;
                     return (
                       <TouchableOpacity
-                        key={s}
+                        key={s.value}
                         style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
-                        onPress={() => updateData({ smoking: s })}
+                        onPress={() => updateData({ smoking: s.label })}
                       >
-                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{s}</Text>
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{s.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -712,19 +752,35 @@ export default function ProfileCreationScreen() {
 
                 <Text style={styles.fieldLabel}>Drinking Habits</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.drinking.map((dr) => {
-                    const isSel = data.drinking === dr;
+                  {DRINKING_OPTIONS.map((dr) => {
+                    const isSel = data.drinking === dr.label;
                     return (
                       <TouchableOpacity
-                        key={dr}
+                        key={dr.value}
                         style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
-                        onPress={() => updateData({ drinking: dr })}
+                        onPress={() => updateData({ drinking: dr.label })}
                       >
-                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{dr}</Text>
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{dr.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
+
+                <CustomInput
+                  label="Health & Fitness Habits"
+                  placeholder="e.g. Regular workout, yoga, healthy diet"
+                  value={data.healthHabits}
+                  onChangeText={(v) => updateData({ healthHabits: v })}
+                />
+
+                <CustomInput
+                  label="Daily Lifestyle"
+                  placeholder="Describe your general daily routine and lifestyle..."
+                  multiline
+                  numberOfLines={2}
+                  value={data.lifestyle}
+                  onChangeText={(v) => updateData({ lifestyle: v })}
+                />
               </View>
             )}
 
@@ -733,6 +789,22 @@ export default function ProfileCreationScreen() {
               <View style={styles.stepBlock}>
                 <Text style={styles.stepHeading}>Family & Cultural Values</Text>
                 <Text style={styles.stepSubHeading}>Share your family background and traditions</Text>
+
+                <Text style={styles.fieldLabel}>Family Type</Text>
+                <View style={styles.chipsRow}>
+                  {FAMILY_TYPE_OPTIONS.map((ft) => {
+                    const isSel = data.familyType === ft.label;
+                    return (
+                      <TouchableOpacity
+                        key={ft.value}
+                        style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
+                        onPress={() => updateData({ familyType: ft.label })}
+                      >
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{ft.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
 
                 <CustomInput
                   label="Family Background"
@@ -750,6 +822,13 @@ export default function ProfileCreationScreen() {
                   numberOfLines={2}
                   value={data.culturalValues}
                   onChangeText={(v) => updateData({ culturalValues: v })}
+                />
+
+                <CustomInput
+                  label="Family Involvement in Married Life"
+                  placeholder="How involved would you like extended family to be?"
+                  value={data.familyInvolvement}
+                  onChangeText={(v) => updateData({ familyInvolvement: v })}
                 />
 
                 <CustomInput
@@ -780,7 +859,7 @@ export default function ProfileCreationScreen() {
 
                 <Text style={styles.fieldLabel}>Interests & Passions (Choose 3–10) *</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.interests.map((int) => {
+                  {INTEREST_OPTIONS.map((int) => {
                     const isSel = (data.interests || []).includes(int);
                     return (
                       <TouchableOpacity
@@ -793,6 +872,13 @@ export default function ProfileCreationScreen() {
                     );
                   })}
                 </View>
+
+                <CustomInput
+                  label="Personality Traits"
+                  placeholder="e.g. Ambitious, caring, humorous, introverted"
+                  value={data.personalityTraits}
+                  onChangeText={(v) => updateData({ personalityTraits: v })}
+                />
 
                 <CustomInput
                   label="Favorite Food / Dishes"
@@ -821,15 +907,15 @@ export default function ProfileCreationScreen() {
               </View>
             )}
 
-            {/* ── STEP 7: Partner Preferences & Dealbreakers ── */}
+            {/* ── STEP 7: Partner Preferences & Goals ── */}
             {step === 7 && (
               <View style={styles.stepBlock}>
-                <Text style={styles.stepHeading}>Partner Preferences</Text>
+                <Text style={styles.stepHeading}>Partner Preferences & Future Goals</Text>
                 <Text style={styles.stepSubHeading}>What you are looking for in your ideal match</Text>
 
                 <CustomInput
-                  label="Location Preference"
-                  placeholder="e.g. Western Province, Kandy, Open to relocate"
+                  label="Preferred Location"
+                  placeholder="e.g. Colombo, Western Province, Open to any"
                   value={data.partnerPreferences?.locationPreference}
                   onChangeText={(v) =>
                     updateData({
@@ -838,21 +924,41 @@ export default function ProfileCreationScreen() {
                   }
                 />
 
-                <Text style={styles.fieldLabel}>Preferred Education Level</Text>
+                <Text style={styles.fieldLabel}>Preferred Gender</Text>
                 <View style={styles.chipsRow}>
-                  {PROFILE_OPTIONS.education.map((ed) => {
-                    const isSel = data.partnerPreferences?.educationLevel === ed;
+                  {GENDER_OPTIONS.map((g) => {
+                    const isSel = data.partnerPreferences?.preferredGender === g.label;
                     return (
                       <TouchableOpacity
-                        key={ed}
+                        key={g.value}
                         style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
                         onPress={() =>
                           updateData({
-                            partnerPreferences: { ...data.partnerPreferences, educationLevel: ed },
+                            partnerPreferences: { ...data.partnerPreferences, preferredGender: g.label },
                           })
                         }
                       >
-                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{ed}</Text>
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{g.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <Text style={styles.fieldLabel}>Preferred Education Level</Text>
+                <View style={styles.chipsRow}>
+                  {EDUCATION_OPTIONS.map((ed) => {
+                    const isSel = data.partnerPreferences?.educationLevel === ed.label;
+                    return (
+                      <TouchableOpacity
+                        key={ed.value}
+                        style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
+                        onPress={() =>
+                          updateData({
+                            partnerPreferences: { ...data.partnerPreferences, educationLevel: ed.label },
+                          })
+                        }
+                      >
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{ed.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -860,27 +966,67 @@ export default function ProfileCreationScreen() {
 
                 <Text style={styles.fieldLabel}>Preferred Religion</Text>
                 <View style={styles.chipsRow}>
-                  {[...PROFILE_OPTIONS.religion, 'Open to All'].map((rel) => {
-                    const isSel = data.partnerPreferences?.religionPreference === rel;
+                  {[...RELIGION_OPTIONS, { value: 'OPEN', label: 'Open to All' }].map((rel) => {
+                    const isSel = data.partnerPreferences?.religionPreference === rel.label;
                     return (
                       <TouchableOpacity
-                        key={rel}
+                        key={rel.value}
                         style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
                         onPress={() =>
                           updateData({
-                            partnerPreferences: { ...data.partnerPreferences, religionPreference: rel },
+                            partnerPreferences: { ...data.partnerPreferences, religionPreference: rel.label },
                           })
                         }
                       >
-                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{rel}</Text>
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{rel.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <Text style={styles.fieldLabel}>Preferred Marital Status</Text>
+                <View style={styles.chipsRow}>
+                  {[...MARITAL_STATUS_OPTIONS, { value: 'OPEN', label: 'Open to All' }].map((m) => {
+                    const isSel = data.partnerPreferences?.maritalStatusPreference === m.label;
+                    return (
+                      <TouchableOpacity
+                        key={m.value}
+                        style={[styles.chipBtn, isSel && styles.selectedChipBtn]}
+                        onPress={() =>
+                          updateData({
+                            partnerPreferences: { ...data.partnerPreferences, maritalStatusPreference: m.label },
+                          })
+                        }
+                      >
+                        <Text style={[styles.chipBtnText, isSel && styles.selectedChipBtnText]}>{m.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
 
                 <CustomInput
+                  label="Lifestyle Compatibility"
+                  placeholder="e.g. Non-smoker, active lifestyle, vegetarian"
+                  value={data.partnerPreferences?.lifestyleCompatibility}
+                  onChangeText={(v) =>
+                    updateData({
+                      partnerPreferences: { ...data.partnerPreferences, lifestyleCompatibility: v },
+                    })
+                  }
+                />
+
+                <CustomInput
+                  label="Future Aspirations & Goals"
+                  placeholder="Where do you see yourself in 5 years? Career, family, personal dreams..."
+                  multiline
+                  numberOfLines={3}
+                  value={data.futureAspirations}
+                  onChangeText={(v) => updateData({ futureAspirations: v })}
+                />
+
+                <CustomInput
                   label="Dealbreakers & Essential Criteria"
-                  placeholder="e.g. Non-smoker, honesty, career ambition..."
+                  placeholder="e.g. Smoking, dishonesty, lack of ambition..."
                   multiline
                   numberOfLines={3}
                   value={data.dealbreakers}
@@ -889,13 +1035,73 @@ export default function ProfileCreationScreen() {
               </View>
             )}
 
-            {/* ── STEP 8: Review & Complete ── */}
+            {/* ── STEP 8: Compatibility Quiz ── */}
             {step === 8 && (
+              <View style={styles.stepBlock}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={styles.stepHeading}>Compatibility Quiz</Text>
+                  <View style={styles.quizProgressPill}>
+                    <Text style={styles.quizProgressText}>{totalQuizAnswered} of 29 answered</Text>
+                  </View>
+                </View>
+                <Text style={styles.stepSubHeading}>
+                  Optional · Helps our matching algorithm find highly compatible partners
+                </Text>
+
+                {COMPATIBILITY_CATEGORIES.map((cat, catIdx) => (
+                  <View key={catIdx} style={styles.quizCategoryBox}>
+                    <Text style={styles.quizCategoryHeader}>
+                      {cat.icon} {cat.category}
+                    </Text>
+
+                    {cat.questions.map((q) => {
+                      const selectedVal = (data.quizAnswers || {})[q.id];
+                      return (
+                        <View key={q.id} style={styles.quizQuestionItem}>
+                          <Text style={styles.quizQuestionText}>{q.question}</Text>
+                          <View style={styles.chipsRow}>
+                            {q.options.map((opt) => {
+                              const isSelected = selectedVal === opt;
+                              return (
+                                <TouchableOpacity
+                                  key={opt}
+                                  style={[styles.chipBtn, isSelected && styles.selectedChipBtn]}
+                                  onPress={() => handleQuizAnswer(q.id, opt)}
+                                >
+                                  <Text style={[styles.chipBtnText, isSelected && styles.selectedChipBtnText]}>
+                                    {opt}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* ── STEP 9: Review & Complete ── */}
+            {step === 9 && (
               <View style={styles.stepBlock}>
                 <Text style={styles.stepHeading}>Review Your Profile</Text>
                 <Text style={styles.stepSubHeading}>Verify your details before completing setup</Text>
 
                 <View style={styles.reviewSummaryCard}>
+                  <View style={styles.reviewScoreHeader}>
+                    <View>
+                      <Text style={styles.reviewScoreTitle}>Profile Strength</Text>
+                      <Text style={styles.reviewScoreSub}>
+                        {completionScore === 100 ? '✦ Perfect Profile' : 'Complete more fields to reach 100%'}
+                      </Text>
+                    </View>
+                    <Text style={styles.reviewScoreValue}>{completionScore}%</Text>
+                  </View>
+
+                  <View style={styles.reviewDivider} />
+
                   <View style={styles.reviewRow}>
                     <Text style={styles.reviewLabel}>Full Name:</Text>
                     <Text style={styles.reviewVal}>{data.firstName || user?.firstName} {data.lastName || user?.lastName}</Text>
@@ -906,16 +1112,32 @@ export default function ProfileCreationScreen() {
                   </View>
                   <View style={styles.reviewRow}>
                     <Text style={styles.reviewLabel}>Location:</Text>
-                    <Text style={styles.reviewVal}>{data.city}, {data.district}</Text>
+                    <Text style={styles.reviewVal}>{data.city || 'Colombo'}</Text>
                   </View>
                   <View style={styles.reviewRow}>
-                    <Text style={styles.reviewLabel}>Profession:</Text>
-                    <Text style={styles.reviewVal}>{data.profession} ({data.education})</Text>
+                    <Text style={styles.reviewLabel}>Profession & Education:</Text>
+                    <Text style={styles.reviewVal}>{data.profession || '—'} ({data.education || '—'})</Text>
                   </View>
                   <View style={styles.reviewRow}>
                     <Text style={styles.reviewLabel}>Religion & Ethnicity:</Text>
-                    <Text style={styles.reviewVal}>{data.religion} · {data.ethnicity}</Text>
+                    <Text style={styles.reviewVal}>{data.religion || '—'} · {data.ethnicity || '—'}</Text>
                   </View>
+                  <View style={styles.reviewRow}>
+                    <Text style={styles.reviewLabel}>Family Type:</Text>
+                    <Text style={styles.reviewVal}>{data.familyType || 'Nuclear Family'}</Text>
+                  </View>
+                  <View style={styles.reviewRow}>
+                    <Text style={styles.reviewLabel}>Quiz Completed:</Text>
+                    <Text style={styles.reviewVal}>{totalQuizAnswered} of 29 questions</Text>
+                  </View>
+                  {data.futureAspirations && (
+                    <View style={styles.reviewRow}>
+                      <Text style={styles.reviewLabel}>Future Aspirations:</Text>
+                      <Text style={[styles.reviewVal, { flex: 1, textAlign: 'right' }]} numberOfLines={2}>
+                        {data.futureAspirations}
+                      </Text>
+                    </View>
+                  )}
                   <View style={styles.reviewRow}>
                     <Text style={styles.reviewLabel}>Photos Attached:</Text>
                     <Text style={styles.reviewVal}>{(data.profileImages || []).length + pendingImages.length} Photo(s)</Text>
@@ -940,7 +1162,13 @@ export default function ProfileCreationScreen() {
                 </TouchableOpacity>
               )}
 
-              {step < 8 ? (
+              {step === 8 && (
+                <TouchableOpacity style={styles.btnSkip} onPress={nextStep}>
+                  <Text style={styles.btnSkipText}>Skip for now</Text>
+                </TouchableOpacity>
+              )}
+
+              {step < 9 ? (
                 <TouchableOpacity style={styles.btnNext} onPress={nextStep}>
                   <Text style={styles.btnNextText}>Continue</Text>
                   <ArrowRight size={16} color="#ffffff" />
@@ -1285,6 +1513,43 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.primaryMedium,
   },
+  quizProgressPill: {
+    backgroundColor: '#fdf5ee',
+    borderWidth: 1,
+    borderColor: '#f0ddd5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+  },
+  quizProgressText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.primaryMedium,
+  },
+  quizCategoryBox: {
+    backgroundColor: '#fdf8f4',
+    borderWidth: 1,
+    borderColor: '#f0ddd5',
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  quizCategoryHeader: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2d1810',
+    fontFamily: Fonts.serif,
+    marginBottom: Spacing.sm,
+  },
+  quizQuestionItem: {
+    marginBottom: Spacing.xs,
+  },
+  quizQuestionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4a3028',
+    marginBottom: 6,
+  },
   reviewSummaryCard: {
     backgroundColor: '#fdf8f4',
     padding: Spacing.md,
@@ -1293,6 +1558,32 @@ const styles = StyleSheet.create({
     borderColor: '#f0ddd5',
     gap: 8,
     marginBottom: Spacing.md,
+  },
+  reviewScoreHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reviewScoreTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#2d1810',
+    fontFamily: Fonts.serif,
+  },
+  reviewScoreSub: {
+    fontSize: 10,
+    color: '#9a7060',
+  },
+  reviewScoreValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#8b4e2e',
+    fontFamily: Fonts.serif,
+  },
+  reviewDivider: {
+    height: 1,
+    backgroundColor: '#ede2dc',
+    marginVertical: 4,
   },
   reviewRow: {
     flexDirection: 'row',
@@ -1345,6 +1636,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#6b4a3a',
+  },
+  btnSkip: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
+    borderWidth: 1.5,
+    borderColor: '#e8ddd8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnSkipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9a7060',
   },
   btnNext: {
     flex: 1,

@@ -244,4 +244,5 @@ export const LocationService = {
   },
 };
 
+export * from './profile.service';
 export * from './call.service';

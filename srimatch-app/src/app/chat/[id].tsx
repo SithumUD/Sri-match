@@ -37,6 +37,7 @@ import * as ImagePicker from 'expo-image-picker';
 import useAuthStore from '../../store/useAuthStore';
 import useCallStore from '../../store/useCallStore';
 import { useQueryClient } from '@tanstack/react-query';
+import { Colors, Fonts, Spacing, Radius, Shadows } from '../../constants/theme';
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -727,14 +728,14 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
   },
   emptyChatTitle: {
-    fontFamily: Fonts.headingBold,
+    fontFamily: Fonts.bold,
     fontSize: 18,
     color: Colors.text,
     textAlign: 'center',
     marginBottom: Spacing.xs,
   },
   emptyChatSubtitle: {
-    fontFamily: Fonts.body,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.textMuted,
     textAlign: 'center',
@@ -752,7 +753,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.primaryUltraLight,
+    backgroundColor: Colors.primaryExtraLight,
     borderWidth: 1,
     borderColor: Colors.primaryLight,
     paddingHorizontal: 12,
@@ -760,7 +761,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
   },
   icebreakerText: {
-    fontFamily: Fonts.bodyMedium,
+    fontFamily: Fonts.medium,
     fontSize: 12,
     color: Colors.primaryDark,
   },
@@ -771,7 +772,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loadingChatText: {
-    fontFamily: Fonts.body,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.textMuted,
   },

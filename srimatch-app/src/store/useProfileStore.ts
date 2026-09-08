@@ -8,7 +8,6 @@ export interface ProfileCreationData {
   maritalStatus?: string;
   hasChildren?: boolean;
   numberOfChildren?: number;
-  district?: string;
   city?: string;
   placeOfBirth?: string;
   ethnicity?: string;
@@ -22,6 +21,7 @@ export interface ProfileCreationData {
   employer?: string;
   workLocation?: string;
   income?: string;
+  relocationWillingness?: string;
   height?: number | string;
   bodyType?: string;
   complexion?: string;
@@ -31,6 +31,7 @@ export interface ProfileCreationData {
   healthHabits?: string;
   lifestyle?: string;
   familyBackground?: string;
+  familyType?: string;
   culturalValues?: string;
   familyInvolvement?: string;
   weddingPreferences?: string;
@@ -41,13 +42,18 @@ export interface ProfileCreationData {
   personalityTraits?: string;
   partnerPreferences?: {
     ageRange?: [number, number];
+    heightPreference?: [number, number];
     locationPreference?: string;
     educationLevel?: string;
     religionPreference?: string;
     maritalStatusPreference?: string;
+    preferredGender?: string;
     lifestyleCompatibility?: string;
   };
+  futureAspirations?: string;
   dealbreakers?: string;
+  quizAnswers?: Record<string, string>;
+  privacySettings?: Record<string, any>;
   profileImages?: string[];
   primaryImageUrl?: string;
 }
@@ -66,7 +72,6 @@ const initialData: Partial<ProfileCreationData> = {
   gender: 'female',
   height: 165,
   maritalStatus: 'Never Married',
-  district: 'Colombo',
   city: 'Colombo',
   ethnicity: 'Sinhalese',
   religion: 'Buddhist',
@@ -75,11 +80,13 @@ const initialData: Partial<ProfileCreationData> = {
   profession: '',
   industry: 'Technology',
   income: '100k - 200k',
+  relocationWillingness: 'NOT_WILLING',
   dietaryPreferences: 'Non Vegetarian',
   drinking: 'Never',
   smoking: 'Never',
   bodyType: 'Average',
   complexion: 'Fair',
+  familyType: 'Nuclear Family',
   about: '',
   interests: ['Music', 'Travel', 'Reading'],
   profileImages: [],
@@ -90,6 +97,7 @@ const initialData: Partial<ProfileCreationData> = {
     religionPreference: 'Buddhist',
     maritalStatusPreference: 'Never Married',
   },
+  quizAnswers: {},
 };
 
 export const useProfileStore = create<ProfileStoreState>((set) => ({
@@ -97,7 +105,7 @@ export const useProfileStore = create<ProfileStoreState>((set) => ({
   data: initialData,
 
   setStep: (step) => set({ step }),
-  nextStep: () => set((state) => ({ step: Math.min(8, state.step + 1) })),
+  nextStep: () => set((state) => ({ step: Math.min(9, state.step + 1) })),
   prevStep: () => set((state) => ({ step: Math.max(1, state.step - 1) })),
 
   updateData: (fields) =>

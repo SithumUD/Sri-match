@@ -69,6 +69,7 @@ public class ProfileService {
 
         int completionScore = calculateCompletionScore(profile);
         profile.setCompletionScore(completionScore);
+        profile.setQuizCompletionPercent(calculateQuizCompletionPercent(profile));
         
         Profile savedProfile = profileRepository.save(profile);
 
@@ -101,6 +102,7 @@ public class ProfileService {
         
         int completionScore = calculateCompletionScore(profile);
         profile.setCompletionScore(completionScore);
+        profile.setQuizCompletionPercent(calculateQuizCompletionPercent(profile));
 
         Profile savedProfile = profileRepository.save(profile);
         
@@ -727,16 +729,33 @@ public class ProfileService {
     }
 
     private int calculateCompletionScore(Profile profile) {
-        int score = 20; // Base score for creating profile
-        
-        if (profile.getAbout() != null && !profile.getAbout().isBlank()) score += 10;
-        if (profile.getProfileImages() != null && !profile.getProfileImages().isEmpty()) score += 20;
-        if (profile.getEducation() != null) score += 10;
-        if (profile.getProfession() != null) score += 10;
-        if (profile.getInterests() != null && !profile.getInterests().isEmpty()) score += 10;
-        if (profile.getPartnerPreferences() != null && !profile.getPartnerPreferences().isEmpty()) score += 20;
-        
+        int score = 0;
+        // ── 10 pts each ──
+        if (profile.getProfileImages() != null && !profile.getProfileImages().isEmpty()) score += 10;
+        if (profile.getAbout() != null && profile.getAbout().length() > 50)            score += 10;
+        if (profile.getInterests() != null && profile.getInterests().size() >= 3)      score += 10;
+        if (profile.getCity() != null && !profile.getCity().isBlank())                 score += 10;
+        if (profile.getPartnerPreferences() != null && !profile.getPartnerPreferences().isEmpty()) score += 10;
+        // ── 8 pts each ──
+        if (profile.getEducation() != null)                                            score += 8;
+        if (profile.getProfession() != null && !profile.getProfession().isBlank())     score += 8;
+        if (profile.getReligion() != null)                                             score += 8;
+        // ── 6 pts ──
+        if (profile.getMaritalStatus() != null)                                        score += 6;
+        // ── 5 pts each ──
+        if (profile.getFutureAspirations() != null && !profile.getFutureAspirations().isBlank()) score += 5;
+        if (profile.getUser() != null && profile.getUser().getFirstName() != null
+                && !profile.getUser().getFirstName().isBlank())                        score += 5;
+        if (profile.getGender() != null)                                               score += 5;
+        if (profile.getDateOfBirth() != null)                                          score += 5;
+        // Total = 10+10+10+10+10+8+8+8+6+5+5+5+5 = 100
         return Math.min(score, 100);
+    }
+
+    /** Derives quiz completion percent (0–100) without counting it toward completionScore. */
+    public int calculateQuizCompletionPercent(Profile profile) {
+        if (profile.getQuizAnswers() == null || profile.getQuizAnswers().isEmpty()) return 0;
+        return Math.min((int) Math.round(profile.getQuizAnswers().size() / 29.0 * 100), 100);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

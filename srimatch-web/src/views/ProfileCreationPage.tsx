@@ -17,19 +17,19 @@ import {
 } from "lucide-react";
 const PROFILE_OPTIONS = {
   maritalStatus: ["Never Married", "Divorced", "Widowed", "Separated", "Annulled"],
-  religion: ["Buddhist", "Hindu", "Muslim", "Christian", "Catholic", "No Religion", "Other"],
+  religion: ["Buddhist", "Hindu", "Islam", "Christian", "Catholic", "No Religion", "Other"],
   ethnicity: ["Sinhalese", "Tamil", "Moor", "Burgher", "Malay", "Other"],
   education: ["High School", "Diploma", "Bachelors", "Masters", "Doctorate", "Professional Certification", "Other"],
-  bodyType: ["Slim", "Athletic", "Average", "Overweight", "Plus Size", "Muscular"],
+  bodyType: ["Slim", "Athletic", "Average", "Muscular", "Heavy"],
   complexion: ["Fair", "Wheatish", "Medium", "Dusky", "Dark"],
   smoking: ["Never", "Occasionally", "Regularly", "Trying to Quit"],
   drinking: ["Never", "Socially", "Occasionally", "Regularly"],
-  dietary: ["Vegetarian", "Vegan", "Non Vegetarian", "Pescatarian", "No Preference"],
+  dietary: ["Vegetarian", "Vegan", "Non Vegetarian", "Eggetarian", "Halal", "Pescatarian", "No Preference"],
   relocationWillingness: [
     { value: "NOT_WILLING", label: "Not willing to relocate" },
-    { value: "WITHIN_DISTRICT", label: "Within current area" },
+    { value: "WITHIN_CURRENT_AREA", label: "Within current area" },
     { value: "WITHIN_SRI_LANKA", label: "Within Sri Lanka" },
-    { value: "ANYWHERE", label: "Anywhere (including abroad)" }
+    { value: "ANYWHERE_INCLUDING_ABROAD", label: "Anywhere (including abroad)" }
   ],
   familyType: [
     { value: "NUCLEAR", label: "Nuclear Family" },
@@ -51,7 +51,7 @@ const PREF_OPTIONS = {
   religion: [
     { value: "BUDDHIST", label: "Buddhist" },
     { value: "HINDU", label: "Hindu" },
-    { value: "MUSLIM", label: "Muslim" },
+    { value: "ISLAM", label: "Islam" },
     { value: "CHRISTIAN", label: "Christian" },
     { value: "CATHOLIC", label: "Catholic" },
     { value: "NO_RELIGION", label: "No Religion" },
@@ -539,11 +539,12 @@ const ProfileCreationPage = () => {
       { key: "profession", w: 8, ok: v => v },
       { key: "religion", w: 8, ok: v => v },
       { key: "partnerPreferences", w: 10, ok: v => Object.keys(v || {}).length > 0 },
+      { key: "city", w: 10, ok: v => v },
+      { key: "maritalStatus", w: 6, ok: v => v },
+      { key: "futureAspirations", w: 5, ok: v => v },
       { key: "firstName", w: 5, ok: v => v },
       { key: "gender", w: 5, ok: v => v },
       { key: "dateOfBirth", w: 5, ok: v => v },
-      { key: "city", w: 10, ok: v => v },
-      { key: "maritalStatus", w: 6, ok: v => v },
     ];
     const score = fields.reduce((acc, f) => acc + (f.ok(profileCreationData[f.key]) ? f.w : 0), 0);
     setCompletionScore(Math.min(100, score));
@@ -571,7 +572,7 @@ const ProfileCreationPage = () => {
       const raw = localStorage.getItem("profileDraft");
       if (raw) {
         const { data, step, ts } = JSON.parse(raw);
-        if (new Date() - new Date(ts) < 7 * 86400000) {
+        if (Date.now() - new Date(ts).getTime() < 7 * 86400000) {
           if (window.confirm("We found an incomplete profile draft. Continue where you left off?")) {
             if (data && typeof data === 'object') {
               updateProfileCreationData(data);
@@ -622,7 +623,7 @@ const ProfileCreationPage = () => {
     if (file.size > 5 * 1024 * 1024) issues.push("File size too large (max 5 MB)");
     const url = URL.createObjectURL(file);
     try {
-      await new Promise(res => {
+      await new Promise<void>(res => {
         const img = new Image();
         img.onload = () => {
           if (img.width < 100) issues.push("Low resolution image");
@@ -641,8 +642,8 @@ const ProfileCreationPage = () => {
     return issues;
   };
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files || []);
+  const handleImageUpload = (e: any) => {
+    const files: File[] = Array.from(e.target.files || []);
     if (files.length === 0) return;
     
     const currentTotal = (profileCreationData.profileImages || []).length + pendingImages.length;
@@ -653,7 +654,7 @@ const ProfileCreationPage = () => {
       alert(`You can only upload up to 6 photos. Adding the first ${availableSlots}.`);
     }
 
-    filesToAdd.forEach((file) => {
+    filesToAdd.forEach((file: File) => {
       if (!file.type.startsWith("image/")) {
         alert(`${file.name} is not a valid image file.`);
         return;
@@ -665,7 +666,7 @@ const ProfileCreationPage = () => {
 
       const reader = new FileReader();
       reader.onload = (event) => {
-        const previewUrl = event.target.result;
+        const previewUrl = event.target?.result as string;
         setPendingImages(prev => [...prev, { file, previewUrl }]);
       };
       reader.readAsDataURL(file);
@@ -685,16 +686,16 @@ const ProfileCreationPage = () => {
     reader.readAsDataURL(file);
   };
 
-  const performUpload = async (file) => {
+  const performUpload = async (file: any) => {
     setLoading(true);
     try {
       const isPrimary = (profileCreationData.profileImages || []).length === 0;
-      const response = await ProfileService.uploadProfileImage(file, isPrimary);
+      const response: any = await ProfileService.uploadProfileImage(file, isPrimary);
       
-      if (response.success && response.data) {
-        // The backend returns the updated list of images in response.data.profileImages
-        const updatedImages = response.data.profileImages || [];
-        const primaryImg = response.data.primaryImageUrl;
+      if (response && (response.success || response.data)) {
+        const resData = response.data || response;
+        const updatedImages = resData.profileImages || [];
+        const primaryImg = resData.primaryImageUrl;
         
         updateProfileCreationData({ 
           profileImages: updatedImages, 
@@ -853,6 +854,7 @@ const ProfileCreationPage = () => {
         personalityTraits: profileCreationData.personalityTraits,
         
         partnerPreferences: profileCreationData.partnerPreferences || {},
+        futureAspirations: profileCreationData.futureAspirations,
         dealbreakers: profileCreationData.dealbreakers,
         quizAnswers: quizAnswers || {},
       };
@@ -1325,7 +1327,7 @@ const ProfileCreationPage = () => {
               <button type="button" onClick={() => setShowQuiz(v => !v)}
                 style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "none", border: "none", color: "#8b4e2e", cursor: "pointer", fontWeight: 500, fontSize: "0.85rem", padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
                 <Zap size={15} />
-                {showQuiz ? "Hide" : "Take"} Compatibility Quiz <span style={{ color: "#b09080", fontWeight: 300 }}>(optional — improves matching)</span>
+                {showQuiz ? "Hide" : "Take"} Compatibility Quiz (29 Questions) <span style={{ color: "#b09080", fontWeight: 300 }}>(optional — improves matching)</span>
               </button>
               {showQuiz && (
                 <div className="pc-quiz-block">
@@ -1470,6 +1472,11 @@ const ProfileCreationPage = () => {
               <textarea rows={2} value={(profileCreationData.partnerPreferences || {}).lifestyleCompatibility || ""}
                 onChange={e => updateProfileCreationData({ partnerPreferences: { ...(profileCreationData.partnerPreferences || {}), lifestyleCompatibility: e.target.value } })}
                 className="pc-textarea" placeholder="e.g. Health-conscious, non-smoker, active lifestyle" />
+            </div>
+
+            <div className="pc-field">
+              <label className="pc-label">Future Aspirations & Goals</label>
+              <textarea name="futureAspirations" rows={2} value={profileCreationData.futureAspirations || ""} onChange={handleChange} className="pc-textarea" placeholder="Where do you see yourself in 5 years? Career, family, personal dreams..." />
             </div>
 
             <div className="pc-field">
@@ -1654,6 +1661,9 @@ const ProfileCreationPage = () => {
                     {profileCreationData.partnerPreferences?.lifestyleCompatibility && (
                       <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Lifestyle Compatibility:</span> {profileCreationData.partnerPreferences.lifestyleCompatibility}</div>
                     )}
+                    {profileCreationData.futureAspirations && (
+                      <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Future Aspirations:</span> {profileCreationData.futureAspirations}</div>
+                    )}
                     {profileCreationData.dealbreakers && (
                       <div className="pc-review-item" style={{ gridColumn: "span 2" }}><span>Dealbreakers:</span> {profileCreationData.dealbreakers}</div>
                     )}
@@ -1666,7 +1676,7 @@ const ProfileCreationPage = () => {
                     <div className="pc-review-section-title"><Zap size={13} />Compatibility Quiz</div>
                     {Object.entries(quizAnswers).map(([key, val]) => {
                       const q = compatibilityQuestions.find(q => q.id === key);
-                      return q ? <div key={key} className="pc-review-item" style={{ marginBottom: "0.25rem" }}><span>{q.question}:</span> {val}</div> : null;
+                      return q ? <div key={key} className="pc-review-item" style={{ marginBottom: "0.25rem" }}><span>{q.question}:</span> {String(val)}</div> : null;
                     })}
                   </div>
                 )}
@@ -1783,7 +1793,7 @@ const ProfileCreationPage = () => {
         <div className="pc-card-wrap">
           <div className="pc-card">
             <div className="pc-card-inner">
-              <form onSubmit={e => { e.preventDefault(); if (profileCreationStep === 8 && !loading) handleSubmit(e); }} onKeyDown={e => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); }} noValidate>
+              <form onSubmit={e => { e.preventDefault(); if (profileCreationStep === 8 && !loading) handleSubmit(e); }} onKeyDown={(e: any) => { if (e.key === 'Enter' && e.target?.tagName !== 'TEXTAREA') e.preventDefault(); }} noValidate>
                 {renderStep()}
               </form>
             </div>

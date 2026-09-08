@@ -460,16 +460,16 @@ const UserProfilePage = () => {
   const { data: connectionsOverview } = useConnections();
   const connections = connectionsOverview?.matches || [];
   const { mutate: mutateToggleLike } = useToggleLike();
-  const toggleLike = (profileId, type = 'NORMAL') => mutateToggleLike({ profileId, type });
+  const toggleLike = (profileId: any, type = 'NORMAL') => (mutateToggleLike as any)({ profileId, type });
   const router = useRouter();
 
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("about");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showGallery, setShowGallery] = useState(false);
-  const [currentInteraction, setCurrentInteraction] = useState(null);
+  const [currentInteraction, setCurrentInteraction] = useState<any>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDesc, setReportDesc] = useState("");
@@ -479,7 +479,7 @@ const UserProfilePage = () => {
   const fetchProfileData = async () => {
     try {
       setLoading(true);
-      const profileRes = await ProfileService.getPublicProfile(id);
+      const profileRes: any = await ProfileService.getPublicProfile(id as string);
       const profileData = profileRes.data || profileRes;
 
       setProfile(profileData);
@@ -631,11 +631,13 @@ const UserProfilePage = () => {
         {[
           ["Religion", profile.religion ? profile.religion.replace(/_/g, ' ') : null],
           ["Religious Practices", profile.religiousPractices],
-          ["Cultural Values", profile.culturalValues],
-          ["Family Background", profile.familyBackground],
-          ["Family Type", profile.familyType ? (profile.familyType === 'NUCLEAR' ? 'Nuclear Family' : profile.familyType === 'EXTENDED' ? 'Extended Family' : profile.familyType.replace(/_/g, ' ')) : null],
-          ["Relocation Willingness", profile.relocationWillingness ? (profile.relocationWillingness === 'WITHIN_DISTRICT' ? 'Within current area' : profile.relocationWillingness === 'WITHIN_SRI_LANKA' ? 'Within Sri Lanka' : profile.relocationWillingness === 'ANYWHERE' ? 'Anywhere (including abroad)' : profile.relocationWillingness.replace(/_/g, ' ')) : null],
-          ["Wedding Preferences", profile.weddingPreferences],
+          ...(profile.privacySettings?.showFamilyDetails !== false ? [
+            ["Cultural Values", profile.culturalValues],
+            ["Family Background", profile.familyBackground],
+            ["Family Type", profile.familyType ? (profile.familyType === 'NUCLEAR' ? 'Nuclear Family' : profile.familyType === 'EXTENDED' ? 'Extended Family' : profile.familyType.replace(/_/g, ' ')) : null],
+            ["Wedding Preferences", profile.weddingPreferences],
+          ] : []),
+          ["Relocation Willingness", profile.relocationWillingness ? (profile.relocationWillingness === 'WITHIN_CURRENT_AREA' || profile.relocationWillingness === 'WITHIN_DISTRICT' ? 'Within current area' : profile.relocationWillingness === 'WITHIN_SRI_LANKA' ? 'Within Sri Lanka' : profile.relocationWillingness === 'ANYWHERE_INCLUDING_ABROAD' || profile.relocationWillingness === 'ANYWHERE' ? 'Anywhere (including abroad)' : profile.relocationWillingness.replace(/_/g, ' ')) : null],
         ].map(([label, value]) => (
           <div key={label} className="up-info-item">
             <span className="up-info-label">{label}</span>
@@ -666,6 +668,7 @@ const UserProfilePage = () => {
           ["Industry", profile.industry],
           ["Employer", profile.employer],
           ["Work Location", profile.workLocation],
+          ...(profile.privacySettings?.showIncomeRange ? [["Income Range", profile.income]] : []),
         ].map(([label, value]) => (
           <div key={label} className="up-info-item">
             <span className="up-info-label">{label}</span>
@@ -717,7 +720,7 @@ const UserProfilePage = () => {
           {Object.entries(profile.favoriteThings).map(([key, val]) => (
             <div key={key} className="up-info-item">
               <span className="up-info-label" style={{ textTransform: 'capitalize' }}>{key}</span>
-              <span className="up-info-value" style={{ color: val ? "#4a3028" : "#9a7060" }}>{val || "Not specified"}</span>
+              <span className="up-info-value" style={{ color: val ? "#4a3028" : "#9a7060" }}>{String(val || "Not specified")}</span>
             </div>
           ))}
         </div>
@@ -857,7 +860,7 @@ const UserProfilePage = () => {
                   {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                 </span>
                 <span className="up-pref-value" style={{ textTransform: Array.isArray(val) ? "none" : "capitalize" }}>
-                  {displayValue || "No preference"}
+                  {String(displayValue || "No preference")}
                 </span>
               </div>
             );
@@ -866,6 +869,16 @@ const UserProfilePage = () => {
           <p style={{ fontSize: "0.84rem", color: "#9a7060", fontStyle: "italic", margin: "0.25rem 0 1rem" }}>
             {profile.firstName} hasn't specified partner preferences yet.
           </p>
+        )}
+        {profile.futureAspirations && (
+          <>
+            <div className="up-section-divider" />
+            <div className="up-subsection-title"><Sparkles size={11} />Future Aspirations & Goals</div>
+            <p 
+              style={{ fontSize: "0.85rem", color: "#4a3028", lineHeight: 1.65 }}
+              dangerouslySetInnerHTML={{ __html: sanitize(profile.futureAspirations) }}
+            />
+          </>
         )}
         <div className="up-section-divider" />
         <div className="up-subsection-title" style={{ color: "#c03060" }}><X size={11} />Dealbreakers</div>
@@ -883,13 +896,14 @@ const UserProfilePage = () => {
     );
   };
 
+  const privacy = profile.privacySettings || {};
   const TABS = [
     { key: "about", label: "About", icon: User, Component: AboutTab },
     { key: "details", label: "Details", icon: BookOpen, Component: DetailsTab },
     { key: "interests", label: "Interests", icon: Sparkles, Component: InterestsTab },
     { key: "lifestyle", label: "Lifestyle", icon: Activity, Component: LifestyleTab },
-    { key: "compatibility", label: "Compatibility", icon: HeartHandshake, Component: CompatibilityTab },
-    { key: "preferences", label: "Preferences", icon: Target, Component: PreferencesTab },
+    ...(privacy.showQuizAnswers !== false ? [{ key: "compatibility", label: "Compatibility", icon: HeartHandshake, Component: CompatibilityTab }] : []),
+    ...(privacy.showPartnerPreferences !== false ? [{ key: "preferences", label: "Preferences", icon: Target, Component: PreferencesTab }] : []),
   ];
 
   const ActiveComponent = TABS.find(t => t.key === activeTab)?.Component || AboutTab;
@@ -921,7 +935,7 @@ const UserProfilePage = () => {
                   {(profile.boosted || profile.isBoosted) && <span className="up-boosted-badge"><Zap size={9} />Boosted</span>}
                 </div>
                 <div className="up-meta">
-                  {profile.city && <span className="up-meta-item"><MapPin size={12} />{profile.city}</span>}
+                  {(privacy.showExactLocation !== false && profile.city) && <span className="up-meta-item"><MapPin size={12} />{profile.city}</span>}
                   {profile.profession && <span className="up-meta-item"><Briefcase size={12} />{profile.profession}</span>}
                 </div>
               </div>

@@ -81,6 +81,8 @@ public class ProfileRequest {
 
     private Map<String, Object> partnerPreferences;
     private String dealbreakers;
+    private String futureAspirations;
+    private Map<String, Object> privacySettings;
     
     private Map<String, String> quizAnswers;
 }

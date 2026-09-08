@@ -36,15 +36,15 @@ import useAuthStore from '../store/useAuthStore';
 import { useRouter } from 'expo-router';
 import { COMPATIBILITY_CATEGORIES } from '../constants/compatibility';
 
-const RELIGIONS = ['Buddhist', 'Hindu', 'Muslim', 'Christian', 'Catholic', 'No Religion', 'Other'];
+const RELIGIONS = ['Buddhist', 'Hindu', 'Islam', 'Christian', 'Catholic', 'No Religion', 'Other'];
 const ETHNICITIES = ['Sinhalese', 'Tamil', 'Moor', 'Burgher', 'Malay', 'Other'];
 const MARITAL_STATUSES = ['Never Married', 'Divorced', 'Widowed', 'Separated', 'Annulled'];
 const EDUCATION_LEVELS = ['High School', 'Diploma', 'Bachelors', 'Masters', 'Doctorate', 'Professional Certification', 'Other'];
-const BODY_TYPES = ['Slim', 'Athletic', 'Average', 'Overweight', 'Plus Size', 'Muscular'];
+const BODY_TYPES = ['Slim', 'Athletic', 'Average', 'Muscular', 'Heavy'];
 const COMPLEXIONS = ['Fair', 'Wheatish', 'Medium', 'Dusky', 'Dark'];
 const SMOKING_HABITS = ['Never', 'Occasionally', 'Regularly', 'Trying to Quit'];
 const DRINKING_HABITS = ['Never', 'Socially', 'Occasionally', 'Regularly'];
-const DIETARY_PREFS = ['Vegetarian', 'Vegan', 'Non Vegetarian', 'Pescatarian', 'No Preference'];
+const DIETARY_PREFS = ['Vegetarian', 'Vegan', 'Non Vegetarian', 'Eggetarian', 'Halal', 'Pescatarian', 'No Preference'];
 const FAMILY_TYPES = ['Nuclear', 'Extended'];
 const RELOCATION_OPTIONS = ['Within current area', 'Within Sri Lanka', 'Anywhere (including abroad)'];
 const INDUSTRIES = ['Technology', 'Healthcare', 'Finance', 'Education', 'Engineering', 'Arts', 'Government', 'Other'];
@@ -334,19 +334,20 @@ export default function EditProfileScreen() {
         numberOfChildren: formData.hasChildren ? Number(formData.numberOfChildren) || 0 : 0,
         partnerPreferences: {
           ...formData.partnerPreferences,
-          minAge: Array.isArray(formData.partnerPreferences?.ageRange)
-            ? formData.partnerPreferences.ageRange[0]
-            : formData.partnerPreferences?.minAge || 24,
-          maxAge: Array.isArray(formData.partnerPreferences?.ageRange)
-            ? formData.partnerPreferences.ageRange[1]
-            : formData.partnerPreferences?.maxAge || 32,
-          minHeight: Array.isArray(formData.partnerPreferences?.heightPreference)
-            ? formData.partnerPreferences.heightPreference[0]
-            : formData.partnerPreferences?.minHeight || 150,
-          maxHeight: Array.isArray(formData.partnerPreferences?.heightPreference)
-            ? formData.partnerPreferences.heightPreference[1]
-            : formData.partnerPreferences?.maxHeight || 185,
+          ageRange: Array.isArray(formData.partnerPreferences?.ageRange)
+            ? formData.partnerPreferences.ageRange
+            : [formData.partnerPreferences?.minAge || 24, formData.partnerPreferences?.maxAge || 32],
+          heightPreference: Array.isArray(formData.partnerPreferences?.heightPreference)
+            ? formData.partnerPreferences.heightPreference
+            : [formData.partnerPreferences?.minHeight || 150, formData.partnerPreferences?.maxHeight || 185],
+          religionPreference: toUpperEnum(formData.partnerPreferences?.religionPreference || formData.partnerPreferences?.religion),
+          maritalStatusPreference: toUpperEnum(formData.partnerPreferences?.maritalStatusPreference || formData.partnerPreferences?.maritalStatus),
+          educationLevel: toUpperEnum(formData.partnerPreferences?.educationLevel || formData.partnerPreferences?.education),
+          preferredGender: toUpperEnum(formData.partnerPreferences?.preferredGender),
+          locationPreference: formData.partnerPreferences?.locationPreference || formData.partnerPreferences?.location || '',
+          lifestyleCompatibility: formData.partnerPreferences?.lifestyleCompatibility || '',
         },
+        futureAspirations: formData.futureAspirations || '',
         quizAnswers: formData.quizAnswers || {},
       };
 
@@ -461,7 +462,7 @@ export default function EditProfileScreen() {
 
             <Text style={styles.inputLabel}>Gender</Text>
             <View style={styles.chipRow}>
-              {['female', 'male'].map((g) => (
+              {['female', 'male', 'other'].map((g) => (
                 <TouchableOpacity
                   key={g}
                   style={[styles.chip, formData.gender === g && styles.selectedChip]}
@@ -1001,7 +1002,7 @@ export default function EditProfileScreen() {
             {/* Religion Preference */}
             <Text style={styles.inputLabel}>Religion Preference</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollChips}>
-              {[{ value: '', label: 'No Preference' }, { value: 'BUDDHIST', label: 'Buddhist' }, { value: 'HINDU', label: 'Hindu' }, { value: 'MUSLIM', label: 'Muslim' }, { value: 'CHRISTIAN', label: 'Christian' }, { value: 'CATHOLIC', label: 'Catholic' }, { value: 'NO_RELIGION', label: 'No Religion' }, { value: 'OTHER', label: 'Other' }].map(item => (
+              {[{ value: '', label: 'No Preference' }, { value: 'BUDDHIST', label: 'Buddhist' }, { value: 'HINDU', label: 'Hindu' }, { value: 'ISLAM', label: 'Islam' }, { value: 'CHRISTIAN', label: 'Christian' }, { value: 'CATHOLIC', label: 'Catholic' }, { value: 'NO_RELIGION', label: 'No Religion' }, { value: 'OTHER', label: 'Other' }].map(item => (
                 <TouchableOpacity
                   key={item.value}
                   style={[styles.chip, (formData.partnerPreferences?.religionPreference ?? formData.partnerPreferences?.religion ?? '') === item.value && styles.selectedChip]}
@@ -1048,6 +1049,28 @@ export default function EditProfileScreen() {
               placeholderTextColor={Colors.textLight}
               value={formData.partnerPreferences?.locationPreference || formData.partnerPreferences?.location || ''}
               onChangeText={v => handlePartnerPrefChange('locationPreference', v)}
+            />
+
+            {/* Lifestyle Compatibility */}
+            <Text style={[styles.inputLabel, { marginTop: Spacing.md }]}>Lifestyle Compatibility</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g. Non-smoker, active lifestyle, vegetarian"
+              placeholderTextColor={Colors.textLight}
+              value={formData.partnerPreferences?.lifestyleCompatibility || ''}
+              onChangeText={v => handlePartnerPrefChange('lifestyleCompatibility', v)}
+            />
+
+            {/* Future Aspirations */}
+            <Text style={[styles.inputLabel, { marginTop: Spacing.md }]}>Future Aspirations & Goals</Text>
+            <TextInput
+              style={[styles.textInput, { minHeight: 70, textAlignVertical: 'top' }]}
+              placeholder="Where do you see yourself in 5 years? Career, family, personal dreams..."
+              placeholderTextColor={Colors.textLight}
+              multiline
+              numberOfLines={3}
+              value={formData.futureAspirations || ''}
+              onChangeText={v => handleChange('futureAspirations', v)}
             />
 
             {/* Dealbreakers */}

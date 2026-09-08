@@ -3,9 +3,9 @@ package com.ceycodez.srimatch.model.enums;
 public enum Religion {
     BUDDHIST,
     HINDU,
-    MUSLIM,
+    ISLAM,
     CHRISTIAN,
     CATHOLIC,
-    OTHER,
-    NO_RELIGION
+    NO_RELIGION,
+    OTHER
 }

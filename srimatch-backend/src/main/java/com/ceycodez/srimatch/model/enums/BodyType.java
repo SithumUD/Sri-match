@@ -4,7 +4,6 @@ public enum BodyType {
     SLIM,
     ATHLETIC,
     AVERAGE,
-    OVERWEIGHT,
-    PLUS_SIZE,
-    MUSCULAR
+    MUSCULAR,
+    HEAVY
 }

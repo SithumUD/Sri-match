@@ -107,6 +107,13 @@ export default function UserProfileScreen() {
       ? profile.images.map((img: any) => (typeof img === 'string' ? img : img.imageUrl || img.url))
       : [profile?.primaryImageUrl || profile?.profileImage || profile?.profileImageUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80'];
 
+  const privacy = profile?.privacySettings || {};
+  const showLocation = privacy.showExactLocation !== false;
+  const showFamily = privacy.showFamilyDetails !== false;
+  const showIncome = privacy.showIncomeRange === true;
+  const showPreferences = privacy.showPartnerPreferences !== false;
+  const showQuiz = privacy.showQuizAnswers !== false;
+
   const handleLike = (type: 'NORMAL' | 'STAR') => {
     if (!profile?.id) return;
     mutateToggleLike({ profileId: profile.id, type });
@@ -303,7 +310,7 @@ export default function UserProfileScreen() {
               <View style={styles.heroMetaItem}>
                 <MapPin size={13} color="#fff" />
                 <Text style={styles.heroMetaText}>
-                  {profile.city || 'Sri Lanka'}
+                  {showLocation ? (profile.city || 'Sri Lanka') : 'Sri Lanka'}
                 </Text>
               </View>
               {profile.profession ? (
@@ -409,7 +416,18 @@ export default function UserProfileScreen() {
                 </Text>
               </View>
 
-              <View style={styles.sectionHeader}>
+              {profile.futureAspirations ? (
+                <>
+                  <View style={[styles.sectionHeader, { marginTop: Spacing.lg }]}>
+                    <Text style={styles.sectionTitle}>Future Aspirations & Goals</Text>
+                  </View>
+                  <View style={styles.bioBox}>
+                    <Text style={styles.bioText}>{profile.futureAspirations}</Text>
+                  </View>
+                </>
+              ) : null}
+
+              <View style={[styles.sectionHeader, { marginTop: Spacing.lg }]}>
                 <Text style={styles.sectionTitle}>Basic Information</Text>
               </View>
               <View style={styles.infoTable}>
@@ -436,7 +454,10 @@ export default function UserProfileScreen() {
                 <Text style={styles.sectionTitle}>Location</Text>
               </View>
               <View style={styles.infoTable}>
-                <InfoRow label="Current City" value={profile.city} />
+                <InfoRow
+                  label="Current Location"
+                  value={showLocation ? profile.city : 'Sri Lanka (Exact city hidden by user)'}
+                />
               </View>
             </View>
           )}
@@ -451,11 +472,24 @@ export default function UserProfileScreen() {
                 <InfoRow label="Religion" value={profile.religion} />
                 <InfoRow label="Religious Practices" value={profile.religiousPractices} />
                 <InfoRow label="Cultural Values" value={profile.culturalValues} />
-                <InfoRow label="Family Background" value={profile.familyBackground} />
-                <InfoRow label="Family Type" value={profile.familyType} />
-                <InfoRow label="Family Involvement" value={profile.familyInvolvement} />
-                <InfoRow label="Wedding Preferences" value={profile.weddingPreferences} />
               </View>
+
+              <View style={[styles.sectionHeader, { marginTop: Spacing.lg }]}>
+                <Text style={styles.sectionTitle}>Family Background</Text>
+              </View>
+              {showFamily ? (
+                <View style={styles.infoTable}>
+                  <InfoRow label="Family Background" value={profile.familyBackground} />
+                  <InfoRow label="Family Type" value={profile.familyType} />
+                  <InfoRow label="Family Involvement" value={profile.familyInvolvement} />
+                  <InfoRow label="Wedding Preferences" value={profile.weddingPreferences} />
+                </View>
+              ) : (
+                <View style={styles.privateNoticeBox}>
+                  <Lock size={16} color={Colors.textMuted} />
+                  <Text style={styles.privateNoticeText}>Family details are kept private by {profile.firstName}.</Text>
+                </View>
+              )}
 
               {/* Languages */}
               <View style={[styles.sectionHeader, { marginTop: Spacing.lg }]}>
@@ -484,7 +518,9 @@ export default function UserProfileScreen() {
                 <InfoRow label="Industry" value={profile.industry} />
                 <InfoRow label="Employer" value={profile.employer} />
                 <InfoRow label="Work Location" value={profile.workLocation} />
-                <InfoRow label="Annual Income" value={profile.income} />
+                {showIncome && profile.income ? (
+                  <InfoRow label="Annual Income" value={profile.income} />
+                ) : null}
                 <InfoRow label="Relocation" value={profile.relocationWillingness} />
               </View>
             </View>
@@ -578,38 +614,47 @@ export default function UserProfileScreen() {
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>What {profile.firstName} Is Looking For</Text>
               </View>
-              {profile.partnerPreferences && Object.keys(profile.partnerPreferences).length > 0 ? (
-                <View style={styles.infoTable}>
-                  {Object.entries(profile.partnerPreferences)
-                    .filter(([_, val]) => val !== null && val !== undefined && val !== '')
-                    .map(([key, val]: [string, any]) => {
-                      let displayValue: any = val;
-                      if (Array.isArray(val) && val.length === 2 && typeof val[0] === 'number') {
-                        displayValue = `${val[0]} – ${val[1]} ${key.toLowerCase().includes('age') ? 'years' : 'cm'}`;
-                      } else if (Array.isArray(val)) {
-                        displayValue = val.join(', ');
-                      }
-                      const formattedKey = key
-                        .replace(/([A-Z])/g, ' $1')
-                        .replace(/^./, (str) => str.toUpperCase());
-
-                      return <InfoRow key={key} label={formattedKey} value={displayValue} />;
-                    })}
-                </View>
-              ) : (
-                <Text style={styles.emptyNotice}>No partner preferences specified yet.</Text>
-              )}
-
-              {profile.dealbreakers ? (
+              {showPreferences ? (
                 <>
-                  <View style={[styles.sectionHeader, { marginTop: Spacing.lg }]}>
-                    <Text style={styles.sectionTitle}>Dealbreakers</Text>
-                  </View>
-                  <View style={[styles.bioBox, { borderLeftColor: Colors.errorRed }]}>
-                    <Text style={styles.bioText}>{profile.dealbreakers}</Text>
-                  </View>
+                  {profile.partnerPreferences && Object.keys(profile.partnerPreferences).length > 0 ? (
+                    <View style={styles.infoTable}>
+                      {Object.entries(profile.partnerPreferences)
+                        .filter(([_, val]) => val !== null && val !== undefined && val !== '')
+                        .map(([key, val]: [string, any]) => {
+                          let displayValue: any = val;
+                          if (Array.isArray(val) && val.length === 2 && typeof val[0] === 'number') {
+                            displayValue = `${val[0]} – ${val[1]} ${key.toLowerCase().includes('age') ? 'years' : 'cm'}`;
+                          } else if (Array.isArray(val)) {
+                            displayValue = val.join(', ');
+                          }
+                          const formattedKey = key
+                            .replace(/([A-Z])/g, ' $1')
+                            .replace(/^./, (str) => str.toUpperCase());
+
+                          return <InfoRow key={key} label={formattedKey} value={displayValue} />;
+                        })}
+                    </View>
+                  ) : (
+                    <Text style={styles.emptyNotice}>No partner preferences specified yet.</Text>
+                  )}
+
+                  {profile.dealbreakers ? (
+                    <>
+                      <View style={[styles.sectionHeader, { marginTop: Spacing.lg }]}>
+                        <Text style={styles.sectionTitle}>Dealbreakers</Text>
+                      </View>
+                      <View style={[styles.bioBox, { borderLeftColor: Colors.errorRed }]}>
+                        <Text style={styles.bioText}>{profile.dealbreakers}</Text>
+                      </View>
+                    </>
+                  ) : null}
                 </>
-              ) : null}
+              ) : (
+                <View style={styles.privateNoticeBox}>
+                  <Lock size={16} color={Colors.textMuted} />
+                  <Text style={styles.privateNoticeText}>Partner preferences are kept private by {profile.firstName}.</Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -619,57 +664,66 @@ export default function UserProfileScreen() {
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Compatibility Quiz Answers</Text>
               </View>
-              <Text style={styles.quizTabSubtitle}>
-                See {profile.firstName}'s answers to compatibility questions on values, family life, and lifestyle.
-              </Text>
-
-              {COMPATIBILITY_CATEGORIES.map((category) => {
-                const answeredQuestions = category.questions.filter(
-                  (q) => profile.quizAnswers && profile.quizAnswers[q.id]
-                );
-
-                if (answeredQuestions.length === 0) return null;
-
-                return (
-                  <View key={category.category} style={styles.profileQuizCategory}>
-                    <Text style={styles.profileQuizCategoryTitle}>
-                      {category.icon} {category.category}
-                    </Text>
-                    {answeredQuestions.map((q, idx) => {
-                      const answer = profile.quizAnswers[q.id];
-                      const myAnswer = currentUser?.quizAnswers?.[q.id];
-                      const isMutual = Boolean(myAnswer && myAnswer === answer);
-
-                      return (
-                        <View key={q.id} style={styles.profileQuizCard}>
-                          <Text style={styles.profileQuizQuestion}>
-                            {idx + 1}. {q.question}
-                          </Text>
-                          <View style={styles.profileQuizAnswerRow}>
-                            <View style={styles.profileQuizAnswerBadge}>
-                              <Text style={styles.profileQuizAnswerText}>{answer}</Text>
-                            </View>
-                            {isMutual && (
-                              <View style={styles.profileMutualBadge}>
-                                <CheckCircle2 size={12} color="#16a34a" />
-                                <Text style={styles.profileMutualText}>Mutual Match</Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
-                );
-              })}
-
-              {(!profile.quizAnswers || Object.keys(profile.quizAnswers).length === 0) && (
-                <View style={styles.emptyQuizBox}>
-                  <Zap size={32} color={Colors.primaryMedium} />
-                  <Text style={styles.emptyQuizTitle}>No Quiz Answers Yet</Text>
-                  <Text style={styles.emptyQuizDesc}>
-                    {profile.firstName} hasn't completed any compatibility quiz questions yet.
+              {showQuiz ? (
+                <>
+                  <Text style={styles.quizTabSubtitle}>
+                    See {profile.firstName}'s answers to compatibility questions on values, family life, and lifestyle.
                   </Text>
+
+                  {COMPATIBILITY_CATEGORIES.map((category) => {
+                    const answeredQuestions = category.questions.filter(
+                      (q) => profile.quizAnswers && profile.quizAnswers[q.id]
+                    );
+
+                    if (answeredQuestions.length === 0) return null;
+
+                    return (
+                      <View key={category.category} style={styles.profileQuizCategory}>
+                        <Text style={styles.profileQuizCategoryTitle}>
+                          {category.icon} {category.category}
+                        </Text>
+                        {answeredQuestions.map((q, idx) => {
+                          const answer = profile.quizAnswers[q.id];
+                          const myAnswer = currentUser?.quizAnswers?.[q.id];
+                          const isMutual = Boolean(myAnswer && myAnswer === answer);
+
+                          return (
+                            <View key={q.id} style={styles.profileQuizCard}>
+                              <Text style={styles.profileQuizQuestion}>
+                                {idx + 1}. {q.question}
+                              </Text>
+                              <View style={styles.profileQuizAnswerRow}>
+                                <View style={styles.profileQuizAnswerBadge}>
+                                  <Text style={styles.profileQuizAnswerText}>{answer}</Text>
+                                </View>
+                                {isMutual && (
+                                  <View style={styles.profileMutualBadge}>
+                                    <CheckCircle2 size={12} color="#16a34a" />
+                                    <Text style={styles.profileMutualText}>Mutual Match</Text>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    );
+                  })}
+
+                  {(!profile.quizAnswers || Object.keys(profile.quizAnswers).length === 0) && (
+                    <View style={styles.emptyQuizBox}>
+                      <Zap size={32} color={Colors.primaryMedium} />
+                      <Text style={styles.emptyQuizTitle}>No Quiz Answers Yet</Text>
+                      <Text style={styles.emptyQuizDesc}>
+                        {profile.firstName} hasn't completed any compatibility quiz questions yet.
+                      </Text>
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={styles.privateNoticeBox}>
+                  <Lock size={16} color={Colors.textMuted} />
+                  <Text style={styles.privateNoticeText}>Compatibility quiz responses are kept private by {profile.firstName}.</Text>
                 </View>
               )}
             </View>
@@ -1427,6 +1481,23 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: 'center',
     maxWidth: 260,
+  },
+  privateNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#fbf8f6',
+    borderWidth: 1,
+    borderColor: '#eee5df',
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  privateNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
   },
 });
 
