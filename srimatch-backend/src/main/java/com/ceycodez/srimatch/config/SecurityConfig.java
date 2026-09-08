@@ -113,7 +113,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @org.springframework.beans.factory.annotation.Value("${cors.allowed.origins:*}")
+    @org.springframework.beans.factory.annotation.Value("${cors.allowed.origins:}")
     private String allowedOrigins;
 
     // ==============================
@@ -124,14 +124,12 @@ public class SecurityConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        List<String> origins = java.util.Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
+        if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
+            List<String> origins = java.util.Arrays.stream(allowedOrigins.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
 
-        if (origins.isEmpty() || origins.contains("*")) {
-            config.setAllowedOriginPatterns(List.of("*"));
-        } else {
             config.setAllowedOriginPatterns(origins);
         }
 

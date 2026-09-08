@@ -69,7 +69,7 @@ services:
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
       TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://srimatch.com,https://www.srimatch.com}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Duser.timezone=Asia/Colombo"
     volumes:
       - backend_uploads:/app/uploads

@@ -123,8 +123,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error: any) {
       console.warn('Login execution error:', error);
       const serverMsg =
-        error?.message ||
         error?.response?.data?.message ||
+        error?.message ||
         (typeof error === 'string' ? error : null) ||
         'Unable to connect to server. Please check your credentials or network.';
       return {
@@ -144,8 +144,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error: any) {
       console.warn('Registration execution error:', error);
       const serverMsg =
-        error?.message ||
         error?.response?.data?.message ||
+        error?.message ||
         (typeof error === 'string' ? error : null) ||
         'Registration failed. Please try again.';
       return {

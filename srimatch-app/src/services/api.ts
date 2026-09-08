@@ -22,7 +22,6 @@ export const API = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
   },
   timeout: 25000,
 });
@@ -36,15 +35,15 @@ const AUTH_BYPASS_URLS = [
   '/auth/refresh-token',
 ];
 
-// Request interceptor to attach JWT token
+// Request interceptor to attach JWT token & headers
 API.interceptors.request.use(
   async (config) => {
     try {
       config.headers = config.headers || {};
-      config.headers['X-Requested-With'] = 'XMLHttpRequest';
 
       const isAuthBypass = AUTH_BYPASS_URLS.some((url) => config.url?.includes(url));
       if (!isAuthBypass) {
+        config.headers['X-Requested-With'] = 'XMLHttpRequest';
         const token = await AsyncStorage.getItem('srimatch_token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;

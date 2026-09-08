@@ -169,7 +169,7 @@ jobs:
             BREVO_SENDER_NAME=${{ secrets.BREVO_SENDER_NAME || 'SriMatch' }}
             PROKERALA_CLIENT_ID=${{ secrets.PROKERALA_CLIENT_ID }}
             PROKERALA_CLIENT_SECRET=${{ secrets.PROKERALA_CLIENT_SECRET }}
-            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS || 'https://sithum-dev.online,https://www.sithum-dev.online' }}
+            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
             GITHUB_REPOSITORY=${REPO_LOWER}
             EOF
 
