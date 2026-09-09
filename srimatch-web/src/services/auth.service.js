@@ -69,6 +69,13 @@ const AuthService = {
     },
 
     /**
+     * Disable 2FA with current OTP
+     */
+    disable2FA: (totpCode) => {
+        return API.post('/auth/2fa/disable', { totpCode });
+    },
+
+    /**
      * Password Management
      */
     forgotPassword: (emailData) => {

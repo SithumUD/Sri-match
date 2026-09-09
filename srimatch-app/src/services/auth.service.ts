@@ -44,12 +44,27 @@ export const AuthService = {
     return API.post('/auth/reset-password', passwordData);
   },
 
-  updatePassword: (updateData: { oldPassword: string; newPassword: string }) => {
-    return API.post('/auth/update-password', updateData);
+  updatePassword: (updateData: { oldPassword?: string; currentPassword?: string; newPassword: string }) => {
+    return API.post('/auth/update-password', {
+      currentPassword: updateData.currentPassword || updateData.oldPassword,
+      newPassword: updateData.newPassword,
+    });
   },
 
   logout: () => {
     return API.post('/auth/logout');
+  },
+
+  setup2FA: () => {
+    return API.post('/auth/2fa/setup');
+  },
+
+  confirm2FA: (totpCode: number) => {
+    return API.post('/auth/2fa/confirm', { totpCode });
+  },
+
+  disable2FA: (totpCode: number) => {
+    return API.post('/auth/2fa/disable', { totpCode });
   },
 };
 

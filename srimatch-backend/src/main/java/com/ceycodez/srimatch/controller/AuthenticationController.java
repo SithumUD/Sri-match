@@ -114,6 +114,19 @@ public class AuthenticationController {
         return ResponseEntity.ok(new ApiResponse<>(true, "2FA has been enabled successfully for your account.", null));
     }
 
+    @PostMapping("/2fa/disable")
+    public ResponseEntity<ApiResponse<String>> disable2FA(
+            @RequestBody Map<String, Integer> body,
+            Authentication authentication
+    ) {
+        Integer totpCode = body.get("totpCode");
+        if (totpCode == null) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "totpCode is required to disable 2FA", null));
+        }
+        authenticationService.disable2FA(authentication.getName(), totpCode);
+        return ResponseEntity.ok(new ApiResponse<>(true, "2FA has been disabled for your account.", null));
+    }
+
     // ── Email / Phone Verification ─────────────────────────────────────────────
 
     @PostMapping("/verify-email")

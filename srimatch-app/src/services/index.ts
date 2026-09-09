@@ -263,6 +263,15 @@ export const UserService = {
   deleteAccount: () => {
     return API.delete('/users/me');
   },
+  getActiveSessions: () => {
+    return API.get('/users/me/sessions');
+  },
+  revokeSession: (sessionId: number | string) => {
+    return API.delete(`/users/me/sessions/${sessionId}`);
+  },
+  revokeAllOtherSessions: () => {
+    return API.delete('/users/me/sessions');
+  },
 };
 
 export * from './profile.service';

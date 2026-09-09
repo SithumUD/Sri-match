@@ -364,6 +364,56 @@ public class UserService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public List<com.ceycodez.srimatch.dto.response.UserSessionResponse> getActiveSessions(String email, String currentToken) {
+        User user = getUserByEmail(email);
+        List<com.ceycodez.srimatch.model.RefreshToken> tokens = refreshTokenRepository
+                .findByUserAndRevokedFalseAndExpiresAtAfterOrderByCreatedAtDesc(user, LocalDateTime.now());
+
+        return tokens.stream().map(t -> {
+            String ua = t.getUserAgent();
+            String device = "Desktop Browser";
+            if (ua != null) {
+                if (ua.contains("Android") || ua.contains("Expo") || ua.contains("Mobile")) {
+                    device = "Android Device";
+                } else if (ua.contains("iPhone") || ua.contains("iPad")) {
+                    device = "iOS Device";
+                } else if (ua.contains("Macintosh")) {
+                    device = "Mac · Safari/Chrome";
+                } else if (ua.contains("Windows")) {
+                    device = "Windows PC · Browser";
+                } else if (ua.contains("Linux")) {
+                    device = "Linux Workstation";
+                }
+            }
+            boolean isCurrent = currentToken != null && t.getToken() != null && t.getToken().equals(currentToken);
+            return com.ceycodez.srimatch.dto.response.UserSessionResponse.builder()
+                    .id(t.getId())
+                    .device(device)
+                    .userAgent(ua)
+                    .ipAddress(t.getIpAddress() != null ? t.getIpAddress() : "127.0.0.1")
+                    .createdAt(t.getCreatedAt())
+                    .expiresAt(t.getExpiresAt())
+                    .current(isCurrent)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void revokeSession(String email, Long sessionId) {
+        User user = getUserByEmail(email);
+        com.ceycodez.srimatch.model.RefreshToken token = refreshTokenRepository.findByIdAndUser(sessionId, user)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+        refreshTokenRepository.delete(token);
+    }
+
+    @Transactional
+    public void revokeOtherSessions(String email) {
+        User user = getUserByEmail(email);
+        // Delete all refresh tokens for this user
+        refreshTokenRepository.deleteByUser(user);
+    }
+
     private UserResponse mapToResponse(User user) {
         boolean isIdVerified = user.getProfile() != null && user.getProfile().isIdVerified();
         String verificationStatus = verificationRepository.findByUser(user)

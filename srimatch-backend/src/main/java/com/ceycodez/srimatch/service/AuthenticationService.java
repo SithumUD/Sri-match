@@ -252,36 +252,50 @@ public class AuthenticationService {
     }
 
     // ============================================================
-    // ADMIN 2FA SETUP
+    // TWO-FACTOR AUTHENTICATION (2FA / TOTP)
     // ============================================================
     @Transactional
-    public TotpService.TotpSetupResult setup2FA(String adminEmail) {
-        User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new RuntimeException("Admin not found"));
-        if (!isAdmin(admin)) {
-            throw new RuntimeException("2FA setup is only available for admin accounts");
-        }
-        TotpService.TotpSetupResult result = totpService.generateSecret(adminEmail);
-        admin.setTotpSecret(encryptionService.encryptString(result.secret()));
-        // Note: 2FA is NOT yet enabled until the admin confirms a successful TOTP code
-        userRepository.save(admin);
+    public TotpService.TotpSetupResult setup2FA(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        TotpService.TotpSetupResult result = totpService.generateSecret(email);
+        user.setTotpSecret(encryptionService.encryptString(result.secret()));
+        // Note: 2FA is NOT yet enabled until the user confirms a successful TOTP code
+        userRepository.save(user);
         return result;
     }
 
     @Transactional
-    public void confirm2FA(String adminEmail, int totpCode) {
-        User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new RuntimeException("Admin not found"));
-        if (admin.getTotpSecret() == null) {
+    public void confirm2FA(String email, int totpCode) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (user.getTotpSecret() == null) {
             throw new RuntimeException("2FA setup has not been initiated. Call /v1/auth/2fa/setup first.");
         }
-        String decryptedSecret = encryptionService.decryptString(admin.getTotpSecret());
+        String decryptedSecret = encryptionService.decryptString(user.getTotpSecret());
         if (!totpService.validate(decryptedSecret, totpCode)) {
             throw new RuntimeException("Invalid 2FA code. Please scan the QR code again and retry.");
         }
-        admin.setTotpEnabled(true);
-        userRepository.save(admin);
-        auditLogService.log(adminEmail, admin.getId(), "ADMIN_2FA_ENABLED", "USER", admin.getId(), "Admin enabled 2FA", null);
+        user.setTotpEnabled(true);
+        userRepository.save(user);
+        auditLogService.log(email, user.getId(), "USER_2FA_ENABLED", "USER", user.getId(), "User enabled 2FA", null);
+    }
+
+    @Transactional
+    public void disable2FA(String email, int totpCode) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!user.isTotpEnabled() || user.getTotpSecret() == null) {
+            throw new RuntimeException("2FA is not enabled on this account.");
+        }
+        String decryptedSecret = encryptionService.decryptString(user.getTotpSecret());
+        if (!totpService.validate(decryptedSecret, totpCode)) {
+            throw new RuntimeException("Invalid 2FA code. Please enter the current code from your authenticator app to disable 2FA.");
+        }
+        user.setTotpEnabled(false);
+        user.setTotpSecret(null);
+        userRepository.save(user);
+        auditLogService.log(email, user.getId(), "USER_2FA_DISABLED", "USER", user.getId(), "User disabled 2FA", null);
     }
 
     // ============================================================

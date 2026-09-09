@@ -118,4 +118,54 @@ public class UserController {
                 .data(response)
                 .build());
     }
+
+    @GetMapping("/me/sessions")
+    public ResponseEntity<ApiResponse<java.util.List<com.ceycodez.srimatch.dto.response.UserSessionResponse>>> getActiveSessions(
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest request
+    ) {
+        String email = authentication.getName();
+        String currentToken = null;
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    currentToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        java.util.List<com.ceycodez.srimatch.dto.response.UserSessionResponse> sessions = userService.getActiveSessions(email, currentToken);
+        return ResponseEntity.ok(ApiResponse.<java.util.List<com.ceycodez.srimatch.dto.response.UserSessionResponse>>builder()
+                .success(true)
+                .message("Active sessions retrieved successfully")
+                .data(sessions)
+                .build());
+    }
+
+    @DeleteMapping("/me/sessions/{id}")
+    public ResponseEntity<ApiResponse<String>> revokeSession(
+            @PathVariable("id") Long sessionId,
+            Authentication authentication
+    ) {
+        String email = authentication.getName();
+        userService.revokeSession(email, sessionId);
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .message("Session terminated successfully")
+                .data(null)
+                .build());
+    }
+
+    @DeleteMapping("/me/sessions")
+    public ResponseEntity<ApiResponse<String>> revokeAllOtherSessions(
+            Authentication authentication
+    ) {
+        String email = authentication.getName();
+        userService.revokeOtherSessions(email);
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .message("All other active device sessions have been terminated")
+                .data(null)
+                .build());
+    }
 }

@@ -58,6 +58,28 @@ const UserService = {
      */
     verifyPhone: (otp) => {
         return API.post('/users/me/verify-phone', { otp });
+    },
+
+    /**
+     * Get active device sessions
+     */
+    getActiveSessions: () => {
+        return API.get('/users/me/sessions');
+    },
+
+    /**
+     * Terminate a specific session
+     * @param {number|string} sessionId 
+     */
+    revokeSession: (sessionId) => {
+        return API.delete(`/users/me/sessions/${sessionId}`);
+    },
+
+    /**
+     * Terminate all other sessions
+     */
+    revokeAllOtherSessions: () => {
+        return API.delete('/users/me/sessions');
     }
 };
 

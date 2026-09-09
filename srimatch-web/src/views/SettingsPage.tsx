@@ -8,7 +8,7 @@ import {
   Settings, Bell, Shield, Eye, CreditCard, HelpCircle,
   MessageCircleIcon, CheckCircle, ChevronDown, ChevronUp,
   UserIcon, Lock, Smartphone, Globe, Download, LogOut,
-  AlertTriangle, Crown, Mail, Check, Info,
+  AlertTriangle, Crown, Mail, Check, Info, Laptop, ShieldCheck, X,
 } from "lucide-react";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
@@ -423,6 +423,174 @@ const SettingsPage = () => {
   const [otpMsg, setOtpMsg] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
 
+  // ── 2FA State ──
+  const [twoFaModalOpen, setTwoFaModalOpen] = useState(false);
+  const [disableTwoFaModalOpen, setDisableTwoFaModalOpen] = useState(false);
+  const [twoFaData, setTwoFaData] = useState<{ secret?: string; qrCodeUrl?: string } | null>(null);
+  const [totpCodeInput, setTotpCodeInput] = useState("");
+  const [twoFaLoading, setTwoFaLoading] = useState(false);
+  const [twoFaMsg, setTwoFaMsg] = useState("");
+
+  // ── Active Sessions State ──
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [revokingSessionId, setRevokingSessionId] = useState<number | null>(null);
+  const [revokingAll, setRevokingAll] = useState(false);
+
+  useEffect(() => {
+    if (activeSection === "security") {
+      fetchActiveSessions();
+    }
+  }, [activeSection]);
+
+  const fetchActiveSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/users/me/sessions`, {
+        headers: authHeader,
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setSessions(data.data);
+      }
+    } catch {
+      console.warn("Could not load active sessions");
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId: number) => {
+    if (!window.confirm("Log out this device?")) return;
+    setRevokingSessionId(sessionId);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/users/me/sessions/${sessionId}`, {
+        method: "DELETE",
+        headers: authHeader,
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSessions(prev => prev.filter(s => s.id !== sessionId));
+      } else {
+        alert(data.message || "Failed to revoke session");
+      }
+    } catch {
+      alert("Network error revoking session");
+    } finally {
+      setRevokingSessionId(null);
+    }
+  };
+
+  const handleRevokeAllOtherSessions = async () => {
+    if (!window.confirm("Log out all other devices from your account?")) return;
+    setRevokingAll(true);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/users/me/sessions`, {
+        method: "DELETE",
+        headers: authHeader,
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchActiveSessions();
+        alert("All other sessions logged out successfully.");
+      } else {
+        alert(data.message || "Failed to revoke sessions");
+      }
+    } catch {
+      alert("Network error revoking sessions");
+    } finally {
+      setRevokingAll(false);
+    }
+  };
+
+  const handleOpen2FASetup = async () => {
+    setTwoFaLoading(true);
+    setTwoFaMsg("");
+    setTotpCodeInput("");
+    try {
+      const res = await fetch(`${apiBase}/api/v1/auth/2fa/setup`, {
+        method: "POST",
+        headers: authHeader,
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTwoFaData(data.data);
+        setTwoFaModalOpen(true);
+      } else {
+        alert(data.message || "Could not start 2FA setup");
+      }
+    } catch {
+      alert("Network error initiating 2FA");
+    } finally {
+      setTwoFaLoading(false);
+    }
+  };
+
+  const handleConfirm2FA = async () => {
+    if (!totpCodeInput || totpCodeInput.trim().length !== 6) {
+      setTwoFaMsg("Please enter 6-digit TOTP code");
+      return;
+    }
+    setTwoFaLoading(true);
+    setTwoFaMsg("");
+    try {
+      const res = await fetch(`${apiBase}/api/v1/auth/2fa/confirm`, {
+        method: "POST",
+        headers: authHeader,
+        body: JSON.stringify({ totpCode: parseInt(totpCodeInput.trim(), 10) }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTwoFaModalOpen(false);
+        setTwoFaData(null);
+        setTotpCodeInput("");
+        setUser?.({ ...user, totpEnabled: true, mfaEnabled: true });
+        alert("Two-Factor Authentication is now enabled on your account! ✓");
+      } else {
+        setTwoFaMsg(data.message || "Invalid TOTP code");
+      }
+    } catch {
+      setTwoFaMsg("Network error confirming 2FA");
+    } finally {
+      setTwoFaLoading(false);
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    if (!totpCodeInput || totpCodeInput.trim().length !== 6) {
+      setTwoFaMsg("Please enter 6-digit TOTP code to confirm");
+      return;
+    }
+    setTwoFaLoading(true);
+    setTwoFaMsg("");
+    try {
+      const res = await fetch(`${apiBase}/api/v1/auth/2fa/disable`, {
+        method: "POST",
+        headers: authHeader,
+        body: JSON.stringify({ totpCode: parseInt(totpCodeInput.trim(), 10) }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDisableTwoFaModalOpen(false);
+        setTotpCodeInput("");
+        setUser?.({ ...user, totpEnabled: false, mfaEnabled: false });
+        alert("Two-Factor Authentication has been disabled.");
+      } else {
+        setTwoFaMsg(data.message || "Invalid TOTP code");
+      }
+    } catch {
+      setTwoFaMsg("Network error disabling 2FA");
+    } finally {
+      setTwoFaLoading(false);
+    }
+  };
+
   const handleRequestPhoneOtp = async () => {
     if (!phoneNumber) { setOtpMsg("Please enter a phone number"); return; }
     setOtpSending(true); setOtpMsg("");
@@ -513,7 +681,7 @@ const SettingsPage = () => {
     if (pwNew !== pwConfirm) { setPwMsg("Passwords don't match"); return; }
     setPwSaving(true); setPwMsg("");
     try {
-      const res = await fetch(`${apiBase}/api/v1/auth/change-password`, {
+      const res = await fetch(`${apiBase}/api/v1/auth/update-password`, {
         method: "POST", headers: authHeader,
         body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew }),
         credentials: "include",
@@ -814,6 +982,34 @@ const SettingsPage = () => {
                     </div>
 
                     <div className="set-divider" />
+                    <div className="set-subsection-title"><Eye size={11} />Photo Privacy</div>
+
+                    <div className="set-toggle-row">
+                      <div className="set-toggle-info">
+                        <p>Photo visibility</p>
+                        <span>Choose who can view your clear profile photos</span>
+                      </div>
+                      <select
+                        className="set-input"
+                        style={{ width: "auto", fontSize: "0.78rem" }}
+                        value={privacy.photoVisibility}
+                        onChange={e => setPrivacy(p => ({ ...p, photoVisibility: e.target.value }))}
+                      >
+                        <option value="PUBLIC">Public to all members</option>
+                        <option value="BLURRED_UNTIL_MATCH">Blurred until match</option>
+                        <option value="CONNECTIONS_ONLY">Only accepted connections</option>
+                      </select>
+                    </div>
+
+                    <div className="set-toggle-row">
+                      <div className="set-toggle-info">
+                        <p>Watermark photos</p>
+                        <span>Overlay a secure SriMatch watermark on your photos</span>
+                      </div>
+                      <Toggle value={!!privacy.watermarkPhotos} onChange={v => setPrivacy(p => ({ ...p, watermarkPhotos: v }))} />
+                    </div>
+
+                    <div className="set-divider" />
                     <div className="set-subsection-title"><MessageCircleIcon size={11} />Communication Privacy</div>
 
                     <div className="set-toggle-row">
@@ -956,67 +1152,110 @@ const SettingsPage = () => {
                     <div className="set-toggle-row" style={{ marginBottom: "0.75rem" }}>
                       <div className="set-toggle-info">
                         <p>Two-Factor Authentication (MFA)</p>
-                        <span>Protect your account with an extra verification step</span>
+                        <span>Protect your account with an extra verification step using Google Authenticator</span>
                       </div>
                       <div style={{ fontSize: "0.75rem", fontWeight: 600, color: (user?.totpEnabled || user?.mfaEnabled) ? "#5aaa7a" : "#9a7060" }}>
-                        {(user?.totpEnabled || user?.mfaEnabled) ? "ENABLED" : "DISABLED"}
+                        {(user?.totpEnabled || user?.mfaEnabled) ? "ENABLED ✓" : "DISABLED"}
                       </div>
                     </div>
 
                     <div className="set-info-box" style={{ marginBottom: "0.75rem" }}>
                       <Shield size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                      <span>We use industry-standard TOTP (Time-based One-Time Password) for MFA. You'll need an authenticator app like Google Authenticator or Microsoft Authenticator.</span>
+                      <span>We use industry-standard TOTP (Time-based One-Time Password) for MFA. You can use Google Authenticator or Microsoft Authenticator.</span>
                     </div>
 
                     <div style={{ marginBottom: "1.25rem" }}>
-                      <button className="set-btn-primary" onClick={() => router.push("/security/mfa-setup")}>
-                        {(user?.totpEnabled || user?.mfaEnabled) ? "Manage MFA Settings" : "Enable MFA Protection"}
-                      </button>
+                      {(user?.totpEnabled || user?.mfaEnabled) ? (
+                        <button
+                          className="set-btn-danger"
+                          onClick={() => {
+                            setTotpCodeInput("");
+                            setTwoFaMsg("");
+                            setDisableTwoFaModalOpen(true);
+                          }}
+                        >
+                          Disable 2FA Protection
+                        </button>
+                      ) : (
+                        <button
+                          className="set-btn-primary"
+                          onClick={handleOpen2FASetup}
+                          disabled={twoFaLoading}
+                        >
+                          {twoFaLoading ? "Generating Secret..." : "Enable 2FA Protection ✦"}
+                        </button>
+                      )}
                     </div>
 
                     <div className="set-divider" />
                     <div className="set-subsection-title"><Lock size={11} />Session Security</div>
                     <div className="set-info-box" style={{ marginBottom: "0.75rem", background: "#f0fdf4", borderColor: "#d0f4dc", color: "#2e7d32" }}>
                       <CheckCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                      <span>Your session is protected by HttpOnly &amp; Secure cookies, mitigating risks from XSS (Cross-Site Scripting) attacks.</span>
+                      <span>Your session is protected by HttpOnly &amp; Secure tokens, mitigating risks from cross-site scripting.</span>
                     </div>
 
                     <div className="set-divider" />
-                    <div className="set-subsection-title"><Smartphone size={11} />Active Sessions</div>
+                    <div className="set-subsection-title"><Smartphone size={11} />Active Devices &amp; Sessions</div>
                     <p style={{ fontSize: "0.78rem", color: "#9a7060", marginBottom: "0.75rem" }}>
-                      These are the devices currently logged into your account
+                      These are the devices currently logged into your SriMatch account:
                     </p>
 
-                    <div className="set-session-item">
-                      <div className="set-session-left">
-                        <Smartphone size={18} style={{ color: "#8b4e2e" }} />
-                        <div>
-                          <div className="set-session-name">This Device · Current Browser</div>
-                          <div className="set-session-sub">Current session</div>
+                    {loadingSessions ? (
+                      <p style={{ fontSize: "0.78rem", color: "#9a7060" }}>Loading active sessions...</p>
+                    ) : sessions.length === 0 ? (
+                      <div className="set-session-item">
+                        <div className="set-session-left">
+                          <Smartphone size={18} style={{ color: "#8b4e2e" }} />
+                          <div>
+                            <div className="set-session-name">This Device · Web Browser</div>
+                            <div className="set-session-sub">Current active session</div>
+                          </div>
                         </div>
+                        <span className="set-session-active"><CheckCircle size={12} /> Active now</span>
                       </div>
-                      <span className="set-session-active"><CheckCircle size={12} /> Active now</span>
+                    ) : (
+                      sessions.map((sess) => {
+                        const isMobile = (sess.userAgent || "").toLowerCase().includes("mobile") || (sess.userAgent || "").toLowerCase().includes("android") || (sess.userAgent || "").toLowerCase().includes("iphone");
+                        return (
+                          <div key={sess.id} className="set-session-item">
+                            <div className="set-session-left">
+                              {isMobile ? <Smartphone size={18} style={{ color: "#8b4e2e" }} /> : <Laptop size={18} style={{ color: "#8b4e2e" }} />}
+                              <div>
+                                <div className="set-session-name">
+                                  {sess.current ? "This Device (Current)" : (sess.userAgent ? sess.userAgent.split(" ")[0] : "Web/Mobile Client")}
+                                </div>
+                                <div className="set-session-sub">
+                                  IP: {sess.ipAddress || "Protected"} · {sess.createdAt ? new Date(sess.createdAt).toLocaleDateString("en-LK") : "Active"}
+                                </div>
+                              </div>
+                            </div>
+                            {sess.current ? (
+                              <span className="set-session-active"><CheckCircle size={12} /> Current</span>
+                            ) : (
+                              <button
+                                className="set-btn-danger"
+                                style={{ fontSize: "0.72rem", padding: "0.25rem 0.65rem" }}
+                                onClick={() => handleRevokeSession(sess.id)}
+                                disabled={revokingSessionId === sess.id}
+                              >
+                                {revokingSessionId === sess.id ? "Revoking..." : "Revoke"}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+
+                    <div style={{ marginTop: "0.6rem" }}>
+                      <button
+                        className="set-btn-danger"
+                        style={{ fontSize: "0.76rem" }}
+                        onClick={handleRevokeAllOtherSessions}
+                        disabled={revokingAll}
+                      >
+                        {revokingAll ? "Logging out others..." : "Log Out From All Other Devices"}
+                      </button>
                     </div>
-
-                    <button style={{ background: "none", border: "none", color: "#a84a4a", fontSize: "0.8rem", fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginTop: "0.25rem", padding: 0 }}>
-                      Log Out From All Devices
-                    </button>
-
-                    <div className="set-divider" />
-                    <div className="set-subsection-title"><Info size={11} />Login History</div>
-
-                    {[
-                      ["Successful login", "This Device · Current Browser", "Today"],
-                    ].map(([status, device, time]) => (
-                      <div key={time} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "0.65rem 0.85rem", border: "1px solid #f0ddd5", borderRadius: "10px", marginBottom: "0.5rem" }}>
-                        <div>
-                          <div style={{ fontSize: "0.83rem", fontWeight: 500, color: "#2d1810" }}>{status}</div>
-                          <div style={{ fontSize: "0.73rem", color: "#9a7060" }}>{device}</div>
-                          <div style={{ fontSize: "0.69rem", color: "#b09080", marginTop: 2 }}>{time}</div>
-                        </div>
-                        <CheckCircle size={15} style={{ color: "#5aaa7a", flexShrink: 0, marginTop: 2 }} />
-                      </div>
-                    ))}
 
                     <div className="set-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
                   </div>
@@ -1131,6 +1370,144 @@ const SettingsPage = () => {
             </div>
           </div>
         </div>
+
+        {/* ── 2FA Setup Modal ── */}
+        {twoFaModalOpen && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "1rem" }}>
+            <div style={{ background: "#fff", borderRadius: "20px", maxWidth: "460px", width: "100%", padding: "2rem", position: "relative", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+              <button
+                onClick={() => setTwoFaModalOpen(false)}
+                style={{ position: "absolute", top: "1rem", right: "1rem", background: "none", border: "none", cursor: "pointer", color: "#9a7060" }}
+              >
+                <X size={20} />
+              </button>
+
+              <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>
+                <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "#f0fdf4", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "0.5rem" }}>
+                  <ShieldCheck size={24} style={{ color: "#16a34a" }} />
+                </div>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.5rem", fontWeight: 600, color: "#2d1810", margin: 0 }}>
+                  Enable 2-Factor Authentication
+                </h2>
+                <p style={{ fontSize: "0.78rem", color: "#9a7060", marginTop: "0.25rem" }}>
+                  Scan the QR code with Google Authenticator or enter the Secret Key:
+                </p>
+              </div>
+
+              {twoFaData?.secret && (
+                <div style={{ background: "#fdf5ee", border: "1px solid #f0ddd5", borderRadius: "10px", padding: "0.75rem 1rem", textAlign: "center", marginBottom: "1rem" }}>
+                  <div style={{ fontSize: "0.68rem", fontWeight: 600, color: "#9a7060", textTransform: "uppercase", letterSpacing: "0.05em" }}>Secret Key</div>
+                  <div style={{ fontSize: "1rem", fontWeight: 700, color: "#8b4e2e", letterSpacing: "2px", marginTop: "2px", userSelect: "all" }}>
+                    {twoFaData.secret}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="set-label">Enter 6-Digit Authenticator Code</label>
+                <input
+                  className="set-input"
+                  type="text"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={totpCodeInput}
+                  onChange={e => setTotpCodeInput(e.target.value)}
+                  style={{ textAlign: "center", fontSize: "1.25rem", letterSpacing: "4px", fontWeight: 700 }}
+                />
+              </div>
+
+              {twoFaMsg && (
+                <div style={{ fontSize: "0.76rem", color: "#c0392b", marginTop: "0.5rem", textAlign: "center" }}>
+                  {twoFaMsg}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.25rem" }}>
+                <button
+                  type="button"
+                  className="set-btn-ghost"
+                  style={{ flex: 1, justifyContent: "center" }}
+                  onClick={() => setTwoFaModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="set-btn-primary"
+                  style={{ flex: 1, justifyContent: "center" }}
+                  onClick={handleConfirm2FA}
+                  disabled={twoFaLoading}
+                >
+                  {twoFaLoading ? "Verifying..." : "Confirm & Enable"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── 2FA Disable Modal ── */}
+        {disableTwoFaModalOpen && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "1rem" }}>
+            <div style={{ background: "#fff", borderRadius: "20px", maxWidth: "420px", width: "100%", padding: "2rem", position: "relative", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+              <button
+                onClick={() => setDisableTwoFaModalOpen(false)}
+                style={{ position: "absolute", top: "1rem", right: "1rem", background: "none", border: "none", cursor: "pointer", color: "#9a7060" }}
+              >
+                <X size={20} />
+              </button>
+
+              <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>
+                <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "#fee2e2", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "0.5rem" }}>
+                  <AlertTriangle size={24} style={{ color: "#dc2626" }} />
+                </div>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.5rem", fontWeight: 600, color: "#2d1810", margin: 0 }}>
+                  Turn Off 2-Factor Auth
+                </h2>
+                <p style={{ fontSize: "0.78rem", color: "#9a7060", marginTop: "0.25rem" }}>
+                  Enter your current 6-digit TOTP code to confirm disabling 2FA protection:
+                </p>
+              </div>
+
+              <div>
+                <input
+                  className="set-input"
+                  type="text"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={totpCodeInput}
+                  onChange={e => setTotpCodeInput(e.target.value)}
+                  style={{ textAlign: "center", fontSize: "1.25rem", letterSpacing: "4px", fontWeight: 700 }}
+                />
+              </div>
+
+              {twoFaMsg && (
+                <div style={{ fontSize: "0.76rem", color: "#c0392b", marginTop: "0.5rem", textAlign: "center" }}>
+                  {twoFaMsg}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.25rem" }}>
+                <button
+                  type="button"
+                  className="set-btn-ghost"
+                  style={{ flex: 1, justifyContent: "center" }}
+                  onClick={() => setDisableTwoFaModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="set-btn-danger"
+                  style={{ flex: 1, justifyContent: "center" }}
+                  onClick={handleDisable2FA}
+                  disabled={twoFaLoading}
+                >
+                  {twoFaLoading ? "Disabling..." : "Confirm Turn Off"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
