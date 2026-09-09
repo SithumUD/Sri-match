@@ -33,6 +33,7 @@ public class UserService {
     private final com.ceycodez.srimatch.repository.SubscriptionRepository subscriptionRepository;
     private final com.ceycodez.srimatch.repository.PaymentRepository paymentRepository;
     private final com.ceycodez.srimatch.repository.TikTokPromotionRepository tiktokPromotionRepository;
+    private final NotifyLkSmsService notifyLkSmsService;
 
     public UserResponse getMyUserData(String email) {
         User user = getUserByEmail(email);
@@ -40,10 +41,64 @@ public class UserService {
     }
 
     @Transactional
+    public void requestPhoneVerificationOtp(String email, String rawPhoneNumber) {
+        User user = getUserByEmail(email);
+        String normalizedPhone = notifyLkSmsService.normalizePhoneNumber(rawPhoneNumber);
+        if (normalizedPhone == null || normalizedPhone.length() < 9 || normalizedPhone.length() > 12) {
+            throw new IllegalArgumentException("Invalid phone number format. Please provide a valid Sri Lankan mobile number.");
+        }
+
+        userRepository.findByPhoneNumber(normalizedPhone).ifPresent(existingUser -> {
+            if (!existingUser.getId().equals(user.getId()) && existingUser.isPhoneVerified()) {
+                throw new IllegalStateException("This phone number is already registered and verified by another user.");
+            }
+        });
+
+        String otp = String.format("%06d", new java.security.SecureRandom().nextInt(1_000_000));
+        user.setPhoneOtp(otp);
+        user.setPhoneOtpPending(normalizedPhone);
+        user.setPhoneOtpExpiresAt(LocalDateTime.now().plusMinutes(10));
+        userRepository.save(user);
+
+        notifyLkSmsService.sendSms(
+                normalizedPhone,
+                "Your SriMatch phone verification code is: " + otp + ". Valid for 10 minutes."
+        );
+    }
+
+    @Transactional
+    public UserResponse verifyPhoneNumberOtp(String email, String otp) {
+        User user = getUserByEmail(email);
+
+        if (user.getPhoneOtp() == null || user.getPhoneOtpPending() == null || user.getPhoneOtpExpiresAt() == null) {
+            throw new IllegalArgumentException("No pending phone verification found. Please request a new OTP.");
+        }
+
+        if (LocalDateTime.now().isAfter(user.getPhoneOtpExpiresAt())) {
+            throw new IllegalArgumentException("Verification code has expired. Please request a new OTP.");
+        }
+
+        if (!user.getPhoneOtp().equals(otp.trim())) {
+            throw new IllegalArgumentException("Invalid verification code. Please check and try again.");
+        }
+
+        user.setPhoneNumber(user.getPhoneOtpPending());
+        user.setPhoneVerified(true);
+        user.setPhoneOtp(null);
+        user.setPhoneOtpExpiresAt(null);
+        user.setPhoneOtpPending(null);
+
+        return mapToResponse(userRepository.save(user));
+    }
+
+    @Transactional
     public UserResponse updateMyUser(String email, UserEditRequest request) {
         User user = getUserByEmail(email);
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
         return mapToResponse(userRepository.save(user));
     }
 
@@ -58,6 +113,13 @@ public class UserService {
         User user = getUserByEmail(email);
         user.setFcmToken(token);
         userRepository.save(user);
+    }
+
+    @Transactional
+    public UserResponse updateNotificationPreferences(String email, java.util.Map<String, Object> prefs) {
+        User user = getUserByEmail(email);
+        user.setNotificationPreferences(prefs);
+        return mapToResponse(userRepository.save(user));
     }
 
     // Admin methods
@@ -329,6 +391,9 @@ public class UserService {
                 .deletedAt(user.getDeletedAt())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .notificationPreferences(user.getNotificationPreferences())
+                .totpEnabled(user.isTotpEnabled())
+                .readReceiptsEnabled(user.isReadReceiptsEnabled())
                 .build();
     }
 }

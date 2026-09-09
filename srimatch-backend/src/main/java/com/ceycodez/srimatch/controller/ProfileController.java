@@ -103,4 +103,23 @@ public class ProfileController {
                 .data(response)
                 .build());
     }
+
+    /**
+     * Dedicated endpoint to save only privacy settings.
+     * Avoids @NotBlank validation on firstName/lastName that the full ProfileRequest requires.
+     * Body: { "profileVisibility": "EVERYONE", "showInSearchResults": true, ... }
+     */
+    @PatchMapping("/privacy")
+    public ResponseEntity<ApiResponse<ProfileResponse>> updatePrivacySettings(
+            @RequestBody java.util.Map<String, Object> privacySettings,
+            Authentication authentication
+    ) {
+        String email = authentication.getName();
+        ProfileResponse response = profileService.updatePrivacySettings(email, privacySettings);
+        return ResponseEntity.ok(ApiResponse.<ProfileResponse>builder()
+                .success(true)
+                .message("Privacy settings updated successfully")
+                .data(response)
+                .build());
+    }
 }

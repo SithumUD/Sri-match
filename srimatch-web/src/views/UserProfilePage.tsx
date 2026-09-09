@@ -917,7 +917,42 @@ const UserProfilePage = () => {
 
           <div className="up-hero">
             <div className="up-gallery">
-              {currentImage && <img src={currentImage} alt={profile.firstName} className="up-gallery-img" onClick={() => images.length > 1 && setShowGallery(true)} />}
+              {currentImage ? (
+                <img src={currentImage} alt={profile.firstName} className="up-gallery-img" onClick={() => images.length > 1 && setShowGallery(true)} />
+              ) : (
+                <div style={{
+                  width: "100%",
+                  height: "100%",
+                  background: "linear-gradient(135deg, #2d1810, #5c2c1a)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#f5ede8",
+                  padding: "2rem",
+                  textAlign: "center"
+                }}>
+                  <div style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "50%",
+                    background: "rgba(255, 255, 255, 0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "1rem",
+                    border: "1px solid rgba(255, 255, 255, 0.2)"
+                  }}>
+                    <Lock size={28} style={{ color: "#e8a080" }} />
+                  </div>
+                  <div style={{ fontSize: "1.05rem", fontWeight: 600, marginBottom: "0.35rem" }}>
+                    Photo Protected by Member
+                  </div>
+                  <div style={{ fontSize: "0.8rem", color: "#d4b8a8", maxWidth: "260px", lineHeight: 1.5 }}>
+                    This member has restricted photo visibility. Connect or match to unlock their gallery.
+                  </div>
+                </div>
+              )}
               <div className="up-gallery-overlay" />
               {images.length > 1 && (
                 <>

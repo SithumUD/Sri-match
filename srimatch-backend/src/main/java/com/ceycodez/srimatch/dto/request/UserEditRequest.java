@@ -19,4 +19,7 @@ public class UserEditRequest {
     @NotBlank(message = "Last name is mandatory")
     @Size(max = 50, message = "Last name cannot exceed 50 characters")
     private String lastName;
+
+    // Optional: phone number update (requires phone OTP verification before being finalised)
+    private String phoneNumber;
 }

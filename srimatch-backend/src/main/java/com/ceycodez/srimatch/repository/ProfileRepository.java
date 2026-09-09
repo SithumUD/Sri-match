@@ -71,6 +71,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR (p.privacy_settings->>'showInSearchResults')::boolean IS NULL OR (p.privacy_settings->>'showInSearchResults')::boolean = TRUE)
+          AND (p.privacy_settings IS NULL OR (p.privacy_settings->>'visibleToVerifiedOnly')::boolean IS NULL OR (p.privacy_settings->>'visibleToVerifiedOnly')::boolean = FALSE OR :viewerVerified = TRUE)
         ORDER BY
           CASE WHEN p.is_boosted = TRUE AND (p.boost_expires_at IS NULL OR p.boost_expires_at > NOW()) THEN 1 ELSE 0 END DESC,
           COALESCE(p.completion_score, 0) DESC,
@@ -128,6 +130,7 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("interests") String interests,
         @Param("profession") String profession,
         @Param("industry") String industry,
+        @Param("viewerVerified") Boolean viewerVerified,
         Pageable pageable
     );
 
@@ -219,6 +222,7 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("interests") String interests,
         @Param("profession") String profession,
         @Param("industry") String industry,
+        @Param("viewerVerified") Boolean viewerVerified,
         Pageable pageable
     );
 
@@ -310,6 +314,7 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("interests") String interests,
         @Param("profession") String profession,
         @Param("industry") String industry,
+        @Param("viewerVerified") Boolean viewerVerified,
         Pageable pageable
     );
 
@@ -401,6 +406,7 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("interests") String interests,
         @Param("profession") String profession,
         @Param("industry") String industry,
+        @Param("viewerVerified") Boolean viewerVerified,
         Pageable pageable
     );
 
@@ -492,6 +498,7 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("interests") String interests,
         @Param("profession") String profession,
         @Param("industry") String industry,
+        @Param("viewerVerified") Boolean viewerVerified,
         Pageable pageable
     );
 
@@ -583,6 +590,7 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
         @Param("interests") String interests,
         @Param("profession") String profession,
         @Param("industry") String industry,
+        @Param("viewerVerified") Boolean viewerVerified,
         Pageable pageable
     );
 }

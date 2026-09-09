@@ -98,4 +98,8 @@ public class DetailedProfileResponse {
     // Premium Status
     private boolean premium;
     private java.time.LocalDateTime premiumExpiryDate;
+
+    // Privacy — included so viewer-side can conditionally render fields
+    private Map<String, Object> privacySettings;
+    private String futureAspirations;
 }

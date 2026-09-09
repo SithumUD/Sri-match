@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @Builder
@@ -33,4 +34,11 @@ public class UserResponse {
     private LocalDateTime deletedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // Notification preferences (persisted JSONB)
+    private Map<String, Object> notificationPreferences;
+
+    // Security
+    private boolean totpEnabled;
+    private boolean readReceiptsEnabled;
 }

@@ -244,5 +244,26 @@ export const LocationService = {
   },
 };
 
+export const UserService = {
+  getMyUserData: () => {
+    return API.get('/users/me');
+  },
+  updateMyUserData: (userData: any) => {
+    return API.put('/users/me', userData);
+  },
+  updateNotificationPreferences: (prefs: Record<string, boolean>) => {
+    return API.patch('/users/me/notifications', prefs);
+  },
+  requestPhoneOtp: (phoneNumber: string) => {
+    return API.post('/users/me/request-phone-otp', { phoneNumber });
+  },
+  verifyPhone: (otp: string) => {
+    return API.post('/users/me/verify-phone', { otp });
+  },
+  deleteAccount: () => {
+    return API.delete('/users/me');
+  },
+};
+
 export * from './profile.service';
 export * from './call.service';

@@ -147,6 +147,14 @@ export const DEFAULT_PRIVACY_SETTINGS = {
   requireMatchForContactInfo: true,
 };
 
+export const DEFAULT_NOTIFICATION_PREFERENCES = {
+  newMessages: true,
+  newMatches: true,
+  profileViews: false,
+  connectionRequests: true,
+  emailSummaries: false,
+};
+
 // ─── Profile Completion Score weights (§8) — kept here to stay in sync ───────
 
 export const COMPLETION_WEIGHTS = {

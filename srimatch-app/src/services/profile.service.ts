@@ -62,6 +62,10 @@ export const ProfileService = {
   setPrimaryImage: (imageUrl: string) => {
     return API.patch('/profile/image/primary', null, { params: { imageUrl } });
   },
+
+  updatePrivacySettings: (privacySettings: any) => {
+    return API.patch('/profile/privacy', privacySettings);
+  },
 };
 
 export default ProfileService;

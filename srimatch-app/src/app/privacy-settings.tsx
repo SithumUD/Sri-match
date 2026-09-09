@@ -21,6 +21,7 @@ import {
   Lock,
   CheckCircle2,
   Sliders,
+  Crown,
 } from 'lucide-react-native';
 import { Colors, Fonts, Spacing, Radius, Shadows } from '../constants/theme';
 import { CustomButton } from '../components/ui/CustomButton';
@@ -76,7 +77,7 @@ export default function PrivacySettingsScreen() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await ProfileService.updateProfile({ privacySettings: settings });
+      await ProfileService.updatePrivacySettings(settings);
       await refreshProfile();
       setSavedSuccess(true);
       Alert.alert('Privacy Saved', 'Your privacy and visibility settings have been updated successfully.');
@@ -190,12 +191,31 @@ export default function PrivacySettingsScreen() {
 
           <View style={styles.switchRow}>
             <View style={styles.switchTextCol}>
-              <Text style={styles.switchTitle}>Incognito Browsing</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.switchTitle}>Incognito Browsing</Text>
+                <View style={styles.premiumBadge}>
+                  <Crown size={11} color="#b45309" />
+                  <Text style={styles.premiumBadgeText}>PREMIUM</Text>
+                </View>
+              </View>
               <Text style={styles.switchSubtitle}>Browse profiles without appearing in "Recently Viewed"</Text>
             </View>
             <Switch
               value={Boolean(settings.incognitoMode)}
-              onValueChange={(val) => updateKey('incognitoMode', val)}
+              onValueChange={(val) => {
+                if (val && !user?.premium && !(user as any)?.isPremium) {
+                  Alert.alert(
+                    'Premium Feature',
+                    'Incognito Mode is an exclusive Premium benefit. Upgrade to browse invisibly without leaving traces.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Upgrade to Premium', onPress: () => router.push('/subscription-plans') }
+                    ]
+                  );
+                  return;
+                }
+                updateKey('incognitoMode', val);
+              }}
               trackColor={{ false: '#e2e8f0', true: Colors.primaryLight }}
               thumbColor={settings.incognitoMode ? Colors.primaryMedium : '#f8fafc'}
             />
@@ -630,5 +650,22 @@ const styles = StyleSheet.create({
   saveBtnContainer: {
     marginTop: Spacing.sm,
     marginBottom: Spacing.xl,
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  premiumBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#92400e',
+    letterSpacing: 0.5,
   },
 });

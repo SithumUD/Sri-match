@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,22 +13,68 @@ import { GradientHeader } from '../components/ui/GradientHeader';
 import { CustomInput } from '../components/ui/CustomInput';
 import { CustomButton } from '../components/ui/CustomButton';
 import AuthService from '../services/auth.service';
-import { Lock, Bell, Shield, Trash2 } from 'lucide-react-native';
+import { UserService } from '../services';
+import { Lock, Bell, Shield, Trash2, CheckCircle2 } from 'lucide-react-native';
 import useAuthStore from '../store/useAuthStore';
 import { useRouter } from 'expo-router';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { logout } = useAuthStore();
+  const { user, logout, refreshProfile } = useAuthStore();
 
   const [matchNotifications, setMatchNotifications] = useState(true);
   const [chatNotifications, setChatNotifications] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(false);
+  const [savingNotifs, setSavingNotifs] = useState(false);
+  const [notifSaved, setNotifSaved] = useState(false);
 
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadNotificationPrefs();
+  }, []);
+
+  const loadNotificationPrefs = async () => {
+    try {
+      const res = await UserService.getMyUserData();
+      const prefs = res?.data?.notificationPreferences || user?.notificationPreferences;
+      if (prefs) {
+        if (typeof prefs.newMatches === 'boolean') setMatchNotifications(prefs.newMatches);
+        if (typeof prefs.newMessages === 'boolean') setChatNotifications(prefs.newMessages);
+        if (typeof prefs.emailSummaries === 'boolean') setEmailAlerts(prefs.emailSummaries);
+      }
+    } catch (e) {
+      if (user?.notificationPreferences) {
+        setMatchNotifications(user.notificationPreferences.newMatches ?? true);
+        setChatNotifications(user.notificationPreferences.newMessages ?? true);
+        setEmailAlerts(user.notificationPreferences.emailSummaries ?? false);
+      }
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    try {
+      setSavingNotifs(true);
+      const prefs = {
+        newMatches: matchNotifications,
+        newMessages: chatNotifications,
+        emailSummaries: emailAlerts,
+        profileViews: false,
+        connectionRequests: matchNotifications,
+      };
+      await UserService.updateNotificationPreferences(prefs);
+      setNotifSaved(true);
+      Alert.alert('Notifications Saved', 'Your notification preferences have been saved.');
+      setTimeout(() => setNotifSaved(false), 3000);
+    } catch (e: any) {
+      Alert.alert('Error', e?.response?.data?.message || 'Failed to save notification preferences.');
+    } finally {
+      setSavingNotifs(false);
+    }
+  };
 
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword) {
@@ -64,6 +110,11 @@ export default function SettingsScreen() {
           text: 'Delete Forever',
           style: 'destructive',
           onPress: async () => {
+            try {
+              await UserService.deleteAccount();
+            } catch (e) {
+              console.error('Delete account API error:', e);
+            }
             await logout();
             router.replace('/(auth)/login');
           },
@@ -119,6 +170,14 @@ export default function SettingsScreen() {
               trackColor={{ false: Colors.border, true: Colors.primaryMedium }}
             />
           </View>
+
+          <CustomButton
+            title={notifSaved ? "Preferences Saved ✓" : "Save Notification Preferences"}
+            variant="outline"
+            onPress={handleSaveNotifications}
+            loading={savingNotifs}
+            style={{ marginTop: Spacing.sm }}
+          />
         </View>
 
         {/* Change Password Section */}

@@ -14,7 +14,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "users",
@@ -157,6 +159,20 @@ public class User implements UserDetails {
     @Column(name = "read_receipts_enabled")
     @Builder.Default
     private boolean readReceiptsEnabled = true;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "notification_preferences", columnDefinition = "jsonb")
+    @Builder.Default
+    private Map<String, Object> notificationPreferences = new HashMap<>();
+
+    @Column(name = "phone_otp", length = 10)
+    private String phoneOtp;
+
+    @Column(name = "phone_otp_expires_at")
+    private LocalDateTime phoneOtpExpiresAt;
+
+    @Column(name = "phone_otp_pending", length = 20)
+    private String phoneOtpPending;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

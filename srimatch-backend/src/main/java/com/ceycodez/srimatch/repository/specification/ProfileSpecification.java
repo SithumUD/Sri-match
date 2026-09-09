@@ -31,6 +31,12 @@ public class ProfileSpecification {
      */
     public static Specification<Profile> buildSpecification(
             ProfileSearchRequest request, Profile searcher, boolean isPremium) {
+        boolean viewerVerified = (searcher != null) && searcher.isIdVerified();
+        return buildSpecification(request, searcher, isPremium, viewerVerified);
+    }
+
+    public static Specification<Profile> buildSpecification(
+            ProfileSearchRequest request, Profile searcher, boolean isPremium, boolean viewerVerified) {
 
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -38,6 +44,31 @@ public class ProfileSpecification {
             // ── Eligibility: Profile must be visible and not soft-deleted ──────────────
             predicates.add(criteriaBuilder.isTrue(root.get("visible")));
             predicates.add(criteriaBuilder.isFalse(root.get("isDeleted")));
+
+            // ── Privacy Filters ───────────────────────────────────────────────────────
+            // 1. showInSearchResults: exclude profiles that opted out of search
+            var showInSearchVal = criteriaBuilder.function(
+                    "jsonb_extract_path_text", String.class,
+                    root.get("privacySettings"), criteriaBuilder.literal("showInSearchResults")
+            );
+            predicates.add(criteriaBuilder.or(
+                    criteriaBuilder.isNull(root.get("privacySettings")),
+                    criteriaBuilder.isNull(showInSearchVal),
+                    criteriaBuilder.notEqual(showInSearchVal, "false")
+            ));
+
+            // 2. visibleToVerifiedOnly: if target profile requires verified viewers only, check viewerVerified
+            if (!viewerVerified) {
+                var visibleToVerifiedVal = criteriaBuilder.function(
+                        "jsonb_extract_path_text", String.class,
+                        root.get("privacySettings"), criteriaBuilder.literal("visibleToVerifiedOnly")
+                );
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.isNull(root.get("privacySettings")),
+                        criteriaBuilder.isNull(visibleToVerifiedVal),
+                        criteriaBuilder.notEqual(visibleToVerifiedVal, "true")
+                ));
+            }
 
             // ── Eligibility: User account must be active ──────────────────────────────
             Join<Profile, User> userJoin = root.join("user");

@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 @Service
@@ -143,6 +144,16 @@ public class ProfileService {
         }
     }
 
+    @Transactional
+    public ProfileResponse updatePrivacySettings(String email, Map<String, Object> settings) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Profile profile = profileRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new RuntimeException("Profile not found"));
+        profile.setPrivacySettings(settings);
+        return mapToResponse(profileRepository.save(profile));
+    }
+
     public ProfileResponse getMyProfile(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -173,6 +184,10 @@ public class ProfileService {
         response.setProfileCompleted(profile.getUser().isProfileCompleted());
         response.setPremium(profile.getUser().isPremiumActive());
         response.setPremiumExpiryDate(profile.getUser().getPremiumExpiryDate());
+        response.setTotpEnabled(profile.getUser().isTotpEnabled());
+        // Privacy & notification settings — core of the settings feature
+        response.setPrivacySettings(profile.getPrivacySettings());
+        response.setNotificationPreferences(profile.getUser().getNotificationPreferences());
         return response;
     }
 
@@ -257,6 +272,8 @@ public class ProfileService {
 
         // ── Extract filter params for native queries ──────────────────────────────
         Long excludeId = (searcher != null) ? searcher.getId() : null;
+        // Resolve viewer's verification status for the visibleToVerifiedOnly privacy filter
+        boolean viewerVerified = (searcher != null) && searcher.isIdVerified();
         String gender = request.getGender() != null ? request.getGender().name() : null;
         String maritalStatus = request.getMaritalStatus() != null ? request.getMaritalStatus().name() : null;
         String city = (request.getCity() != null && !request.getCity().isBlank()) ? request.getCity().trim() : null;
@@ -297,7 +314,7 @@ public class ProfileService {
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
                     request.getIncomeRange(), bodyType, interests,
-                    profession, industry, pageable);
+                    profession, industry, viewerVerified, pageable);
                 break;
             case "age_asc":
                 page = profileRepository.findDiscoveryAgeAsc(
@@ -307,7 +324,7 @@ public class ProfileService {
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
                     request.getIncomeRange(), bodyType, interests,
-                    profession, industry, pageable);
+                    profession, industry, viewerVerified, pageable);
                 break;
             case "age_desc":
                 page = profileRepository.findDiscoveryAgeDesc(
@@ -317,7 +334,7 @@ public class ProfileService {
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
                     request.getIncomeRange(), bodyType, interests,
-                    profession, industry, pageable);
+                    profession, industry, viewerVerified, pageable);
                 break;
             case "height_asc":
                 page = profileRepository.findDiscoveryHeightAsc(
@@ -327,7 +344,7 @@ public class ProfileService {
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
                     request.getIncomeRange(), bodyType, interests,
-                    profession, industry, pageable);
+                    profession, industry, viewerVerified, pageable);
                 break;
             case "height_desc":
                 page = profileRepository.findDiscoveryHeightDesc(
@@ -337,7 +354,7 @@ public class ProfileService {
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
                     request.getIncomeRange(), bodyType, interests,
-                    profession, industry, pageable);
+                    profession, industry, viewerVerified, pageable);
                 break;
             default:
                 // Dynamic discovery: boost → completionScore → random → id
@@ -348,7 +365,7 @@ public class ProfileService {
                     request.getMinHeight(), request.getMaxHeight(),
                     educationLevel, smokingHabits, drinkingHabits, dietaryPreference,
                     request.getIncomeRange(), bodyType, interests,
-                    profession, industry, pageable);
+                    profession, industry, viewerVerified, pageable);
                 break;
         }
 
@@ -446,18 +463,27 @@ public class ProfileService {
             User viewer = userRepository.findByEmail(viewerEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
             searcher = viewer.getProfile();
-            
-            // Layer 3: Tracking (Log View)
-            ProfileView view = ProfileView.builder()
-                    .viewer(viewer)
-                    .viewedProfile(profile)
-                    .build();
-            profileViewRepository.save(view);
-            
-            // Increment profile view count
-            Integer currentViews = profile.getProfileViews();
-            profile.setProfileViews((currentViews != null ? currentViews : 0) + 1);
-            profileRepository.save(profile);
+
+            // Incognito mode: if viewer has incognitoMode=true, skip view tracking entirely
+            boolean viewerIncognito = false;
+            if (searcher != null && searcher.getPrivacySettings() != null) {
+                Object val = searcher.getPrivacySettings().get("incognitoMode");
+                viewerIncognito = Boolean.TRUE.equals(val);
+            }
+
+            if (!viewerIncognito) {
+                // Layer 3: Tracking (Log View)
+                ProfileView view = ProfileView.builder()
+                        .viewer(viewer)
+                        .viewedProfile(profile)
+                        .build();
+                profileViewRepository.save(view);
+
+                // Increment profile view count
+                Integer currentViews = profile.getProfileViews();
+                profile.setProfileViews((currentViews != null ? currentViews : 0) + 1);
+                profileRepository.save(profile);
+            }
 
             // Fetch interaction status
             interaction = likeRepository.findBySenderAndReceiver(viewer, profile.getUser())
@@ -473,16 +499,24 @@ public class ProfileService {
             compatibilityScore = (int) Math.round(matchingService.calculateCompatibility(searcher, profile));
         }
 
+        // ── Privacy masking: apply profile owner's privacy settings ───────────
+        Map<String, Object> ps = profile.getPrivacySettings() != null ? profile.getPrivacySettings() : Collections.emptyMap();
+        boolean showIncome           = !Boolean.FALSE.equals(ps.get("showIncomeRange"));
+        boolean showFamily           = !Boolean.FALSE.equals(ps.get("showFamilyDetails"));
+        boolean showPartnerPrefs     = !Boolean.FALSE.equals(ps.get("showPartnerPreferences"));
+        boolean showQuiz             = !Boolean.FALSE.equals(ps.get("showQuizAnswers"));
+        boolean showLocation         = !Boolean.FALSE.equals(ps.get("showExactLocation"));
+
         return DetailedProfileResponse.builder()
                 .id(profile.getId())
                 .userId(profile.getUser().getId())
                 .firstName(profile.getUser().getFirstName())
                 .lastName(profile.getUser().getLastName())
                 .age(profile.getAge())
-                .city(profile.getCity())
+                .city(showLocation ? profile.getCity() : null)
                 .dateOfBirth(profile.getDateOfBirth())
-                .latitude(profile.getLatitude())
-                .longitude(profile.getLongitude())
+                .latitude(showLocation ? profile.getLatitude() : null)
+                .longitude(showLocation ? profile.getLongitude() : null)
                 .profession(profile.getProfession())
                 .education(profile.getEducation() != null ? profile.getEducation().name() : null)
                 .religion(profile.getReligion() != null ? profile.getReligion().name() : null)
@@ -516,7 +550,7 @@ public class ProfileService {
                 .industry(profile.getIndustry())
                 .employer(profile.getEmployer())
                 .workLocation(profile.getWorkLocation())
-                .income(profile.getIncome())
+                .income(showIncome ? profile.getIncome() : null)
                 .educationLevel(profile.getEducation() != null ? profile.getEducation().name() : null)
                 .fieldOfStudy(profile.getFieldOfStudy())
                 .relocationWillingness(profile.getRelocationWillingness() != null ? profile.getRelocationWillingness().name() : null)
@@ -525,23 +559,26 @@ public class ProfileService {
                 .languages(profile.getLanguages())
                 .religiousPractices(profile.getReligiousPractices())
                 .culturalValues(profile.getCulturalValues())
-                // Family
-                .familyBackground(profile.getFamilyBackground())
-                .familyType(profile.getFamilyType() != null ? profile.getFamilyType().name() : null)
-                .familyInvolvement(profile.getFamilyInvolvement())
+                // Family — masked if showFamilyDetails == false
+                .familyBackground(showFamily ? profile.getFamilyBackground() : null)
+                .familyType(showFamily && profile.getFamilyType() != null ? profile.getFamilyType().name() : null)
+                .familyInvolvement(showFamily ? profile.getFamilyInvolvement() : null)
                 .weddingPreferences(profile.getWeddingPreferences())
-                // Additional
-                .partnerPreferences(profile.getPartnerPreferences())
+                // Additional — masked per privacy flags
+                .partnerPreferences(showPartnerPrefs ? profile.getPartnerPreferences() : null)
                 .favoriteThings(profile.getFavoriteThings())
                 .personalityTraits(profile.getPersonalityTraits())
                 .travelPreferences(profile.getTravelPreferences())
-                .dealbreakers(profile.getDealbreakers())
-                .quizAnswers(profile.getQuizAnswers())
+                .dealbreakers(showPartnerPrefs ? profile.getDealbreakers() : null)
+                .quizAnswers(showQuiz ? profile.getQuizAnswers() : null)
+                .futureAspirations(profile.getFutureAspirations())
                 // Stats
                 .profileViews(profile.getProfileViews())
                 .completionScore(profile.getCompletionScore())
                 .premium(profile.getUser().isPremiumActive())
                 .premiumExpiryDate(profile.getUser().getPremiumExpiryDate())
+                // Privacy settings — viewer uses these to conditionally render UI
+                .privacySettings(profile.getPrivacySettings())
                 .build();
     }
 
@@ -568,12 +605,32 @@ public class ProfileService {
         if (searcher != null) {
             compatibilityScore = (int) Math.round(matchingService.calculateCompatibility(searcher, profile));
         }
- 
+
+        // ── Photo & location privacy masking for discovery cards ──────────────
+        Map<String, Object> ps = profile.getPrivacySettings() != null ? profile.getPrivacySettings() : Collections.emptyMap();
+        Object photoVis = ps.get("photoVisibility");
+        String photoVisibility = (photoVis instanceof String) ? (String) photoVis : "PUBLIC";
+        boolean showLocation = !Boolean.FALSE.equals(ps.get("showExactLocation"));
+
+        boolean isMatched = false;
+        if (searcher != null && interaction != null &&
+                "ACCEPTED".equals(interaction.getStatus() != null ? interaction.getStatus().name() : "")) {
+            isMatched = true;
+        }
+
+        String profileImage = profile.getPrimaryImageUrl();
+        if ("BLURRED_UNTIL_MATCH".equals(photoVisibility)) {
+            // Return null — frontend renders a blur/lock placeholder
+            profileImage = null;
+        } else if ("CONNECTIONS_ONLY".equals(photoVisibility) && !isMatched) {
+            profileImage = null;
+        }
+
         return PublicProfileResponse.builder()
                 .id(profile.getId())
                 .firstName(profile.getUser().getFirstName())
                 .age(profile.getAge())
-                .city(profile.getCity())
+                .city(showLocation ? profile.getCity() : null)
                 .profession(profile.getProfession())
                 .education(profile.getEducation() != null ? profile.getEducation().name() : null)
                 .religion(profile.getReligion() != null ? profile.getReligion().name() : null)
@@ -583,7 +640,7 @@ public class ProfileService {
                 .interests(profile.getInterests() != null && profile.getInterests().size() > 3 
                         ? profile.getInterests().subList(0, 3) 
                         : profile.getInterests())
-                .profileImage(profile.getPrimaryImageUrl())
+                .profileImage(profileImage)
                 .isVerified(profile.isIdVerified())
                 .isBoosted(profile.isBoosted())
                 .compatibilityScore(compatibilityScore)

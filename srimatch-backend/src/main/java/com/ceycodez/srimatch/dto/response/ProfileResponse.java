@@ -73,6 +73,9 @@ public class ProfileResponse {
 
     private Map<String, Object> partnerPreferences;
     private String dealbreakers;
+    private String futureAspirations;
+    private Map<String, Object> privacySettings;
+    private Map<String, Object> notificationPreferences;
 
     private List<String> profileImages;
     private String primaryImageUrl;
@@ -86,4 +89,5 @@ public class ProfileResponse {
     // Premium Status
     private boolean premium;
     private java.time.LocalDateTime premiumExpiryDate;
+    private boolean totpEnabled;
 }

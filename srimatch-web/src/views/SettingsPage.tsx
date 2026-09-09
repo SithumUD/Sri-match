@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,7 @@ import {
   Settings, Bell, Shield, Eye, CreditCard, HelpCircle,
   MessageCircleIcon, CheckCircle, ChevronDown, ChevronUp,
   UserIcon, Lock, Smartphone, Globe, Download, LogOut,
-  AlertTriangle, Crown, Mail, Check, Info, Star,
+  AlertTriangle, Crown, Mail, Check, Info,
 } from "lucide-react";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────── */
@@ -27,7 +27,6 @@ const styles = `
 
   .set-inner { max-width: 960px; margin: 0 auto; }
 
-  /* ── Page header ── */
   .set-page-header { margin-bottom: 1.75rem; }
   .set-page-title {
     font-family: 'Cormorant Garamond', serif;
@@ -39,7 +38,6 @@ const styles = `
   }
   .set-page-sub { font-size: 0.83rem; color: #9a7060; margin-top: 0.2rem; }
 
-  /* ── Grid layout ── */
   .set-grid {
     display: grid;
     grid-template-columns: 220px 1fr;
@@ -50,7 +48,6 @@ const styles = `
     .set-grid { grid-template-columns: 1fr; }
   }
 
-  /* ── Sidebar ── */
   .set-sidebar {
     background: #fff;
     border-radius: 20px;
@@ -78,7 +75,6 @@ const styles = `
   }
   .set-nav-btn svg { flex-shrink: 0; }
 
-  /* ── Main content card ── */
   .set-main {
     background: #fff;
     border-radius: 20px;
@@ -86,7 +82,6 @@ const styles = `
     overflow: hidden;
   }
 
-  /* Card gradient header */
   .set-card-head {
     background: linear-gradient(135deg, #3d1f12 0%, #6b3526 50%, #8b4e2e 100%);
     padding: 1.25rem 1.75rem;
@@ -99,7 +94,6 @@ const styles = `
 
   .set-body { padding: 1.5rem 1.75rem; }
 
-  /* ── Accordion sections ── */
   .set-section {
     border: 1px solid #f0ddd5;
     border-radius: 14px;
@@ -124,7 +118,6 @@ const styles = `
     display: flex; flex-direction: column; gap: 0.75rem;
   }
 
-  /* ── Form elements ── */
   .set-label {
     display: block;
     font-size: 0.71rem; font-weight: 500;
@@ -142,6 +135,7 @@ const styles = `
   .set-input:focus { border-color: #c9856a; background: #fff; box-shadow: 0 0 0 3px rgba(201,133,106,0.1); }
   .set-input::placeholder { color: #c4b0a5; }
   .set-input:read-only { opacity: 0.7; cursor: default; }
+  .set-input:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .set-input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
   @media (max-width: 500px) { .set-input-row { grid-template-columns: 1fr; } }
@@ -154,7 +148,6 @@ const styles = `
     padding-right: 2rem;
   }
 
-  /* ── Buttons ── */
   .set-btn-primary {
     display: inline-flex; align-items: center; gap: 0.4rem;
     padding: 0.55rem 1.25rem; border-radius: 99px;
@@ -165,7 +158,8 @@ const styles = `
     box-shadow: 0 4px 12px rgba(139,78,46,0.22);
     transition: all 0.2s;
   }
-  .set-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(139,78,46,0.3); }
+  .set-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(139,78,46,0.3); }
+  .set-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .set-btn-ghost {
     display: inline-flex; align-items: center; gap: 0.4rem;
@@ -173,7 +167,7 @@ const styles = `
     font-size: 0.82rem; font-weight: 500;
     background: none; border: 1.5px solid #e8ddd8; color: #6b4a3a;
     cursor: pointer; font-family: 'DM Sans', sans-serif;
-    transition: all 0.2s;
+    transition: all 0.2s; text-decoration: none;
   }
   .set-btn-ghost:hover { border-color: #c9856a; color: #8b4e2e; }
 
@@ -187,7 +181,6 @@ const styles = `
   }
   .set-btn-danger:hover { background: #fdf0f0; border-color: #a84a4a; }
 
-  /* ── Toggle switch ── */
   .set-toggle-row {
     display: flex; align-items: center; justify-content: space-between;
     padding: 0.6rem 0;
@@ -211,7 +204,6 @@ const styles = `
   .set-toggle input:checked + .set-toggle-slider { background: linear-gradient(135deg, #8b4e2e, #c9856a); }
   .set-toggle input:checked + .set-toggle-slider::after { transform: translateX(20px); }
 
-  /* ── Section heading inside body ── */
   .set-subsection-title {
     font-size: 0.72rem; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.08em;
@@ -220,7 +212,6 @@ const styles = `
   }
   .set-divider { height: 1px; background: #f0ddd5; margin: 1.1rem 0; }
 
-  /* ── Warning & info boxes ── */
   .set-warning-box {
     background: #fffbf0; border: 1px solid #f0e090;
     border-radius: 10px; padding: 0.75rem 1rem;
@@ -236,7 +227,6 @@ const styles = `
     line-height: 1.55;
   }
 
-  /* ── Sessions ── */
   .set-session-item {
     display: flex; align-items: center; justify-content: space-between;
     padding: 0.75rem 0.9rem;
@@ -248,7 +238,6 @@ const styles = `
   .set-session-sub { font-size: 0.71rem; color: #9a7060; }
   .set-session-active { font-size: 0.72rem; color: #5aaa7a; display: flex; align-items: center; gap: 3px; }
 
-  /* ── Plan card ── */
   .set-plan-card {
     background: linear-gradient(135deg, #fdf5ee, #fdf0e8);
     border: 1px solid #f0ddd5; border-radius: 12px;
@@ -265,7 +254,6 @@ const styles = `
     margin-left: 0.4rem;
   }
 
-  /* ── FAQ items ── */
   .set-faq-item {
     padding: 0.85rem 1rem;
     background: linear-gradient(135deg, #fdf5ee, #faf0f8);
@@ -275,27 +263,24 @@ const styles = `
   .set-faq-q { font-size: 0.84rem; font-weight: 500; color: #2d1810; margin-bottom: 4px; }
   .set-faq-a { font-size: 0.76rem; color: #6b4a3a; line-height: 1.55; }
 
-  /* Safety tips */
-  .set-safety-list { display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.79rem; color: #3a5ea8; }
-  .set-safety-item { display: flex; align-items: flex-start; gap: 0.4rem; }
+  .set-action-group { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
 
-  /* ── Action group inside section ── */
-  .set-action-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-
-  /* Destructive area separator */
   .set-danger-area {
     border-top: 1px solid #f0ddd5; padding-top: 0.85rem; margin-top: 0.1rem;
   }
   .set-danger-title { font-size: 0.84rem; font-weight: 500; color: #a84a4a; margin-bottom: 4px; }
   .set-danger-sub { font-size: 0.76rem; color: #9a7060; margin-bottom: 0.5rem; }
 
-  /* ── Ornament ── */
   .set-ornament {
     text-align: center; font-size: 0.72rem; color: #d4b8a8;
     letter-spacing: 0.15em;
     padding: 0.75rem 0 0.25rem;
     border-top: 1px solid #f5ede8; margin-top: 0.5rem;
   }
+
+  .set-save-msg { font-size: 0.78rem; margin-left: 8px; }
+  .set-save-msg.ok { color: #5aaa7a; }
+  .set-save-msg.err { color: #c0392b; }
 
   @media (max-width: 700px) {
     .set-root { padding: 1rem 0.75rem 6rem; }
@@ -330,18 +315,15 @@ const styles = `
 `;
 
 /* ─── Toggle component ─────────────────────────────────────────────────── */
-const Toggle = ({ defaultChecked = false }) => {
-  const [checked, setChecked] = useState(defaultChecked);
-  return (
-    <label className="set-toggle">
-      <input type="checkbox" checked={checked} onChange={() => setChecked(v => !v)} />
-      <span className="set-toggle-slider" />
-    </label>
-  );
-};
+const Toggle = ({ value = false, onChange }: { value?: boolean; onChange?: (v: boolean) => void }) => (
+  <label className="set-toggle">
+    <input type="checkbox" checked={value} onChange={e => onChange?.(e.target.checked)} />
+    <span className="set-toggle-slider" />
+  </label>
+);
 
 /* ─── Accordion section ─────────────────────────────────────────────────── */
-const AccordionSection = ({ title, icon, children, defaultOpen = false }) => {
+const AccordionSection = ({ title, icon, children, defaultOpen = false }: any) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="set-section">
@@ -359,10 +341,223 @@ const AccordionSection = ({ title, icon, children, defaultOpen = false }) => {
 
 /* ─── SettingsPage ────────────────────────────────────────────────────────── */
 const SettingsPage = () => {
-  const { logout, user, subscription = {} } = useAuth();
+  const { logout, user, profile, subscription = {}, token, setUser, setProfile } = useAuth() as any;
   const router = useRouter();
   const [activeSection, setActiveSection] = useState("account");
-  const isPremium = subscription?.plan === "premium";
+  const isPremium = user?.premium || subscription?.plan === "premium";
+
+  // ── Account state ──
+  const [firstName, setFirstName] = useState(user?.firstName ?? "");
+  const [lastName, setLastName]   = useState(user?.lastName  ?? "");
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber ?? "");
+  const [accountSaving, setAccountSaving] = useState(false);
+  const [accountMsg, setAccountMsg] = useState("");
+
+  // ── Password state ──
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew]         = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwSaving, setPwSaving]   = useState(false);
+  const [pwMsg, setPwMsg]         = useState("");
+
+  // ── Privacy state ──
+  const initPrivacy = (p: any) => ({
+    profileVisibility:      p?.profileVisibility      ?? "EVERYONE",
+    showInSearchResults:    p?.showInSearchResults    ?? true,
+    showOnlineStatus:       p?.showOnlineStatus       ?? true,
+    showExactLocation:      p?.showExactLocation      ?? true,
+    incognitoMode:          p?.incognitoMode          ?? false,
+    photoVisibility:        p?.photoVisibility        ?? "PUBLIC",
+    showIncomeRange:        p?.showIncomeRange        ?? false,
+    showFamilyDetails:      p?.showFamilyDetails      ?? true,
+    showPartnerPreferences: p?.showPartnerPreferences ?? true,
+    showQuizAnswers:        p?.showQuizAnswers        ?? true,
+    visibleToVerifiedOnly:  p?.visibleToVerifiedOnly  ?? false,
+    whoCanMessage:          p?.whoCanMessage          ?? "EVERYONE",
+    readReceiptsEnabled:    p?.readReceiptsEnabled    ?? true,
+    showHoroscope:          p?.showHoroscope          ?? true,
+  });
+  const [privacy, setPrivacy]           = useState<Record<string, any>>(() => initPrivacy(profile?.privacySettings));
+  const [privacySaving, setPrivacySaving] = useState(false);
+  const [privacyMsg, setPrivacyMsg]       = useState("");
+
+  // ── Notifications state ──
+  const initNotif = (n: any) => ({
+    emailNewMessages:  n?.emailNewMessages  ?? true,
+    emailNewMatches:   n?.emailNewMatches   ?? true,
+    emailProfileViews: n?.emailProfileViews ?? false,
+    emailConnections:  n?.emailConnections  ?? true,
+    emailPromotions:   n?.emailPromotions   ?? false,
+    pushNewMessages:   n?.pushNewMessages   ?? true,
+    pushNewMatches:    n?.pushNewMatches    ?? true,
+    pushProfileViews:  n?.pushProfileViews  ?? true,
+    pushConnections:   n?.pushConnections   ?? true,
+    pushPromotions:    n?.pushPromotions    ?? false,
+  });
+  const [notif, setNotif]           = useState<Record<string, any>>(() => initNotif(user?.notificationPreferences));
+  const [notifSaving, setNotifSaving] = useState(false);
+  const [notifMsg, setNotifMsg]       = useState("");
+
+  // Keep state in sync if user/profile changes
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName ?? "");
+      setLastName(user.lastName   ?? "");
+      setPhoneNumber(user.phoneNumber ?? "");
+      setNotif(initNotif(user.notificationPreferences));
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (profile?.privacySettings) setPrivacy(initPrivacy(profile.privacySettings));
+  }, [profile?.id]);
+
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api").replace(/\/api$/, "");
+  const authHeader = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+
+  // ── Handlers ──
+  const [phoneOtp, setPhoneOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpMsg, setOtpMsg] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const handleRequestPhoneOtp = async () => {
+    if (!phoneNumber) { setOtpMsg("Please enter a phone number"); return; }
+    setOtpSending(true); setOtpMsg("");
+    try {
+      const res = await fetch(`${apiBase}/api/v1/users/me/request-phone-otp`, {
+        method: "POST", headers: authHeader,
+        body: JSON.stringify({ phoneNumber }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOtpSent(true);
+        setOtpMsg("✓ Verification code sent via SMS (Notify.lk)");
+      } else {
+        setOtpMsg(data.message || "Failed to send OTP");
+      }
+    } catch {
+      setOtpMsg("Network error sending OTP");
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async () => {
+    if (!phoneOtp) { setOtpMsg("Please enter the 6-digit OTP code"); return; }
+    setOtpVerifying(true); setOtpMsg("");
+    try {
+      const res = await fetch(`${apiBase}/api/v1/users/me/verify-phone`, {
+        method: "POST", headers: authHeader,
+        body: JSON.stringify({ otp: phoneOtp }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOtpMsg("✓ Phone number verified successfully!");
+        setOtpSent(false);
+        setPhoneOtp("");
+        setUser?.(data.data);
+      } else {
+        setOtpMsg(data.message || "Invalid or expired OTP");
+      }
+    } catch {
+      setOtpMsg("Network error verifying OTP");
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm("Are you sure you want to delete your SriMatch account? All your photos, messages, and matches will be permanently removed.");
+    if (!confirmed) return;
+    setDeletingAccount(true);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/users/me`, {
+        method: "DELETE", headers: authHeader,
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        logout();
+        router.push("/login");
+      } else {
+        alert(data.message || "Failed to delete account");
+      }
+    } catch {
+      alert("Network error deleting account");
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
+  const handleSaveAccount = async () => {
+    setAccountSaving(true); setAccountMsg("");
+    try {
+      const res = await fetch(`${apiBase}/api/v1/users/me`, {
+        method: "PUT", headers: authHeader,
+        body: JSON.stringify({ firstName, lastName, phoneNumber }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) { setAccountMsg("✓ Saved successfully"); setUser?.(data.data); }
+      else setAccountMsg(data.message ?? "Error saving");
+    } catch { setAccountMsg("Network error"); }
+    finally { setAccountSaving(false); }
+  };
+
+  const handleSavePassword = async () => {
+    if (pwNew !== pwConfirm) { setPwMsg("Passwords don't match"); return; }
+    setPwSaving(true); setPwMsg("");
+    try {
+      const res = await fetch(`${apiBase}/api/v1/auth/change-password`, {
+        method: "POST", headers: authHeader,
+        body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      setPwMsg(data.success ? "✓ Password updated" : (data.message ?? "Error"));
+      if (data.success) { setPwCurrent(""); setPwNew(""); setPwConfirm(""); }
+    } catch { setPwMsg("Network error"); }
+    finally { setPwSaving(false); }
+  };
+
+  const handleSavePrivacy = async () => {
+    setPrivacySaving(true); setPrivacyMsg("");
+    try {
+      const res = await fetch(`${apiBase}/api/v1/profile/privacy`, {
+        method: "PATCH", headers: authHeader,
+        body: JSON.stringify(privacy),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPrivacyMsg("✓ Privacy settings saved");
+        setProfile?.({ ...profile, privacySettings: data.data?.privacySettings ?? privacy });
+      } else setPrivacyMsg(data.message ?? "Error saving");
+    } catch { setPrivacyMsg("Network error"); }
+    finally { setPrivacySaving(false); }
+  };
+
+  const handleSaveNotifications = async () => {
+    setNotifSaving(true); setNotifMsg("");
+    try {
+      const res = await fetch(`${apiBase}/api/v1/users/me/notifications`, {
+        method: "PATCH", headers: authHeader,
+        body: JSON.stringify(notif),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotifMsg("✓ Notification preferences saved");
+        setUser?.({ ...user, notificationPreferences: data.data?.notificationPreferences ?? notif });
+      } else setNotifMsg(data.message ?? "Error saving");
+    } catch { setNotifMsg("Network error"); }
+    finally { setNotifSaving(false); }
+  };
 
   const NAV = [
     { key: "account",       label: "Account",        icon: Settings },
@@ -413,101 +608,137 @@ const SettingsPage = () => {
                   </div>
                   <div className="set-body">
 
-                    <AccordionSection
-                      title="Personal Information"
-                      icon={<UserIcon size={14} />}
-                      defaultOpen
-                    >
+                    <AccordionSection title="Personal Information" icon={<UserIcon size={14} />} defaultOpen>
                       <div className="set-input-row">
                         <div>
                           <label className="set-label">Email Address</label>
-                          <input className="set-input" type="email" defaultValue={user?.email} readOnly />
+                          <input className="set-input" type="email" value={user?.email ?? ""} readOnly />
                         </div>
                         <div>
-                          <label className="set-label">Phone Number</label>
-                          <input className="set-input" type="tel" placeholder="Add phone number" />
+                          <label className="set-label">
+                            Phone Number
+                            {user?.phoneVerified ? (
+                              <span style={{ marginLeft: 6, fontSize: "0.7rem", color: "#5aaa7a" }}>✓ Verified (SMS via Notify.lk)</span>
+                            ) : (
+                              <span style={{ marginLeft: 6, fontSize: "0.7rem", color: "#c9856a" }}>Not Verified</span>
+                            )}
+                          </label>
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            <input
+                              className="set-input"
+                              type="tel"
+                              placeholder="07XXXXXXXX or 947XXXXXXXX"
+                              value={phoneNumber}
+                              onChange={e => setPhoneNumber(e.target.value)}
+                            />
+                            {!user?.phoneVerified && (
+                              <button
+                                type="button"
+                                className="set-btn-ghost"
+                                style={{ fontSize: "0.72rem", padding: "0.4rem 0.75rem", whiteSpace: "nowrap" }}
+                                onClick={handleRequestPhoneOtp}
+                                disabled={otpSending || !phoneNumber}
+                              >
+                                {otpSending ? "Sending..." : (otpSent ? "Resend OTP" : "Verify SMS")}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Phone OTP Verification Box */}
+                      {otpSent && !user?.phoneVerified && (
+                        <div style={{ background: "#fdf5ee", border: "1px solid #f0ddd5", borderRadius: 10, padding: "0.85rem 1rem", marginTop: "0.5rem", marginBottom: "0.75rem" }}>
+                          <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8b4e2e", marginBottom: "0.35rem" }}>
+                            Enter SMS Verification Code
+                          </div>
+                          <div style={{ fontSize: "0.74rem", color: "#6b4a3a", marginBottom: "0.5rem" }}>
+                            A 6-digit code was dispatched to <strong>{phoneNumber}</strong> via Notify.lk SMS Gateway.
+                          </div>
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            <input
+                              className="set-input"
+                              type="text"
+                              maxLength={6}
+                              placeholder="6-digit code"
+                              style={{ width: "140px", letterSpacing: "2px", fontWeight: 600, textAlign: "center" }}
+                              value={phoneOtp}
+                              onChange={e => setPhoneOtp(e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              className="set-btn-primary"
+                              style={{ fontSize: "0.75rem", padding: "0.45rem 0.9rem" }}
+                              onClick={handleVerifyPhoneOtp}
+                              disabled={otpVerifying || !phoneOtp}
+                            >
+                              {otpVerifying ? "Verifying..." : "Confirm OTP"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {otpMsg && (
+                        <div style={{ fontSize: "0.76rem", color: otpMsg.startsWith("✓") ? "#5aaa7a" : "#c0392b", margin: "4px 0 8px" }}>
+                          {otpMsg}
+                        </div>
+                      )}
+
                       <div className="set-input-row">
                         <div>
                           <label className="set-label">First Name</label>
-                          <input className="set-input" type="text" defaultValue={user?.firstName} placeholder="First name" />
+                          <input className="set-input" type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" />
                         </div>
                         <div>
                           <label className="set-label">Last Name</label>
-                          <input className="set-input" type="text" defaultValue={user?.lastName} placeholder="Last name" />
-                        </div>
-                      </div>
-                      <div className="set-input-row">
-                        <div>
-                          <label className="set-label">Default Language</label>
-                          <select className="set-input">
-                            <option>English</option>
-                            <option>සිංහල (Sinhala)</option>
-                            <option>தமிழ் (Tamil)</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="set-label">Location</label>
-                          <select className="set-input">
-                            <option>Colombo</option>
-                            <option>Kandy</option>
-                            <option>Galle</option>
-                            <option>Negombo</option>
-                            <option>Jaffna</option>
-                            <option>Matara</option>
-                            <option>Kurunegala</option>
-                            <option>Ratnapura</option>
-                          </select>
+                          <input className="set-input" type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" />
                         </div>
                       </div>
                       <div className="set-action-group">
-                        <button className="set-btn-primary">Update Information</button>
+                        <button className="set-btn-primary" onClick={handleSaveAccount} disabled={accountSaving}>
+                          {accountSaving ? "Saving..." : "Update Information"}
+                        </button>
+                        {accountMsg && <span className={`set-save-msg ${accountMsg.startsWith("✓") ? "ok" : "err"}`}>{accountMsg}</span>}
                       </div>
                     </AccordionSection>
 
-                    <AccordionSection
-                      title="Change Password"
-                      icon={<Lock size={14} />}
-                      defaultOpen
-                    >
+                    <AccordionSection title="Change Password" icon={<Lock size={14} />} defaultOpen>
                       <div>
                         <label className="set-label">Current Password</label>
-                        <input className="set-input" type="password" placeholder="Current password" />
+                        <input className="set-input" type="password" placeholder="Current password" value={pwCurrent} onChange={e => setPwCurrent(e.target.value)} />
                       </div>
                       <div>
                         <label className="set-label">New Password</label>
-                        <input className="set-input" type="password" placeholder="New password" />
+                        <input className="set-input" type="password" placeholder="New password" value={pwNew} onChange={e => setPwNew(e.target.value)} />
                       </div>
                       <div>
                         <label className="set-label">Confirm New Password</label>
-                        <input className="set-input" type="password" placeholder="Confirm new password" />
+                        <input className="set-input" type="password" placeholder="Confirm new password" value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} />
                       </div>
                       <div className="set-action-group">
-                        <button className="set-btn-primary">Update Password</button>
+                        <button className="set-btn-primary" onClick={handleSavePassword} disabled={pwSaving}>
+                          {pwSaving ? "Updating..." : "Update Password"}
+                        </button>
+                        {pwMsg && <span className={`set-save-msg ${pwMsg.startsWith("✓") ? "ok" : "err"}`}>{pwMsg}</span>}
                       </div>
                     </AccordionSection>
 
-                    <AccordionSection
-                      title="Account Actions"
-                      icon={<AlertTriangle size={14} />}
-                    >
+                    <AccordionSection title="Account Actions" icon={<AlertTriangle size={14} />}>
                       <div>
                         <div className="set-subsection-title"><Download size={11} />Download Your Data</div>
                         <p style={{ fontSize: "0.78rem", color: "#9a7060", margin: "0 0 0.5rem" }}>Request a copy of all your personal data stored with us</p>
                         <button className="set-btn-ghost"><Download size={13} /> Request Download</button>
                       </div>
-
                       <div className="set-danger-area">
                         <div className="set-danger-title">Log Out</div>
                         <div className="set-danger-sub">Sign out of your account on this device</div>
                         <button className="set-btn-primary" onClick={logout}><LogOut size={13} /> Log Out</button>
                       </div>
-
                       <div className="set-danger-area">
                         <div className="set-danger-title">Delete Account</div>
                         <div className="set-danger-sub">Permanently delete your account and all associated data. This cannot be undone.</div>
-                        <button className="set-btn-danger"><AlertTriangle size={13} /> Delete My Account</button>
+                        <button className="set-btn-danger" onClick={handleDeleteAccount} disabled={deletingAccount}>
+                          <AlertTriangle size={13} /> {deletingAccount ? "Deleting Account..." : "Delete My Account"}
+                        </button>
                       </div>
                     </AccordionSection>
 
@@ -532,11 +763,24 @@ const SettingsPage = () => {
                         <p>Who can see my profile</p>
                         <span>Control who can view your full profile details</span>
                       </div>
-                      <select className="set-input" style={{ width: "auto", fontSize: "0.78rem" }}>
-                        <option>Everyone</option>
-                        <option>Only members I liked</option>
-                        <option>Only matches</option>
+                      <select
+                        className="set-input"
+                        style={{ width: "auto", fontSize: "0.78rem" }}
+                        value={privacy.profileVisibility}
+                        onChange={e => setPrivacy(p => ({ ...p, profileVisibility: e.target.value }))}
+                      >
+                        <option value="EVERYONE">Everyone</option>
+                        <option value="CONNECTIONS_ONLY">Only members I liked</option>
+                        <option value="MATCHES_ONLY">Only matches</option>
                       </select>
+                    </div>
+
+                    <div className="set-toggle-row">
+                      <div className="set-toggle-info">
+                        <p>Show in search results</p>
+                        <span>Allow your profile to appear in discovery feeds</span>
+                      </div>
+                      <Toggle value={!!privacy.showInSearchResults} onChange={v => setPrivacy(p => ({ ...p, showInSearchResults: v }))} />
                     </div>
 
                     <div className="set-toggle-row">
@@ -544,23 +788,29 @@ const SettingsPage = () => {
                         <p>Show online status</p>
                         <span>Let others know when you're active on the platform</span>
                       </div>
-                      <Toggle defaultChecked />
+                      <Toggle value={!!privacy.showOnlineStatus} onChange={v => setPrivacy(p => ({ ...p, showOnlineStatus: v }))} />
                     </div>
 
                     <div className="set-toggle-row">
                       <div className="set-toggle-info">
-                        <p>Show approximate distance</p>
-                        <span>Display distance between you and other users</span>
+                        <p>Show approximate location</p>
+                        <span>Display city/area on your profile (exact coordinates are never shared)</span>
                       </div>
-                      <Toggle defaultChecked />
+                      <Toggle value={!!privacy.showExactLocation} onChange={v => setPrivacy(p => ({ ...p, showExactLocation: v }))} />
                     </div>
 
                     <div className="set-toggle-row">
                       <div className="set-toggle-info">
-                        <p>Incognito browsing</p>
-                        <span>Browse profiles without appearing in their visitors list</span>
+                        <p>
+                          Incognito browsing
+                          {!isPremium && <Crown size={11} style={{ display: "inline", color: "#c9856a", marginLeft: 5, verticalAlign: "middle" }} />}
+                        </p>
+                        <span>Browse profiles without appearing in their visitors list{!isPremium ? " — Premium feature" : ""}</span>
                       </div>
-                      <Toggle />
+                      {isPremium
+                        ? <Toggle value={!!privacy.incognitoMode} onChange={v => setPrivacy(p => ({ ...p, incognitoMode: v }))} />
+                        : <Link href="/subscription" className="set-btn-ghost" style={{ fontSize: "0.72rem", padding: "0.3rem 0.7rem" }}><Crown size={11} /> Upgrade</Link>
+                      }
                     </div>
 
                     <div className="set-divider" />
@@ -571,10 +821,15 @@ const SettingsPage = () => {
                         <p>Who can message me</p>
                         <span>Control who can send you direct messages</span>
                       </div>
-                      <select className="set-input" style={{ width: "auto", fontSize: "0.78rem" }}>
-                        <option>Everyone</option>
-                        <option>Only members I liked</option>
-                        <option>Only matches</option>
+                      <select
+                        className="set-input"
+                        style={{ width: "auto", fontSize: "0.78rem" }}
+                        value={privacy.whoCanMessage}
+                        onChange={e => setPrivacy(p => ({ ...p, whoCanMessage: e.target.value }))}
+                      >
+                        <option value="EVERYONE">Everyone</option>
+                        <option value="CONNECTIONS_ONLY">Only members I liked</option>
+                        <option value="MATCHES_ONLY">Only matches</option>
                       </select>
                     </div>
 
@@ -583,7 +838,7 @@ const SettingsPage = () => {
                         <p>Read receipts</p>
                         <span>Let others know when you've read their messages</span>
                       </div>
-                      <Toggle defaultChecked />
+                      <Toggle value={!!privacy.readReceiptsEnabled} onChange={v => setPrivacy(p => ({ ...p, readReceiptsEnabled: v }))} />
                     </div>
 
                     <div className="set-divider" />
@@ -594,7 +849,15 @@ const SettingsPage = () => {
                         <p>Show income range</p>
                         <span>Display your income range to other members</span>
                       </div>
-                      <Toggle />
+                      <Toggle value={!!privacy.showIncomeRange} onChange={v => setPrivacy(p => ({ ...p, showIncomeRange: v }))} />
+                    </div>
+
+                    <div className="set-toggle-row">
+                      <div className="set-toggle-info">
+                        <p>Show family details</p>
+                        <span>Display family background information on your profile</span>
+                      </div>
+                      <Toggle value={!!privacy.showFamilyDetails} onChange={v => setPrivacy(p => ({ ...p, showFamilyDetails: v }))} />
                     </div>
 
                     <div className="set-toggle-row">
@@ -602,13 +865,28 @@ const SettingsPage = () => {
                         <p>Show horoscope details</p>
                         <span>Make your detailed horoscope information visible to matches</span>
                       </div>
-                      <Toggle defaultChecked />
+                      <Toggle value={!!privacy.showHoroscope} onChange={v => setPrivacy(p => ({ ...p, showHoroscope: v }))} />
+                    </div>
+
+                    <div className="set-toggle-row">
+                      <div className="set-toggle-info">
+                        <p>Show partner preferences</p>
+                        <span>Allow others to see what you're looking for in a partner</span>
+                      </div>
+                      <Toggle value={!!privacy.showPartnerPreferences} onChange={v => setPrivacy(p => ({ ...p, showPartnerPreferences: v }))} />
                     </div>
 
                     <div className="set-divider" />
                     <div className="set-subsection-title"><Shield size={11} />Blocking</div>
                     <p style={{ fontSize: "0.78rem", color: "#9a7060", marginBottom: "0.6rem" }}>Manage users you've blocked from contacting you</p>
                     <button className="set-btn-ghost">Manage Blocked Users</button>
+
+                    <div style={{ marginTop: "1.25rem" }}>
+                      <button className="set-btn-primary" onClick={handleSavePrivacy} disabled={privacySaving}>
+                        {privacySaving ? "Saving..." : "Save Privacy Settings"}
+                      </button>
+                      {privacyMsg && <span className={`set-save-msg ${privacyMsg.startsWith("✓") ? "ok" : "err"}`}>{privacyMsg}</span>}
+                    </div>
 
                     <div className="set-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
                   </div>
@@ -626,37 +904,40 @@ const SettingsPage = () => {
 
                     <div className="set-subsection-title"><Mail size={11} />Email Notifications</div>
 
-                    {[
-                      ["New messages", "When you receive a new message", true],
-                      ["New matches", "When you have a new match", true],
-                      ["Profile views", "When someone views your profile", false],
-                      ["Connection requests", "When someone sends you a request", true],
-                      ["Promotions & tips", "Special offers and Sri Lankan matrimony tips", false],
-                    ].map(([label, sub, def]) => (
-                      <div key={label} className="set-toggle-row">
+                    {([
+                      ["emailNewMessages",  "New messages",        "When you receive a new message"],
+                      ["emailNewMatches",   "New matches",         "When you have a new match"],
+                      ["emailProfileViews", "Profile views",       "When someone views your profile"],
+                      ["emailConnections",  "Connection requests", "When someone sends you a request"],
+                      ["emailPromotions",   "Promotions & tips",   "Special offers and Sri Lankan matrimony tips"],
+                    ] as const).map(([key, label, sub]) => (
+                      <div key={key} className="set-toggle-row">
                         <div className="set-toggle-info"><p>{label}</p><span>{sub}</span></div>
-                        <Toggle defaultChecked={def} />
+                        <Toggle value={!!notif[key]} onChange={v => setNotif(n => ({ ...n, [key]: v }))} />
                       </div>
                     ))}
 
                     <div className="set-divider" />
                     <div className="set-subsection-title"><Bell size={11} />Push Notifications</div>
 
-                    {[
-                      ["New messages", "When you receive a new message", true],
-                      ["New matches", "When you have a new match", true],
-                      ["Profile views", "When someone views your profile", true],
-                      ["Connection requests", "When someone sends you a request", true],
-                      ["Promotions & tips", "Special offers and Sri Lankan matrimony tips", false],
-                    ].map(([label, sub, def]) => (
-                      <div key={label + "-push"} className="set-toggle-row">
+                    {([
+                      ["pushNewMessages",  "New messages",        "When you receive a new message"],
+                      ["pushNewMatches",   "New matches",         "When you have a new match"],
+                      ["pushProfileViews", "Profile views",       "When someone views your profile"],
+                      ["pushConnections",  "Connection requests", "When someone sends you a request"],
+                      ["pushPromotions",   "Promotions & tips",   "Special offers and Sri Lankan matrimony tips"],
+                    ] as const).map(([key, label, sub]) => (
+                      <div key={key + "-push"} className="set-toggle-row">
                         <div className="set-toggle-info"><p>{label}</p><span>{sub}</span></div>
-                        <Toggle defaultChecked={def} />
+                        <Toggle value={!!notif[key]} onChange={v => setNotif(n => ({ ...n, [key]: v }))} />
                       </div>
                     ))}
 
                     <div style={{ marginTop: "1.1rem" }}>
-                      <button className="set-btn-primary">Save Notification Settings</button>
+                      <button className="set-btn-primary" onClick={handleSaveNotifications} disabled={notifSaving}>
+                        {notifSaving ? "Saving..." : "Save Notification Settings"}
+                      </button>
+                      {notifMsg && <span className={`set-save-msg ${notifMsg.startsWith("✓") ? "ok" : "err"}`}>{notifMsg}</span>}
                     </div>
                     <div className="set-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
                   </div>
@@ -677,8 +958,8 @@ const SettingsPage = () => {
                         <p>Two-Factor Authentication (MFA)</p>
                         <span>Protect your account with an extra verification step</span>
                       </div>
-                      <div style={{ fontSize: "0.75rem", fontWeight: 600, color: user?.mfaEnabled ? "#5aaa7a" : "#9a7060" }}>
-                        {user?.mfaEnabled ? "ENABLED" : "DISABLED"}
+                      <div style={{ fontSize: "0.75rem", fontWeight: 600, color: (user?.totpEnabled || user?.mfaEnabled) ? "#5aaa7a" : "#9a7060" }}>
+                        {(user?.totpEnabled || user?.mfaEnabled) ? "ENABLED" : "DISABLED"}
                       </div>
                     </div>
 
@@ -689,7 +970,7 @@ const SettingsPage = () => {
 
                     <div style={{ marginBottom: "1.25rem" }}>
                       <button className="set-btn-primary" onClick={() => router.push("/security/mfa-setup")}>
-                        {user?.mfaEnabled ? "Manage MFA Settings" : "Enable MFA Protection"}
+                        {(user?.totpEnabled || user?.mfaEnabled) ? "Manage MFA Settings" : "Enable MFA Protection"}
                       </button>
                     </div>
 
@@ -697,12 +978,11 @@ const SettingsPage = () => {
                     <div className="set-subsection-title"><Lock size={11} />Session Security</div>
                     <div className="set-info-box" style={{ marginBottom: "0.75rem", background: "#f0fdf4", borderColor: "#d0f4dc", color: "#2e7d32" }}>
                       <CheckCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                      <span>Your session is protected by HttpOnly & Secure cookies, mitigating risks from XSS (Cross-Site Scripting) attacks.</span>
+                      <span>Your session is protected by HttpOnly &amp; Secure cookies, mitigating risks from XSS (Cross-Site Scripting) attacks.</span>
                     </div>
 
                     <div className="set-divider" />
                     <div className="set-subsection-title"><Smartphone size={11} />Active Sessions</div>
-
                     <p style={{ fontSize: "0.78rem", color: "#9a7060", marginBottom: "0.75rem" }}>
                       These are the devices currently logged into your account
                     </p>
@@ -711,22 +991,11 @@ const SettingsPage = () => {
                       <div className="set-session-left">
                         <Smartphone size={18} style={{ color: "#8b4e2e" }} />
                         <div>
-                          <div className="set-session-name">iPhone · Colombo, Sri Lanka</div>
+                          <div className="set-session-name">This Device · Current Browser</div>
                           <div className="set-session-sub">Current session</div>
                         </div>
                       </div>
                       <span className="set-session-active"><CheckCircle size={12} /> Active now</span>
-                    </div>
-
-                    <div className="set-session-item">
-                      <div className="set-session-left">
-                        <Globe size={18} style={{ color: "#9a7060" }} />
-                        <div>
-                          <div className="set-session-name">Chrome · Windows · Kandy, Sri Lanka</div>
-                          <div className="set-session-sub">Last active: 2 days ago</div>
-                        </div>
-                      </div>
-                      <button className="set-btn-danger" style={{ padding: "0.3rem 0.75rem", fontSize: "0.74rem" }}>Log out</button>
                     </div>
 
                     <button style={{ background: "none", border: "none", color: "#a84a4a", fontSize: "0.8rem", fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginTop: "0.25rem", padding: 0 }}>
@@ -737,8 +1006,7 @@ const SettingsPage = () => {
                     <div className="set-subsection-title"><Info size={11} />Login History</div>
 
                     {[
-                      ["Successful login", "iPhone · Colombo, Sri Lanka", "Today, 10:23 AM"],
-                      ["Successful login", "Chrome · Windows · Kandy, Sri Lanka", "2 days ago, 8:45 PM"],
+                      ["Successful login", "This Device · Current Browser", "Today"],
                     ].map(([status, device, time]) => (
                       <div key={time} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "0.65rem 0.85rem", border: "1px solid #f0ddd5", borderRadius: "10px", marginBottom: "0.5rem" }}>
                         <div>
@@ -759,7 +1027,7 @@ const SettingsPage = () => {
               {activeSection === "billing" && (
                 <>
                   <div className="set-card-head">
-                    <div className="set-card-head-title">Billing & Subscription</div>
+                    <div className="set-card-head-title">Billing &amp; Subscription</div>
                     <div className="set-card-head-sub">Manage your plan and payment details</div>
                   </div>
                   <div className="set-body">
@@ -777,9 +1045,9 @@ const SettingsPage = () => {
                             ? "Unlimited likes, voice calls, advanced filters, and more"
                             : "Basic features with limited daily likes and matches"}
                         </div>
-                        {isPremium && subscription?.expiresAt && (
+                        {isPremium && (user?.premiumExpiryDate || subscription?.expiresAt) && (
                           <div style={{ fontSize: "0.72rem", color: "#8b4e2e", marginTop: 4 }}>
-                            Expires: {new Date(subscription.expiresAt).toLocaleDateString("en-LK", { year: "numeric", month: "long", day: "numeric" })}
+                            Expires: {new Date(user?.premiumExpiryDate ?? subscription.expiresAt).toLocaleDateString("en-LK", { year: "numeric", month: "long", day: "numeric" })}
                           </div>
                         )}
                       </div>
@@ -793,7 +1061,7 @@ const SettingsPage = () => {
                     {!isPremium && (
                       <div className="set-info-box">
                         <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                        <span>Premium members find matches 3× faster. Unlock unlimited likes, voice & video calls, advanced filters, and detailed horoscope compatibility — starting from just $20/month.</span>
+                        <span>Premium members find matches 3× faster. Unlock unlimited likes, voice &amp; video calls, advanced filters, and detailed horoscope compatibility — starting from just $20/month.</span>
                       </div>
                     )}
 
@@ -806,7 +1074,7 @@ const SettingsPage = () => {
               {activeSection === "help" && (
                 <>
                   <div className="set-card-head">
-                    <div className="set-card-head-title">Help & Support</div>
+                    <div className="set-card-head-title">Help &amp; Support</div>
                     <div className="set-card-head-sub">Find answers or reach our support team</div>
                   </div>
                   <div className="set-body">
@@ -829,7 +1097,6 @@ const SettingsPage = () => {
 
                     <div className="set-divider" />
                     <div className="set-subsection-title"><MessageCircleIcon size={11} />Contact Support</div>
-
                     <p style={{ fontSize: "0.78rem", color: "#9a7060", marginBottom: "0.75rem" }}>
                       Our support team is available 7 days a week to help you.
                     </p>

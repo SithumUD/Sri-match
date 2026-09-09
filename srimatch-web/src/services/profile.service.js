@@ -75,6 +75,14 @@ const ProfileService = {
      */
     getPublicProfile: (profileId) => {
         return API.get(`/profiles/${profileId}`);
+    },
+
+    /**
+     * Update privacy settings dedicated PATCH endpoint
+     * @param {Object} privacySettings
+     */
+    updatePrivacySettings: (privacySettings) => {
+        return API.patch('/profile/privacy', privacySettings);
     }
 };
 
