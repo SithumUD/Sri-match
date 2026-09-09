@@ -52,8 +52,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -71,8 +71,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
-          AND (p.privacy_settings IS NULL OR (p.privacy_settings->>'showInSearchResults')::boolean IS NULL OR (p.privacy_settings->>'showInSearchResults')::boolean = TRUE)
-          AND (p.privacy_settings IS NULL OR (p.privacy_settings->>'visibleToVerifiedOnly')::boolean IS NULL OR (p.privacy_settings->>'visibleToVerifiedOnly')::boolean = FALSE OR :viewerVerified = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         ORDER BY
           CASE WHEN p.is_boosted = TRUE AND (p.boost_expires_at IS NULL OR p.boost_expires_at > NOW()) THEN 1 ELSE 0 END DESC,
           COALESCE(p.completion_score, 0) DESC,
@@ -87,8 +87,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -106,6 +106,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         """,
         nativeQuery = true)
     Page<Profile> findDiscoveryDynamic(
@@ -147,8 +149,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -166,6 +168,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         ORDER BY
           CASE WHEN p.is_boosted = TRUE AND (p.boost_expires_at IS NULL OR p.boost_expires_at > NOW()) THEN 1 ELSE 0 END DESC,
           p.created_at DESC,
@@ -173,14 +177,15 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           p.id DESC
         """,
         countQuery = """
-        SELECT COUNT(*) FROM profiles p INNER JOIN users u ON p.user_id = u.id
+        SELECT COUNT(*) FROM profiles p
+        INNER JOIN users u ON p.user_id = u.id
         WHERE p.is_visible = TRUE AND p.is_deleted = FALSE AND u.is_deleted = FALSE
           AND u.is_profile_completed = TRUE
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -198,6 +203,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         """,
         nativeQuery = true)
     Page<Profile> findDiscoveryNewest(
@@ -239,8 +246,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -258,6 +265,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         ORDER BY
           CASE WHEN p.is_boosted = TRUE AND (p.boost_expires_at IS NULL OR p.boost_expires_at > NOW()) THEN 1 ELSE 0 END DESC,
           p.date_of_birth DESC,
@@ -265,14 +274,15 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           p.id DESC
         """,
         countQuery = """
-        SELECT COUNT(*) FROM profiles p INNER JOIN users u ON p.user_id = u.id
+        SELECT COUNT(*) FROM profiles p
+        INNER JOIN users u ON p.user_id = u.id
         WHERE p.is_visible = TRUE AND p.is_deleted = FALSE AND u.is_deleted = FALSE
           AND u.is_profile_completed = TRUE
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -290,6 +300,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         """,
         nativeQuery = true)
     Page<Profile> findDiscoveryAgeAsc(
@@ -331,8 +343,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -350,6 +362,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         ORDER BY
           CASE WHEN p.is_boosted = TRUE AND (p.boost_expires_at IS NULL OR p.boost_expires_at > NOW()) THEN 1 ELSE 0 END DESC,
           p.date_of_birth ASC,
@@ -357,14 +371,15 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           p.id DESC
         """,
         countQuery = """
-        SELECT COUNT(*) FROM profiles p INNER JOIN users u ON p.user_id = u.id
+        SELECT COUNT(*) FROM profiles p
+        INNER JOIN users u ON p.user_id = u.id
         WHERE p.is_visible = TRUE AND p.is_deleted = FALSE AND u.is_deleted = FALSE
           AND u.is_profile_completed = TRUE
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -382,6 +397,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         """,
         nativeQuery = true)
     Page<Profile> findDiscoveryAgeDesc(
@@ -423,8 +440,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -442,6 +459,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         ORDER BY
           CASE WHEN p.is_boosted = TRUE AND (p.boost_expires_at IS NULL OR p.boost_expires_at > NOW()) THEN 1 ELSE 0 END DESC,
           p.height ASC NULLS LAST,
@@ -449,14 +468,15 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           p.id DESC
         """,
         countQuery = """
-        SELECT COUNT(*) FROM profiles p INNER JOIN users u ON p.user_id = u.id
+        SELECT COUNT(*) FROM profiles p
+        INNER JOIN users u ON p.user_id = u.id
         WHERE p.is_visible = TRUE AND p.is_deleted = FALSE AND u.is_deleted = FALSE
           AND u.is_profile_completed = TRUE
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -474,6 +494,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         """,
         nativeQuery = true)
     Page<Profile> findDiscoveryHeightAsc(
@@ -515,8 +537,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -534,6 +556,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         ORDER BY
           CASE WHEN p.is_boosted = TRUE AND (p.boost_expires_at IS NULL OR p.boost_expires_at > NOW()) THEN 1 ELSE 0 END DESC,
           p.height DESC NULLS LAST,
@@ -541,14 +565,15 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           p.id DESC
         """,
         countQuery = """
-        SELECT COUNT(*) FROM profiles p INNER JOIN users u ON p.user_id = u.id
+        SELECT COUNT(*) FROM profiles p
+        INNER JOIN users u ON p.user_id = u.id
         WHERE p.is_visible = TRUE AND p.is_deleted = FALSE AND u.is_deleted = FALSE
           AND u.is_profile_completed = TRUE
           AND (u.account_locked_until IS NULL OR u.account_locked_until < NOW())
           AND (:excludeId IS NULL OR p.id != :excludeId)
           AND (:gender IS NULL OR p.gender = :gender)
-          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - (:minAge || ' years')\\:\\:interval))
-          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - ((:maxAge + 1) || ' years')\\:\\:interval))
+          AND (:minAge IS NULL OR p.date_of_birth <= (CURRENT_DATE - CAST((:minAge || ' years') AS interval)))
+          AND (:maxAge IS NULL OR p.date_of_birth >= (CURRENT_DATE - CAST(((:maxAge + 1) || ' years') AS interval)))
           AND (:maritalStatus IS NULL OR p.marital_status = :maritalStatus)
           AND (:hasChildren IS NULL OR p.has_children = :hasChildren)
           AND (:city IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -566,6 +591,8 @@ public interface ProfileRepository extends JpaRepository<Profile, Long>, JpaSpec
           AND (:interests IS NULL OR CAST(p.interests AS text) ~* :interests)
           AND (:profession IS NULL OR LOWER(p.profession) LIKE LOWER(CONCAT('%', :profession, '%')))
           AND (:industry IS NULL OR p.industry = :industry)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) IS NULL OR CAST(p.privacy_settings->>'showInSearchResults' AS boolean) = TRUE)
+          AND (p.privacy_settings IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) IS NULL OR CAST(p.privacy_settings->>'visibleToVerifiedOnly' AS boolean) = FALSE OR :viewerVerified = TRUE)
         """,
         nativeQuery = true)
     Page<Profile> findDiscoveryHeightDesc(

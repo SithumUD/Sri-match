@@ -71,7 +71,7 @@ class CursorPaginationTest {
         when(profileRepository.findDiscoveryDynamic(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(Pageable.class)))
+                any(), any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(p1, p2), org.springframework.data.domain.PageRequest.of(0, 2), 3));
 
         ProfileSearchRequest request = new ProfileSearchRequest();
@@ -93,7 +93,7 @@ class CursorPaginationTest {
         when(profileRepository.findDiscoveryDynamic(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(Pageable.class)))
+                any(), any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(p3), org.springframework.data.domain.PageRequest.of(1, 2), 3));
 
         ProfileSearchRequest request = new ProfileSearchRequest();
